@@ -16,12 +16,21 @@ const GraphComponent = () => {
     const graph = defineGraph({ nodes, links });
 
     const handleNewNodes = (nodesInput: string) => {
-        const extractedNodesInput = nodesInput.replace(/[^A-Za-z]/g, "");
+        const extractedNodesInput = nodesInput.replace(/\s/g, "").split(",");
         const newNodes: GraphNode[] = [];
         for (let i = 0; i < extractedNodesInput.length; i++) {
-            newNodes.push(createNewNode(extractedNodesInput[i]));
+            if (!nodeExists(extractedNodesInput[i])) {
+                newNodes.push(createNewNode(extractedNodesInput[i]));
+            }
         }
         addNodes([...nodes, ...newNodes]);
+    };
+
+    const nodeExists = (currentNodeInput: string): boolean => {
+        return !!(
+            nodes.find((node) => node.id === currentNodeInput) ||
+            currentNodeInput.trim() == ""
+        );
     };
 
     const createNewNode = (nodeText: string): GraphNode => {
@@ -43,7 +52,16 @@ const GraphComponent = () => {
         const extractedLinksInput = linksInput
             .replace(/\s*-\s*/g, "-")
             .split(",")
-            .map((pair) => pair.trim().split("-"));
+            .map((pair) => {
+                const trimmedPair = pair.trim();
+                const pairParts = trimmedPair.split("-");
+                if (pairParts.length === 1) {
+                    return [trimmedPair, trimmedPair];
+                } else {
+                    return pairParts;
+                }
+            });
+
         const newLinks: GraphLink[] = [];
 
         for (let i = 0; i < extractedLinksInput.length; i++) {

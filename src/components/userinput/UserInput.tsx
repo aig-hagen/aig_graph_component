@@ -60,7 +60,7 @@ const UserInput = ({ handleNodeInput, handleLinkInput }: UserInputProps) => {
                         id="links"
                         type="text"
                         className="form-control"
-                        placeholder={"Input links like A - B, B - C, ..."}
+                        placeholder={"Input links like A-B, B-C, A ..."}
                     />
                 </div>
                 <button
