@@ -1,1 +1,0 @@
-# aig_graph_component

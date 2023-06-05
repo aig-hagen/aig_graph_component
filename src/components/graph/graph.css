@@ -1,0 +1,60 @@
+.graph {
+    position: relative;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    height: 60vh;
+    border: 1px solid lightgray;
+    overflow: hidden;
+}
+
+.graph > svg {
+    display: block;
+    margin: 0 auto;
+    position: absolute;
+    top: 0;
+    left: 25%;
+    transform: translate(-25%, 0);
+}
+
+
+.graph * {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+
+.link {
+    fill: none;
+    stroke-width: 4px;
+}
+
+.node {
+    --color-stroke: #868e96;
+    color: lightsalmon;
+    cursor: pointer;
+    stroke: none;
+    stroke-width: 2px;
+    transition: filter 0.25s ease, stroke 0.25s ease, stroke-dasharray 0.25s ease;
+}
+
+.node:hover:not(.focused) {
+    filter: brightness(80%);
+    stroke: var(--color-stroke);
+    stroke-dasharray: 4px;
+}
+
+.node.focused {
+    stroke: var(--color-stroke);
+}
+
+.link__label,
+.node__label {
+    pointer-events: none;
+    text-anchor: middle;
+}
+
+.grabbed {
+    cursor: grabbing !important;
+}
