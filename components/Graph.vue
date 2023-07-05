@@ -272,6 +272,15 @@ export default Vue.extend({
                         .on('pointerup', (event: PointerEvent) => {
                             this.onPointerUp(event)
                         })
+                    nodeGroup
+                        .append('text')
+                        .classed('node-label', true)
+                        .text('click to add label')
+                        .attr('dy', '0.33em')
+                        .attr('dx', '-0.33em')
+                        .on('click', () => {
+                            this.onLabelClicked()
+                        })
                     return nodeGroup
                 }
             )
@@ -328,6 +337,38 @@ export default Vue.extend({
                 this.draggableLinkEnd = point
                 this.updateDraggableLinkPath()
             }
+        },
+        onLabelClicked(): void {
+            const initialTextElement = event?.target as SVGTextElement
+            const input = document.createElement('input')
+            input.value = ''
+
+            input.onkeyup = function (e) {
+                if (['Enter', 'Escape'].includes(e.key)) {
+                    input.blur()
+                    return
+                }
+                initialTextElement.textContent =
+                    input.value === '' ? 'click to add label' : input.value
+            }
+            input.onblur = function () {
+                foreignObj.remove()
+            }
+
+            const foreignObj = document.createElementNS(
+                'http://www.w3.org/2000/svg',
+                'foreignObject'
+            )
+            foreignObj.setAttribute('width', '100%')
+            foreignObj.setAttribute('height', '100%')
+            foreignObj.setAttribute('x', '-10%')
+            foreignObj.setAttribute('y', '-7%')
+            foreignObj.append(input)
+
+            const gContainingNode = initialTextElement.parentNode
+            gContainingNode?.append(foreignObj)
+
+            input.focus()
         },
         resetDraggableLink(): void {
             this.draggableLink?.classed('hidden', true).style('marker-end', '')
@@ -409,6 +450,17 @@ export default Vue.extend({
     cursor: pointer;
 }
 
+.node-label {
+    fill: black;
+    stroke: none;
+    font-size: 1rem;
+    opacity: 1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: all;
+    cursor: text;
+}
 .button-container {
     position: absolute;
     top: 1rem;
