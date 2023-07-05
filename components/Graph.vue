@@ -277,7 +277,6 @@ export default Vue.extend({
                         .classed('node-label', true)
                         .text('click to add label')
                         .attr('dy', '0.33em')
-                        .attr('dx', '-0.33em')
                         .on('click', () => {
                             this.onLabelClicked()
                         })
@@ -341,7 +340,7 @@ export default Vue.extend({
         onLabelClicked(): void {
             const initialTextElement = event?.target as SVGTextElement
             const input = document.createElement('input')
-            input.value = ''
+            input.placeholder = 'Enter node label'
 
             input.onkeyup = function (e) {
                 if (['Enter', 'Escape'].includes(e.key)) {
@@ -361,7 +360,7 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-            foreignObj.setAttribute('x', '-10%')
+            foreignObj.setAttribute('x', '-8%')
             foreignObj.setAttribute('y', '-7%')
             foreignObj.append(input)
 
@@ -455,9 +454,7 @@ export default Vue.extend({
     stroke: none;
     font-size: 1rem;
     opacity: 1;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
+    text-anchor: middle;
     pointer-events: all;
     cursor: text;
 }
@@ -475,7 +472,6 @@ export default Vue.extend({
 *:not(input):not(.selectable) {
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
-    -khtml-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
