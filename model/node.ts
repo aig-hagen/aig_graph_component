@@ -6,6 +6,7 @@ export interface D3Node extends SimulationNodeDatum {
     y?: number
     fx?: number
     fy?: number
+    label?: string
 }
 
 export class Node implements D3Node {
@@ -15,6 +16,7 @@ export class Node implements D3Node {
         public x?: number,
         public y?: number,
         public fx?: number,
-        public fy?: number
+        public fy?: number,
+        public label?: string
     ) {}
 }

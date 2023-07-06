@@ -274,11 +274,11 @@ export default Vue.extend({
                         })
                     nodeGroup
                         .append('text')
-                        .classed('node-label', true)
+                        .classed('node-label-placeholder', true)
                         .text('click to add label')
                         .attr('dy', '0.33em')
-                        .on('click', () => {
-                            this.onLabelClicked()
+                        .on('click', (event: MouseEvent, d: Node) => {
+                            this.onLabelClicked(event, d)
                         })
                     return nodeGroup
                 }
@@ -337,20 +337,36 @@ export default Vue.extend({
                 this.updateDraggableLinkPath()
             }
         },
-        onLabelClicked(): void {
-            const initialTextElement = event?.target as SVGTextElement
+        onLabelClicked(event: MouseEvent, node: Node): void {
+            const textElement = event?.target as SVGTextElement
             const input = document.createElement('input')
             input.placeholder = 'Enter node label'
+            let pressedEnter = false
 
             input.onkeyup = function (e) {
-                if (['Enter', 'Escape'].includes(e.key)) {
+                if (e.key === 'Enter') {
+                    pressedEnter = true
                     input.blur()
-                    return
+                } else if (e.key === 'Escape') {
+                    input.value = ''
+                    input.blur()
                 }
-                initialTextElement.textContent =
-                    input.value === '' ? 'click to add label' : input.value
             }
             input.onblur = function () {
+                if (pressedEnter) {
+                    if (input.value === '') {
+                        textElement.setAttribute(
+                            'class',
+                            'node-label-placeholder'
+                        )
+                        textElement.textContent = 'click to add label'
+                        node.label = undefined
+                    } else {
+                        textElement.setAttribute('class', 'node-label')
+                        textElement.textContent = input.value
+                        node.label = textElement.textContent
+                    }
+                }
                 foreignObj.remove()
             }
 
@@ -360,11 +376,11 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-            foreignObj.setAttribute('x', '-8%')
+            foreignObj.setAttribute('x', '-11%')
             foreignObj.setAttribute('y', '-7%')
             foreignObj.append(input)
 
-            const gContainingNode = initialTextElement.parentNode
+            const gContainingNode = textElement.parentNode
             gContainingNode?.append(foreignObj)
 
             input.focus()
@@ -451,6 +467,16 @@ export default Vue.extend({
 
 .node-label {
     fill: black;
+    stroke: none;
+    font-size: 1rem;
+    opacity: 1;
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
+}
+.node-label-placeholder {
+    fill: dimgrey;
+    font-style: oblique;
     stroke: none;
     font-size: 1rem;
     opacity: 1;
