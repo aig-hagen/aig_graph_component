@@ -282,6 +282,14 @@ export default Vue.extend({
                         .on('click', (event: MouseEvent, d: Node) => {
                             this.onLabelClicked(event, d)
                         })
+                        .on(
+                            'mouseenter',
+                            (_, d: Node) => (this.draggableLinkTargetNode = d)
+                        )
+                        .on(
+                            'mouseout',
+                            () => (this.draggableLinkTargetNode = undefined)
+                        )
                     return nodeGroup
                 }
             )
@@ -341,8 +349,11 @@ export default Vue.extend({
         },
         onLabelClicked(event: MouseEvent, node: Node): void {
             const textElement = event?.target as SVGTextElement
+
             const input = document.createElement('input')
-            input.placeholder = 'Enter node label'
+            input.setAttribute('class', 'node-label-input')
+            input.placeholder = ' Enter node label'
+
             let pressedEnter = false
 
             input.onkeyup = function (e) {
@@ -485,6 +496,9 @@ export default Vue.extend({
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
+}
+.node-label-input {
+    background-color: rgba(255, 255, 255, 0.9);
 }
 .button-container {
     position: absolute;
