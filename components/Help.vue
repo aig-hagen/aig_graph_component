@@ -70,6 +70,12 @@ export default {
                     mobile: 'Touch & drag',
                 },
                 {
+                    action: 'Create/Update label',
+                    desktop: 'Left-click on label',
+                    mobile: '-',
+                    // on mobile, it still has to be tested
+                },
+                {
                     action: 'Delete node/link',
                     desktop: 'Right-click',
                     mobile: 'Long tap',
