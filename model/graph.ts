@@ -72,4 +72,20 @@ export default class Graph {
         this.links.splice(linkIndex, 1)
         return link
     }
+
+    // formats the graph in Trivial Graph Format
+    public toTDF(): String {
+        if (this.nodes.length === 0 && this.links.length === 0) {
+            return 'Graph is empty'
+        }
+
+        const nodeLines = this.nodes
+            .map((node) => `${node.id} ${node.label}`)
+            .join('\n')
+        const linkLines = this.links
+            .map((link) => `${link.source.id} ${link.target.id}`)
+            .join('\n')
+
+        return `${nodeLines}${linkLines ? '\n###########\n' : ''}${linkLines}`
+    }
 }

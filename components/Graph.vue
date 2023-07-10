@@ -18,6 +18,7 @@
             >
                 <v-icon v-text="'mdi-delete'" />
             </v-btn>
+            <save :text="this.graph.toTDF()" />
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
             <!--            <v-btn-->
@@ -397,6 +398,9 @@ export default Vue.extend({
             gContainingNode?.append(foreignObj)
 
             input.focus()
+        },
+        saveGraph(): void {
+            console.log(this.graph.nodes)
         },
         resetDraggableLink(): void {
             this.draggableLink?.classed('hidden', true).style('marker-end', '')

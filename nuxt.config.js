@@ -30,8 +30,7 @@ export default {
             { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
             {
                 rel: 'stylesheet',
-                href:
-                    'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
+                href: 'https://use.fontawesome.com/releases/v5.0.13/css/all.css',
             },
         ],
     },
@@ -65,7 +64,7 @@ export default {
             dark: false,
             themes: {
                 dark: {
-                    primary: '#007aff',
+                    primary: '#5f9ea0',
                     accent: colors.grey.darken3,
                     secondary: colors.amber.darken3,
                     info: colors.teal.lighten1,
@@ -74,7 +73,7 @@ export default {
                     success: colors.green.accent3,
                 },
                 light: {
-                    primary: '#007aff',
+                    primary: '#5f9ea0',
                 },
             },
         },
