@@ -18,12 +18,13 @@
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" text @click="copyText(text)">Copy</v-btn>
-                <v-btn color="primary" text @click="dialog = false"
-                    >Close</v-btn
-                >
+                <v-btn color="primary" text @click="copyText()">Copy</v-btn>
+                <v-btn color="primary" text @click="onClose()">Close</v-btn>
             </v-card-actions>
         </v-card>
+        <v-snackbar v-model="copySuccessful" :timeout="1500"
+            >Copied successful.</v-snackbar
+        >
     </v-dialog>
 </template>
 
@@ -35,14 +36,22 @@ export default {
             required: true,
         },
     },
-    data(): { dialog: Boolean } {
+    data() {
         return {
             dialog: false,
+            copySuccessful: false,
         }
     },
     methods: {
-        copyText(text: string) {
-            navigator.clipboard.writeText(text)
+        copyText() {
+            navigator.clipboard.writeText(this.text).then(
+                () => (this.copySuccessful = true),
+                (error) => console.log('Copy unsuccessful: ', error)
+            )
+        },
+        onClose() {
+            this.dialog = false
+            this.copySuccessful = false
         },
     },
 }
