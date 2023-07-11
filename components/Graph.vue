@@ -390,7 +390,7 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-            foreignObj.setAttribute('x', '-11%')
+            foreignObj.setAttribute('x', '-5%')
             foreignObj.setAttribute('y', '-7%')
             foreignObj.append(input)
 

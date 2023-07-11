@@ -18,7 +18,7 @@
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <!--here in the future it will be possible to copy directly to clipboard  <v-btn color="primary" text @click="copyText">Copy</v-btn>-->
+                <v-btn color="primary" text @click="copyText(text)">Copy</v-btn>
                 <v-btn color="primary" text @click="dialog = false"
                     >Close</v-btn
                 >
@@ -31,7 +31,7 @@
 export default {
     props: {
         text: {
-            type: String,
+            type: '',
             required: true,
         },
     },
@@ -41,8 +41,8 @@ export default {
         }
     },
     methods: {
-        copyText() {
-            console.log('todo copy to clipboard')
+        copyText(text: string) {
+            navigator.clipboard.writeText(text)
         },
     },
 }
