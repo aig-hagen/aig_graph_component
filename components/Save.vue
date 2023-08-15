@@ -11,10 +11,38 @@
                 <v-icon v-text="'mdi-content-save-outline'" />
             </v-btn>
         </template>
+        <!--        <v-card>-->
+        <!--            <v-tabs v-model="tab" bg-color="primary">-->
+        <!--                <v-tab>Item One</v-tab>-->
+        <!--                <v-tab>Item Two</v-tab>-->
+        <!--                <v-tab>Item Three</v-tab>-->
+        <!--            </v-tabs>-->
+
+        <!--            <v-card-text>-->
+        <!--                <v-window v-model="tab">-->
+        <!--                    <v-window-item> One </v-window-item>-->
+
+        <!--                    <v-window-item> Two </v-window-item>-->
+
+        <!--                    <v-window-item> Three </v-window-item>-->
+        <!--                </v-window>-->
+        <!--            </v-card-text>-->
         <v-card>
-            <v-card-title>Save as TGF</v-card-title>
+            <v-card-title>
+                <v-tabs v-model="tab"
+                    ><v-tab>Save as TGF</v-tab
+                    ><v-tab>Save as TikZ</v-tab></v-tabs
+                >
+            </v-card-title>
             <v-card-text>
-                <pre>{{ text }}</pre>
+                <v-window v-model="tab" class="ml-4">
+                    <v-window-item>
+                        <pre>{{ graphAsTGF }}</pre>
+                    </v-window-item>
+                    <v-window-item>
+                        <pre>{{ graphAsTikZ }}</pre>
+                    </v-window-item>
+                </v-window>
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -31,7 +59,11 @@
 <script lang="ts">
 export default {
     props: {
-        text: {
+        graphAsTGF: {
+            type: '',
+            required: true,
+        },
+        graphAsTikZ: {
             type: '',
             required: true,
         },
@@ -39,18 +71,27 @@ export default {
     data() {
         return {
             dialog: false,
+            tab: null,
             copySuccessful: false,
         }
     },
     methods: {
         copyText() {
-            navigator.clipboard.writeText(this.text).then(
+            let textToCopy = ''
+            if (this.tab === 0) {
+                textToCopy = this.graphAsTGF
+            } else if (this.tab === 1) {
+                textToCopy = this.graphAsTikZ
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(
                 () => (this.copySuccessful = true),
                 (error) => console.log('Copy unsuccessful: ', error)
             )
         },
         onClose() {
             this.dialog = false
+            this.tab = null
             this.copySuccessful = false
         },
     },
