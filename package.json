@@ -21,7 +21,8 @@
         "core-js": "^3.9.1",
         "d3": "^6.6.1",
         "ml-matrix": "^6.7.0",
-        "nuxt": "^2.15.3"
+        "nuxt": "^2.15.3",
+        "nuxt-custom-elements": "^1.9.2"
     },
     "devDependencies": {
         "@nuxt/types": "^2.15.3",

@@ -55,7 +55,20 @@ export default {
     ],
 
     // Modules: https://go.nuxtjs.dev/config-modules
-    modules: [],
+    modules: ['nuxt-custom-elements'],
+    customElements: {
+        entries: [
+            {
+                name: 'GraphCustomElement',
+                tags: [
+                    {
+                        name: 'GraphComponent',
+                        path: '@/pages/index.vue',
+                    },
+                ],
+            },
+        ],
+    },
 
     // Vuetify module configuration: https://go.nuxtjs.dev/config-vuetify
     vuetify: {
