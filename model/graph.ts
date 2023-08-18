@@ -74,7 +74,7 @@ export default class Graph {
     }
 
     // formats the graph in Trivial Graph Format
-    public toTDF(): String {
+    public toTGF(): String {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return 'Graph is empty'
         }

@@ -19,7 +19,7 @@
                 <v-icon v-text="'mdi-delete'" />
             </v-btn>
             <save
-                :graph-as-t-g-f="this.graph.toTDF()"
+                :graph-as-t-g-f="this.graph.toTGF()"
                 :graph-as-tik-z="this.graph.toTikZ()"
             />
             <help />
