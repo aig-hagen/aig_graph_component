@@ -2,12 +2,14 @@ import { SimulationLinkDatum } from 'd3'
 import { D3Node } from '~/model/node'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {
+    id: string
     source: D3Node
     target: D3Node
     label?: string
 }
 
 export class Link implements D3Link {
+    id = this.source.id + '-' + this.target.id
     // eslint-disable-next-line no-useless-constructor
     public constructor(
         public readonly source: D3Node,

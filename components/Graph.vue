@@ -230,16 +230,13 @@ export default Vue.extend({
         restart(alpha: number = 0.5): void {
             this.link = this.link!.data(
                 this.graph!.links,
-                (d: Link) => `${d.source.id}-${d.target.id}`
+                (d: Link) => d.id
             ).join((enter) => {
                 const linkGroup = enter.append('g')
                 linkGroup
                     .append('path')
                     .classed('link', true)
-                    .attr('id', function (d, i) {
-                        //TODO using this kind of id doesn't work when deleting links
-                        return 'link_' + i
-                    })
+                    .attr('id', (d) => d.id)
                     .style('marker-end', 'url(#link-arrow)')
                 linkGroup
                     .append('path')
@@ -255,9 +252,7 @@ export default Vue.extend({
                     .attr('dy', 15) //Move the text down
                     .append('textPath') //TODO with textPath the labels can be upside down
                     .attr('class', 'link-label-placeholder')
-                    .attr('xlink:href', function (d, i) {
-                        return '#link_' + i
-                    })
+                    .attr('xlink:href', (d) => `#${d.id}`)
                     .style('text-anchor', 'middle')
                     .attr('startOffset', '50%')
                     .text('add label')
