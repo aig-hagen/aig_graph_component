@@ -236,6 +236,10 @@ export default Vue.extend({
                 linkGroup
                     .append('path')
                     .classed('link', true)
+                    .attr('id', function (d, i) {
+                        //TODO using this kind of id doesn't work when deleting links
+                        return 'link_' + i
+                    })
                     .style('marker-end', 'url(#link-arrow)')
                 linkGroup
                     .append('path')
@@ -244,6 +248,21 @@ export default Vue.extend({
                         terminate(event)
                         this.graph.removeLink(d)
                         this.restart()
+                    })
+                linkGroup
+                    .append('text')
+                    .attr('x', 5) //Move the text from the start angle of the arc
+                    .attr('dy', 15) //Move the text down
+                    .append('textPath') //TODO with textPath the labels can be upside down
+                    .attr('class', 'link-label-placeholder')
+                    .attr('xlink:href', function (d, i) {
+                        return '#link_' + i
+                    })
+                    .style('text-anchor', 'middle')
+                    .attr('startOffset', '50%')
+                    .text('add label')
+                    .on('click', (event: MouseEvent, d: Link) => {
+                        this.onLinkLabelClicked(event, d)
                     })
                 return linkGroup
             })
@@ -284,7 +303,7 @@ export default Vue.extend({
                         .text('click to add label')
                         .attr('dy', '0.33em')
                         .on('click', (event: MouseEvent, d: Node) => {
-                            this.onLabelClicked(event, d)
+                            this.onNodeLabelClicked(event, d)
                         })
                         .on(
                             'mouseenter',
@@ -351,11 +370,11 @@ export default Vue.extend({
                 this.updateDraggableLinkPath()
             }
         },
-        onLabelClicked(event: MouseEvent, node: Node): void {
+        onNodeLabelClicked(event: MouseEvent, node: Node): void {
             const textElement = event?.target as SVGTextElement
 
             const input = document.createElement('input')
-            input.setAttribute('class', 'node-label-input')
+            input.setAttribute('class', 'label-input')
             input.placeholder = ' Enter node label'
 
             let pressedEnter = false
@@ -393,11 +412,63 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-            foreignObj.setAttribute('x', '-5%')
+            foreignObj.setAttribute('x', '-10%')
             foreignObj.setAttribute('y', '-7%')
             foreignObj.append(input)
 
             const gContainingNode = textElement.parentNode
+            gContainingNode?.append(foreignObj)
+
+            input.focus()
+        },
+        onLinkLabelClicked(event: MouseEvent, link: Link): void {
+            const textPathElement = event.target as SVGTextElement
+
+            const input = document.createElement('input')
+            input.setAttribute('class', 'label-input')
+            input.placeholder = ' Enter link label'
+
+            let pressedEnter = false
+
+            input.onkeyup = function (e) {
+                if (e.key === 'Enter') {
+                    pressedEnter = true
+                    input.blur()
+                } else if (e.key === 'Escape') {
+                    input.value = ''
+                    input.blur()
+                }
+            }
+            input.onblur = function () {
+                if (pressedEnter) {
+                    if (input.value === '') {
+                        textPathElement.setAttribute(
+                            'class',
+                            'link-label-placeholder'
+                        )
+                        textPathElement.textContent = 'add label'
+                        link.label = undefined
+                    } else {
+                        textPathElement.setAttribute('class', 'link-label')
+                        textPathElement.textContent = input.value
+                        link.label = textPathElement.textContent
+                    }
+                }
+                foreignObj.remove()
+            }
+
+            const foreignObj = document.createElementNS(
+                'http://www.w3.org/2000/svg',
+                'foreignObject'
+            )
+            foreignObj.setAttribute('width', '100%')
+            foreignObj.setAttribute('height', '100%')
+            foreignObj.setAttribute('x', '50%')
+            foreignObj.setAttribute('y', '50%')
+            foreignObj.append(input)
+
+            const textElement = textPathElement.parentNode
+            const gContainingNode = textElement?.parentNode
             gContainingNode?.append(foreignObj)
 
             input.focus()
@@ -460,7 +531,6 @@ export default Vue.extend({
         pointer-events: none;
     }
 }
-
 .clickbox {
     stroke: rgba($color: #000, $alpha: 0);
     stroke-width: 16px;
@@ -474,6 +544,27 @@ export default Vue.extend({
     &.draggable {
         fill: lightblue;
     }
+}
+
+.link-label {
+    fill: black;
+    stroke: none;
+    font-size: 1rem;
+    opacity: 1;
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
+}
+
+.link-label-placeholder {
+    fill: dimgrey;
+    font-style: oblique;
+    stroke: none;
+    font-size: 1rem;
+    opacity: 1;
+    //text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
 }
 
 .node {
@@ -501,7 +592,7 @@ export default Vue.extend({
     pointer-events: all;
     cursor: text;
 }
-.node-label-input {
+.label-input {
     background-color: rgba(255, 255, 255, 0.9);
 }
 .button-container {

@@ -2,7 +2,7 @@ import { D3Link, Link } from '~/model/link'
 import { D3Node, Node } from '~/model/node'
 
 export default class Graph {
-    private idCounter = 0
+    private nodeIdCounter: number = 0
     public readonly nodes: D3Node[] = []
     public readonly links: D3Link[] = []
 
@@ -14,7 +14,7 @@ export default class Graph {
     }
 
     public createNode(x?: number, y?: number): D3Node {
-        const node = new Node(this.idCounter++, x, y)
+        const node = new Node(this.nodeIdCounter++, x, y)
         this.nodes.push(node)
         return node
     }
