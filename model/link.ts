@@ -1,10 +1,12 @@
 import { SimulationLinkDatum } from 'd3'
 import { D3Node } from '~/model/node'
+import { PathType } from '~/model/path-type'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {
     id: string
     source: D3Node
     target: D3Node
+    pathType?: PathType
     label?: string
 }
 
@@ -14,6 +16,7 @@ export class Link implements D3Link {
     public constructor(
         public readonly source: D3Node,
         public readonly target: D3Node,
+        public pathType?: PathType,
         public label?: string
     ) {}
 }

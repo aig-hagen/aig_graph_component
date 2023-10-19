@@ -64,6 +64,7 @@ import { defaultGraphConfig, GraphConfiguration } from '~/model/config'
 import Graph from '~/model/graph'
 import { Link } from '~/model/link'
 import { Node } from '~/model/node'
+import { PathType } from '~/model/path-type'
 
 interface Data {
     graph: Graph
@@ -173,19 +174,23 @@ export default Vue.extend({
                 'd',
                 (d: Link) => {
                     if (d.source.id === d.target.id) {
+                        d.pathType = PathType.REFLEXIVE
                         return paddedReflexivePath(
                             d.source,
                             [this.width / 2, this.height / 2],
                             this.config
                         )
                     } else if (this.isBidirectional(d.source, d.target)) {
+                        d.pathType = PathType.ARC
                         return paddedArcPath(d.source, d.target, this.config)
                     } else {
+                        d.pathType = PathType.LINE
                         return paddedLinePath(d.source, d.target, this.config)
                     }
                 }
             )
             this.updateDraggableLinkPath()
+            this.restart()
         },
         isBidirectional(source: Node, target: Node): boolean {
             return (
@@ -231,36 +236,41 @@ export default Vue.extend({
             this.link = this.link!.data(
                 this.graph!.links,
                 (d: Link) => d.id
-            ).join((enter) => {
-                const linkGroup = enter.append('g')
-                linkGroup
-                    .append('path')
-                    .classed('link', true)
-                    .attr('id', (d) => d.id)
-                    .style('marker-end', 'url(#link-arrow)')
-                linkGroup
-                    .append('path')
-                    .classed('clickbox', true)
-                    .on('contextmenu', (event: MouseEvent, d: Link) => {
-                        terminate(event)
-                        this.graph.removeLink(d)
-                        this.restart()
+            ).join(
+                (enter) => {
+                    const linkGroup = enter.append('g')
+                    linkGroup
+                        .append('path')
+                        .classed('link', true)
+                        .attr('id', (d) => d.id)
+                        .style('marker-end', 'url(#link-arrow)')
+                    linkGroup
+                        .append('path')
+                        .classed('clickbox', true)
+                        .on('contextmenu', (event: MouseEvent, d: Link) => {
+                            terminate(event)
+                            this.graph.removeLink(d)
+                            this.restart()
+                        })
+                    linkGroup
+                        .append('text')
+                        .append('textPath') //TODO with textPath the labels can be upside down
+                        .attr('class', 'link-label-placeholder')
+                        .attr('xlink:href', (d) => `#${d.id}`)
+                        .attr('startOffset', '50%')
+                        .text('add label')
+                        .on('click', (event: MouseEvent, d: Link) => {
+                            this.onLinkLabelClicked(event, d)
+                        })
+                    return linkGroup
+                },
+                (update) => {
+                    update.selectChild('text').attr('class', (d) => {
+                        return `${d.pathType?.toLowerCase()}-path-text`
                     })
-                linkGroup
-                    .append('text')
-                    .attr('x', 5) //Move the text from the start angle of the arc
-                    .attr('dy', 15) //Move the text down
-                    .append('textPath') //TODO with textPath the labels can be upside down
-                    .attr('class', 'link-label-placeholder')
-                    .attr('xlink:href', (d) => `#${d.id}`)
-                    .style('text-anchor', 'middle')
-                    .attr('startOffset', '50%')
-                    .text('add label')
-                    .on('click', (event: MouseEvent, d: Link) => {
-                        this.onLinkLabelClicked(event, d)
-                    })
-                return linkGroup
-            })
+                    return update
+                }
+            )
 
             this.node = this.node!.data(this.graph!.nodes, (d) => d.id).join(
                 (enter) => {
@@ -526,6 +536,7 @@ export default Vue.extend({
         pointer-events: none;
     }
 }
+
 .clickbox {
     stroke: rgba($color: #000, $alpha: 0);
     stroke-width: 16px;
@@ -541,25 +552,44 @@ export default Vue.extend({
     }
 }
 
-.link-label {
-    fill: black;
-    stroke: none;
-    font-size: 1rem;
-    opacity: 1;
+.line-path-text,
+.arc-path-text {
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
-}
-
-.link-label-placeholder {
-    fill: dimgrey;
-    font-style: oblique;
-    stroke: none;
     font-size: 1rem;
     opacity: 1;
-    //text-anchor: middle;
+    stroke: none;
+    .link-label {
+        fill: black;
+        stroke: none;
+    }
+
+    .link-label-placeholder {
+        fill: dimgrey;
+        font-style: oblique;
+    }
+}
+
+.reflexive-path-text {
+    text-anchor: middle;
     pointer-events: all;
     cursor: text;
+    font-size: 1rem;
+    opacity: 1;
+    stroke: none;
+
+    .link-label {
+        fill: black;
+        stroke: none;
+        transform: rotate(180deg);
+    }
+
+    .link-label-placeholder {
+        fill: dimgrey;
+        font-style: oblique;
+        transform: rotate(180deg);
+    }
 }
 
 .node {
