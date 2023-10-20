@@ -265,9 +265,15 @@ export default Vue.extend({
                     return linkGroup
                 },
                 (update) => {
-                    update.selectChild('text').attr('class', (d) => {
-                        return `${d.pathType?.toLowerCase()}-path-text`
-                    })
+                    update
+                        .selectChild('text')
+                        .attr('class', (d) => {
+                            return `${d.pathType?.toLowerCase()}-path-text`
+                        })
+                        .attr('dy', (d) =>
+                            d.pathType === PathType.REFLEXIVE ? 15 : -10
+                        )
+
                     return update
                 }
             )
@@ -553,42 +559,23 @@ export default Vue.extend({
 }
 
 .line-path-text,
-.arc-path-text {
-    text-anchor: middle;
-    pointer-events: all;
-    cursor: text;
-    font-size: 1rem;
-    opacity: 1;
-    stroke: none;
-    .link-label {
-        fill: black;
-        stroke: none;
-    }
-
-    .link-label-placeholder {
-        fill: dimgrey;
-        font-style: oblique;
-    }
-}
-
+.arc-path-text,
 .reflexive-path-text {
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
-    font-size: 1rem;
     opacity: 1;
     stroke: none;
-
     .link-label {
         fill: black;
         stroke: none;
-        transform: rotate(180deg);
+        font-size: 1rem;
     }
 
     .link-label-placeholder {
         fill: dimgrey;
         font-style: oblique;
-        transform: rotate(180deg);
+        font-size: 0.85rem;
     }
 }
 
@@ -611,7 +598,7 @@ export default Vue.extend({
     fill: dimgrey;
     font-style: oblique;
     stroke: none;
-    font-size: 1rem;
+    font-size: 0.85rem;
     opacity: 1;
     text-anchor: middle;
     pointer-events: all;
