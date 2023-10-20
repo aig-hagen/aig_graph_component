@@ -190,7 +190,8 @@ export default Vue.extend({
                 }
             )
             this.updateDraggableLinkPath()
-            this.restart()
+            this.restart() /* for directly displaying the link labels
+            in a proper way, todo may find a better solution in the future */
         },
         isBidirectional(source: Node, target: Node): boolean {
             return (
@@ -256,7 +257,7 @@ export default Vue.extend({
                         .append('text')
                         .append('textPath') //TODO with textPath the labels can be upside down
                         .attr('class', 'link-label-placeholder')
-                        .attr('xlink:href', (d) => `#${d.id}`)
+                        .attr('href', (d) => `#${d.id}`)
                         .attr('startOffset', '50%')
                         .text('add label')
                         .on('click', (event: MouseEvent, d: Link) => {
