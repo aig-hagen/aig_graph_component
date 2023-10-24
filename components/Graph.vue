@@ -387,6 +387,9 @@ export default Vue.extend({
 
             const input = document.createElement('input')
             input.setAttribute('class', 'label-input')
+            node.label == undefined
+                ? (input.value = '')
+                : (input.value = node.label)
             input.placeholder = ' Enter node label'
 
             let pressedEnter = false
@@ -440,6 +443,9 @@ export default Vue.extend({
 
             const input = document.createElement('input')
             input.setAttribute('class', 'label-input')
+            link.label == undefined
+                ? (input.value = '')
+                : (input.value = link.label)
             input.placeholder = ' Enter link label'
 
             let pressedEnter = false
