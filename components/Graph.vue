@@ -491,7 +491,9 @@ export default Vue.extend({
             textPathElement: SVGTextPathElement
         ): [number, number] {
             let rect = textPathElement.getBoundingClientRect()
-            return [rect.x, rect.y]
+            let x = (rect.x - this.xOffset) / this.scale
+            let y = (rect.y - this.yOffset) / this.scale
+            return [x, y]
         },
         resetDraggableLink(): void {
             this.draggableLink?.classed('hidden', true).style('marker-end', '')
