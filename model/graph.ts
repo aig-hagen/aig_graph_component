@@ -83,7 +83,7 @@ export default class Graph {
             .map((node) => `${node.id} ${node.label}`)
             .join('\n')
         const linkLines = this.links
-            .map((link) => `${link.source.id} ${link.target.id}`)
+            .map((link) => `${link.source.id} ${link.target.id} ${link.label}`)
             .join('\n')
 
         return `${nodeLines}${linkLines ? '\n###########\n' : ''}${linkLines}`
