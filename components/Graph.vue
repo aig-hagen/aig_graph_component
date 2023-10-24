@@ -385,7 +385,7 @@ export default Vue.extend({
         onNodeLabelClicked(event: MouseEvent, node: Node): void {
             const textElement = event?.target as SVGTextElement
 
-            this.handleInputForLabel(node, textElement, [-70, -10])
+            this.handleInputForLabel(node, textElement, [node.x!, node.y!])
         },
         onLinkLabelClicked(event: MouseEvent, link: Link): void {
             const textPathElement = event.target as SVGTextPathElement
@@ -395,7 +395,7 @@ export default Vue.extend({
         },
         handleInputForLabel(
             element: Node | Link,
-            svgElement: SVGTextElement | SVGTextPathElement,
+            textContainingElement: SVGTextElement | SVGTextPathElement,
             position: [number, number]
         ) {
             let elementType = element instanceof Node ? 'node' : 'link'
@@ -421,16 +421,19 @@ export default Vue.extend({
             input.onblur = function () {
                 if (pressedEnter) {
                     if (input.value === '') {
-                        svgElement.setAttribute(
+                        textContainingElement.setAttribute(
                             'class',
                             `${elementType}-label-placeholder`
                         )
-                        svgElement.textContent = 'add label'
+                        textContainingElement.textContent = 'add label'
                         element.label = undefined
                     } else {
-                        svgElement.setAttribute('class', `${elementType}-label`)
-                        svgElement.textContent = input.value
-                        element.label = svgElement.textContent
+                        textContainingElement.setAttribute(
+                            'class',
+                            `${elementType}-label`
+                        )
+                        textContainingElement.textContent = input.value
+                        element.label = textContainingElement.textContent
                     }
                 }
                 foreignObj.remove()
@@ -442,19 +445,12 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-
-            foreignObj.setAttribute('x', `${position.at(0)}`)
-            foreignObj.setAttribute('y', `${position.at(1)}`)
+            foreignObj.setAttribute('x', `${position.at(0)! - 80}`)
+            foreignObj.setAttribute('y', `${position.at(1)! - 12}`)
             foreignObj.append(input)
 
-            if (elementType === 'link') {
-                const textElement = svgElement.parentNode
-                const gContainingNode = textElement?.parentNode
-                gContainingNode?.append(foreignObj)
-            } else {
-                const gContainingNode = svgElement.parentNode
-                gContainingNode?.append(foreignObj)
-            }
+            const parentSVG = textContainingElement.closest('svg')
+            parentSVG?.querySelector('g')?.append(foreignObj)
 
             input.focus()
         },
