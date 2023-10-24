@@ -434,7 +434,9 @@ export default Vue.extend({
             input.focus()
         },
         onLinkLabelClicked(event: MouseEvent, link: Link): void {
-            const textPathElement = event.target as SVGTextElement
+            const textPathElement = event.target as SVGTextPathElement
+
+            let position = this.getTextPathPosition(textPathElement)
 
             const input = document.createElement('input')
             input.setAttribute('class', 'label-input')
@@ -475,8 +477,8 @@ export default Vue.extend({
             )
             foreignObj.setAttribute('width', '100%')
             foreignObj.setAttribute('height', '100%')
-            foreignObj.setAttribute('x', '50%')
-            foreignObj.setAttribute('y', '50%')
+            foreignObj.setAttribute('x', `${position.at(0)}`)
+            foreignObj.setAttribute('y', `${position.at(1)}`)
             foreignObj.append(input)
 
             const textElement = textPathElement.parentNode
@@ -484,6 +486,12 @@ export default Vue.extend({
             gContainingNode?.append(foreignObj)
 
             input.focus()
+        },
+        getTextPathPosition(
+            textPathElement: SVGTextPathElement
+        ): [number, number] {
+            let rect = textPathElement.getBoundingClientRect()
+            return [rect.x, rect.y]
         },
         resetDraggableLink(): void {
             this.draggableLink?.classed('hidden', true).style('marker-end', '')
