@@ -65,6 +65,8 @@ import Graph from '~/model/graph'
 import { Link } from '~/model/link'
 import { Node } from '~/model/node'
 import { PathType } from '~/model/path-type'
+// @ts-ignore
+import svgPathReverse from 'svg-path-reverse'
 
 interface Data {
     graph: Graph
@@ -181,11 +183,32 @@ export default Vue.extend({
                             this.config
                         )
                     } else if (this.isBidirectional(d.source, d.target)) {
-                        d.pathType = PathType.ARC
-                        return paddedArcPath(d.source, d.target, this.config)
+                        let arcPath = paddedArcPath(
+                            d.source,
+                            d.target,
+                            this.config
+                        )
+
+                        if (this.needsReversion(d.source, d.target)) {
+                            d.pathType = PathType.ARCREVERSE
+                            return svgPathReverse.reverse(arcPath)
+                        } else {
+                            d.pathType = PathType.ARC
+                            return arcPath
+                        }
                     } else {
-                        d.pathType = PathType.LINE
-                        return paddedLinePath(d.source, d.target, this.config)
+                        let linePath = paddedLinePath(
+                            d.source,
+                            d.target,
+                            this.config
+                        )
+                        if (this.needsReversion(d.source, d.target)) {
+                            d.pathType = PathType.LINEREVERSE
+                            return svgPathReverse.reverse(linePath)
+                        } else {
+                            d.pathType = PathType.LINE
+                            return linePath
+                        }
                     }
                 }
             )
@@ -205,6 +228,9 @@ export default Vue.extend({
                         l.target.id === target.id && l.source.id === source.id
                 )
             )
+        },
+        needsReversion(source: Node, target: Node): boolean {
+            return source.x! > target.x!
         },
         updateDraggableLinkPath(): void {
             const source = this.draggableLinkSourceNode
@@ -244,7 +270,7 @@ export default Vue.extend({
                         .append('path')
                         .classed('link', true)
                         .attr('id', (d) => d.id)
-                        .style('marker-end', 'url(#link-arrow)')
+                        .attr('marker-end', 'url(#link-arrow)')
                     linkGroup
                         .append('path')
                         .classed('clickbox', true)
@@ -267,13 +293,43 @@ export default Vue.extend({
                 },
                 (update) => {
                     update
+                        .selectChild('path')
+                        .attr('marker-start', (d) =>
+                            d.pathType?.includes('REVERSE')
+                                ? 'url(#link-arrow-reverse)'
+                                : null
+                        )
+                        .attr('marker-end', (d) =>
+                            d.pathType?.includes('REVERSE')
+                                ? null
+                                : 'url(#link-arrow)'
+                        )
+
+                    update
                         .selectChild('text')
                         .attr('class', (d) => {
                             return `${d.pathType?.toLowerCase()}-path-text`
                         })
-                        .attr('dy', (d) =>
-                            d.pathType === PathType.REFLEXIVE ? 15 : -10
-                        )
+                        .attr('dy', (d) => {
+                            if (d.pathType === PathType.REFLEXIVE) {
+                                return 15
+                            } else if (d.pathType?.includes('REVERSE')) {
+                                return 20
+                            } else {
+                                return -10
+                            }
+                        })
+
+                    update
+                        .selectChild('text')
+                        .selectChild('textPath')
+                        .attr('startOffset', (d) => {
+                            if (d.pathType?.includes('REVERSE')) {
+                                return '46%'
+                            } else {
+                                return '50%'
+                            }
+                        })
 
                     return update
                 }
@@ -340,10 +396,7 @@ export default Vue.extend({
             const coordinates: [number, number] = [node.x!, node.y!]
             this.draggableLinkEnd = coordinates
             this.draggableLinkSourceNode = node
-            this.draggableLink!.style(
-                'marker-end',
-                'url(#draggable-link-arrow)'
-            )
+            this.draggableLink!.attr('marker-end', 'url(#draggable-link-arrow)')
                 .classed('hidden', false)
                 .attr('d', linePath(coordinates, coordinates))
             this.restart()
@@ -463,7 +516,9 @@ export default Vue.extend({
             return [x, y]
         },
         resetDraggableLink(): void {
-            this.draggableLink?.classed('hidden', true).style('marker-end', '')
+            this.draggableLink
+                ?.classed('hidden', true)
+                .attr('marker-end', 'null')
             this.draggableLinkSourceNode = undefined
             this.draggableLinkTargetNode = undefined
             this.draggableLinkEnd = undefined
@@ -538,6 +593,8 @@ export default Vue.extend({
 
 .line-path-text,
 .arc-path-text,
+.line-reverse-path-text,
+.arc-reverse-path-text,
 .reflexive-path-text {
     text-anchor: middle;
     pointer-events: all;
