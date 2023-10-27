@@ -174,47 +174,57 @@ export default Vue.extend({
 
             this.link!.selectAll<SVGPathElement, Link>('path').attr(
                 'd',
-                (d: Link) => {
-                    if (d.source.id === d.target.id) {
-                        d.pathType = PathType.REFLEXIVE
-                        return paddedReflexivePath(
-                            d.source,
-                            [this.width / 2, this.height / 2],
-                            this.config
-                        )
-                    } else if (this.isBidirectional(d.source, d.target)) {
-                        let arcPath = paddedArcPath(
-                            d.source,
-                            d.target,
-                            this.config
-                        )
-
-                        if (this.needsReversion(d.source, d.target)) {
-                            d.pathType = PathType.ARCREVERSE
-                            return svgPathReverse.reverse(arcPath)
-                        } else {
-                            d.pathType = PathType.ARC
-                            return arcPath
-                        }
-                    } else {
-                        let linePath = paddedLinePath(
-                            d.source,
-                            d.target,
-                            this.config
-                        )
-                        if (this.needsReversion(d.source, d.target)) {
-                            d.pathType = PathType.LINEREVERSE
-                            return svgPathReverse.reverse(linePath)
-                        } else {
-                            d.pathType = PathType.LINE
-                            return linePath
-                        }
-                    }
-                }
+                (d: Link) => this.generatePath(d)
             )
+
             this.updateDraggableLinkPath()
             this.restart() /* for directly displaying the link labels
             in a proper way, todo may find a better solution in the future */
+        },
+        generatePath(d: Link): string {
+            this.setPath(d)
+
+            switch (d.pathType) {
+                case PathType.REFLEXIVE: {
+                    return paddedReflexivePath(
+                        d.source,
+                        [this.width / 2, this.height / 2],
+                        this.config
+                    )
+                }
+                case PathType.ARC: {
+                    return paddedArcPath(d.source, d.target, this.config)
+                }
+                case PathType.ARCREVERSE: {
+                    return svgPathReverse.reverse(
+                        paddedArcPath(d.source, d.target, this.config)
+                    )
+                }
+                case PathType.LINE: {
+                    return paddedLinePath(d.source, d.target, this.config)
+                }
+                case PathType.LINEREVERSE: {
+                    return svgPathReverse.reverse(
+                        paddedLinePath(d.source, d.target, this.config)
+                    )
+                }
+                default: {
+                    return '' //should never be reached
+                }
+            }
+        },
+        setPath(d: Link) {
+            if (d.source.id === d.target.id) {
+                d.pathType = PathType.REFLEXIVE
+            } else if (this.isBidirectional(d.source, d.target)) {
+                d.pathType = this.needsReversion(d.source, d.target)
+                    ? PathType.ARCREVERSE
+                    : PathType.ARC
+            } else {
+                d.pathType = this.needsReversion(d.source, d.target)
+                    ? PathType.LINEREVERSE
+                    : PathType.LINE
+            }
         },
         isBidirectional(source: Node, target: Node): boolean {
             return (
@@ -281,7 +291,7 @@ export default Vue.extend({
                         })
                     linkGroup
                         .append('text')
-                        .append('textPath') //TODO with textPath the labels can be upside down
+                        .append('textPath')
                         .attr('class', 'link-label-placeholder')
                         .attr('href', (d) => `#${d.id}`)
                         .attr('startOffset', '50%')
