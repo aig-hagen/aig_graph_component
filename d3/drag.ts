@@ -6,7 +6,12 @@ import { Node } from '~/model/node'
 
 export type Drag = d3.DragBehavior<SVGGElement, Node, Node>
 
-export function createDrag(simulation: Simulation): Drag {
+export function createDrag(
+    simulation: Simulation,
+    width: number,
+    height: number,
+    radius: number
+): Drag {
     return d3
         .drag<SVGGElement, Node, Node>()
         .filter((event) => event.button === 1)
@@ -24,8 +29,8 @@ export function createDrag(simulation: Simulation): Drag {
         .on(
             'drag',
             (event: D3DragEvent<SVGCircleElement, Node, Node>, d: Node) => {
-                d.fx = Math.max(-1000, Math.min(1000, event.x))
-                d.fy = Math.max(-500, Math.min(500, event.y))
+                d.fx = Math.max(radius, Math.min(width - radius, event.x))
+                d.fy = Math.max(radius, Math.min(height - radius, event.y))
             }
         )
         .on(

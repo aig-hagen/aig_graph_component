@@ -148,7 +148,12 @@ export default Vue.extend({
                 this.height,
                 () => this.onTick()
             )
-            this.drag = createDrag(this.simulation)
+            this.drag = createDrag(
+                this.simulation,
+                this.width,
+                this.height,
+                this.config.nodeRadius
+            )
             this.restart()
         },
         onZoom(event: D3ZoomEvent<any, any>): void {

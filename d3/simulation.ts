@@ -34,8 +34,14 @@ export function createSimulation(
             // .force('y', d3.forceY<Node>(height / 2).strength(0.05))
             .force('bounds', () => {
                 for (let node of graph!.nodes) {
-                    node.x = Math.max(-1000, Math.min(1000, node.x!))
-                    node.y = Math.max(-500, Math.min(500, node.y!))
+                    node.x = Math.max(
+                        config.nodeRadius,
+                        Math.min(width - config.nodeRadius, node.x!)
+                    )
+                    node.y = Math.max(
+                        config.nodeRadius,
+                        Math.min(height - config.nodeRadius, node.y!)
+                    )
                 }
             })
     )
