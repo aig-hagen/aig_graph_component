@@ -24,8 +24,8 @@ export function createDrag(simulation: Simulation): Drag {
         .on(
             'drag',
             (event: D3DragEvent<SVGCircleElement, Node, Node>, d: Node) => {
-                d.fx = event.x
-                d.fy = event.y
+                d.fx = Math.max(-1000, Math.min(1000, event.x))
+                d.fy = Math.max(-500, Math.min(500, event.y))
             }
         )
         .on(

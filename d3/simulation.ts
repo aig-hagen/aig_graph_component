@@ -13,19 +13,30 @@ export function createSimulation(
     height: number,
     onTick: () => void
 ): Simulation {
-    return d3
-        .forceSimulation<Node, Link>(graph!.nodes)
-        .on('tick', () => onTick())
-        .force('charge', d3.forceManyBody<Node>().strength(-500))
-        .force('collision', d3.forceCollide<Node>().radius(config.nodeRadius))
-        .force(
-            'link',
-            d3
-                .forceLink<Node, Link>()
-                .links(graph!.links)
-                .id((d: Node) => d.id)
-                .distance(config.nodeRadius * 10)
-        )
-        .force('x', d3.forceX<Node>(width / 2).strength(0.05))
-        .force('y', d3.forceY<Node>(height / 2).strength(0.05))
+    return (
+        d3
+            .forceSimulation<Node, Link>(graph!.nodes)
+            .on('tick', () => onTick())
+            // .force('charge', d3.forceManyBody<Node>().strength(-500))
+            .force(
+                'collision',
+                d3.forceCollide<Node>().radius(config.nodeRadius)
+            )
+            .force(
+                'link',
+                d3
+                    .forceLink<Node, Link>()
+                    .links(graph!.links)
+                    .id((d: Node) => d.id)
+                    .distance(config.nodeRadius * 10)
+            )
+            // .force('x', d3.forceX<Node>(width / 2).strength(0.05))
+            // .force('y', d3.forceY<Node>(height / 2).strength(0.05))
+            .force('bounds', () => {
+                for (let node of graph!.nodes) {
+                    node.x = Math.max(-1000, Math.min(1000, node.x!))
+                    node.y = Math.max(-500, Math.min(500, node.y!))
+                }
+            })
+    )
 }
