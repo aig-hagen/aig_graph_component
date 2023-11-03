@@ -1,5 +1,5 @@
 <template>
-    <graph class="graph" />
+    <graph class="graph-component-container" />
 </template>
 
 <script lang="ts">
@@ -10,7 +10,7 @@ export default {
 </script>
 
 <style scoped>
-.graph {
+.graph-component-container {
     width: 100%;
     height: 100%;
 }
