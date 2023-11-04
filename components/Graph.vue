@@ -34,6 +34,7 @@
             <!--            </v-btn>-->
             <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
             <!--            <theme-toggle />-->
+            <settings />
         </div>
         <div v-show="!graphHasNodes" class="info-text text-h5 text--secondary">
             Graph is empty

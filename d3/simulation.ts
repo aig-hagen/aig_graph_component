@@ -17,7 +17,7 @@ export function createSimulation(
         d3
             .forceSimulation<Node, Link>(graph!.nodes)
             .on('tick', () => onTick())
-            // .force('charge', d3.forceManyBody<Node>().strength(-500))  //how strong they repel/attract each other
+            // .force('charge', d3.forceManyBody<Node>().strength(-500)) //how strong they repel/attract each other
             .force(
                 'collision',
                 d3.forceCollide<Node>().radius(config.nodeRadius) //stop overlapping
