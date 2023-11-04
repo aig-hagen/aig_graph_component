@@ -148,17 +148,23 @@ export default Vue.extend({
                 this.height,
                 () => this.onTick()
             )
-            this.drag = createDrag(this.simulation)
+            this.drag = createDrag(
+                this.simulation,
+                this.width,
+                this.height,
+                this.config.nodeRadius
+            )
             this.restart()
         },
         onZoom(event: D3ZoomEvent<any, any>): void {
-            this.xOffset = event.transform.x
-            this.yOffset = event.transform.y
-            this.scale = event.transform.k
-            this.canvas!.attr(
-                'transform',
-                `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
-            )
+            // this.xOffset = event.transform.x
+            // this.yOffset = event.transform.y
+            // this.scale = event.transform.k
+            //
+            // this.canvas!.attr(
+            //     'transform',
+            //     `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
+            // )
         },
         createLink(source: Node, target: Node): void {
             this.graph!.createLink(source.id, target.id)
