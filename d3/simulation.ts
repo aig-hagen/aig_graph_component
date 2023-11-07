@@ -13,36 +13,50 @@ export function createSimulation(
     height: number,
     onTick: () => void
 ): Simulation {
-    return (
-        d3
-            .forceSimulation<Node, Link>(graph!.nodes)
-            .on('tick', () => onTick())
-            // .force('charge', d3.forceManyBody<Node>().strength(-500)) //how strong they repel/attract each other
-            .force(
-                'collision',
-                d3.forceCollide<Node>().radius(config.nodeRadius) //stop overlapping
-            )
-            .force(
-                'link',
-                d3
-                    .forceLink<Node, Link>() //for links to be a fixed distance apart
-                    .links(graph!.links)
-                    .id((d: Node) => d.id)
-                    .distance(config.nodeRadius * 10)
-            )
-            // .force('x', d3.forceX<Node>(width / 2).strength(0.05)) //attract elements towards specific positions
-            // .force('y', d3.forceY<Node>(height / 2).strength(0.05))
-            .force('bounds', () => {
-                for (let node of graph!.nodes) {
-                    node.x = Math.max(
-                        config.nodeRadius,
-                        Math.min(width - config.nodeRadius, node.x!)
-                    )
-                    node.y = Math.max(
-                        config.nodeRadius,
-                        Math.min(height - config.nodeRadius, node.y!)
-                    )
-                }
-            })
-    )
+    return d3
+        .forceSimulation<Node, Link>(graph!.nodes)
+        .on('tick', () => onTick())
+        .force(
+            'collision',
+            d3.forceCollide<Node>().radius(config.nodeRadius) //stop overlapping
+        )
+        .force(
+            'link',
+            d3
+                .forceLink<Node, Link>() //for links to be a fixed distance apart
+                .links(graph!.links)
+                .id((d: Node) => d.id)
+                .distance(config.nodeRadius * 10)
+        )
+        .force('bounds', () => {
+            for (let node of graph!.nodes) {
+                node.x = Math.max(
+                    config.nodeRadius,
+                    Math.min(width - config.nodeRadius, node.x!)
+                )
+                node.y = Math.max(
+                    config.nodeRadius,
+                    Math.min(height - config.nodeRadius, node.y!)
+                )
+            }
+        })
+}
+
+export function setNodeChargeAndAttraction(
+    simulation: Simulation,
+    setForces: boolean,
+    width: number,
+    height: number
+): Simulation {
+    if (setForces) {
+        return simulation
+            .force('charge', d3.forceManyBody<Node>().strength(-500)) //how strong they repel/attract each other
+            .force('x', d3.forceX<Node>(width / 2).strength(0.05)) //attract elements towards specific positions
+            .force('y', d3.forceY<Node>(height / 2).strength(0.05))
+    } else {
+        return simulation
+            .force('charge', null)
+            .force('x', null)
+            .force('y', null)
+    }
 }
