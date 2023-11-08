@@ -41,8 +41,12 @@
             <!--            <theme-toggle />-->
             <settings
                 @toggle-node-physics="toggleForces"
-                @toggle-node-labels="toggleNodeLabels"
-                @toggle-link-labels="toggleLinkLabels"
+                @toggle-node-labels="
+                    (isEnabled) => (this.config.showNodeLabels = isEnabled)
+                "
+                @toggle-link-labels="
+                    (isEnabled) => (this.config.showLinkLabels = isEnabled)
+                "
                 @toggle-fixed-link-distance="toggleFixedLinkDistance"
             />
         </div>
@@ -416,9 +420,6 @@ export default Vue.extend({
                     return nodeGroup
                 },
                 (update) => {
-                    // update
-                    //     .selectChild('circle')
-                    //     .attr('r', this.config.nodeRadius)
                     update
                         .selectChild('text')
                         .classed('hidden', !this.config.showNodeLabels)
@@ -565,12 +566,6 @@ export default Vue.extend({
                 this.height
             )
         },
-        toggleNodeLabels(isEnabled: boolean): void {
-            this.config.showNodeLabels = isEnabled
-        },
-        toggleLinkLabels(isEnabled: boolean): void {
-            this.config.showLinkLabels = isEnabled
-        },
         toggleFixedLinkDistance(isEnabled: boolean): void {
             setFixedLinkDistance(
                 this.simulation,
@@ -673,6 +668,7 @@ export default Vue.extend({
         &.hidden {
             visibility: hidden;
             cursor: pointer;
+            pointer-events: none;
         }
     }
 
@@ -684,6 +680,7 @@ export default Vue.extend({
         &.hidden {
             visibility: hidden;
             cursor: pointer;
+            pointer-events: none;
         }
     }
 }
@@ -706,6 +703,7 @@ export default Vue.extend({
     &.hidden {
         visibility: hidden;
         cursor: pointer;
+        pointer-events: none;
     }
 }
 .node-label-placeholder {
@@ -721,6 +719,7 @@ export default Vue.extend({
     &.hidden {
         visibility: hidden;
         cursor: pointer;
+        pointer-events: none;
     }
 }
 .label-input {

@@ -69,27 +69,6 @@
                     </v-list-item-action>
                     <v-list-item-title>Fixed distance</v-list-item-title>
                 </v-list-item>
-
-                <!--                <v-list-item>-->
-                <!--                    <v-list-item-action>-->
-                <!--                        <v-text-field-->
-                <!--                            v-model.number="radius"-->
-                <!--                            hide-details-->
-                <!--                            single-line-->
-                <!--                            type="number"-->
-                <!--                        >-->
-                <!--                        </v-text-field>-->
-                <!--                        &lt;!&ndash;                        <v-slider&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            v-model="radius"&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            color="primary"&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            min="10"&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            max="100"&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            thumb-label&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                            width="100"&ndash;&gt;-->
-                <!--                        &lt;!&ndash;                        ></v-slider>&ndash;&gt;-->
-                <!--                    </v-list-item-action>-->
-                <!--                    <v-list-item-title>Radius</v-list-item-title>-->
-                <!--                </v-list-item>-->
             </v-list>
         </v-card>
     </v-menu>
