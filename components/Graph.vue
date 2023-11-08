@@ -348,6 +348,8 @@ export default Vue.extend({
                         .attr('dy', (d) => {
                             if (d.pathType === PathType.REFLEXIVE) {
                                 return 15
+                            } else if (d.pathType == PathType.LINEREVERSE) {
+                                return -10
                             } else if (d.pathType?.includes('REVERSE')) {
                                 return 20
                             } else {
