@@ -1,5 +1,8 @@
 export interface GraphConfiguration {
     nodeRadius: number
+    hideNodeLabels: boolean
+
+    hideLinkLabels: boolean
 
     tooltipOpacity: number
     tooltipFadeInTame: number
@@ -13,6 +16,9 @@ export interface GraphConfiguration {
 }
 
 const nodeRadius = 24
+const hideNodeLabels = false
+
+const hideLinkLabels = false
 
 const tooltipOpacity = 1
 const tooltipFadeInTame = 500
@@ -22,6 +28,9 @@ const markerBoxSize = 4
 
 export const defaultGraphConfig: GraphConfiguration = {
     nodeRadius,
+    hideNodeLabels,
+
+    hideLinkLabels,
 
     tooltipOpacity,
     tooltipFadeInTame,

@@ -25,16 +25,16 @@
 
             <v-list>
                 <v-card-subtitle>Nodes</v-card-subtitle>
-                <!--                                <v-list-item>-->
-                <!--                                    <v-list-item-action>-->
-                <!--                                        <v-switch-->
-                <!--                                            v-model="nodeLabelsEnabled"-->
-                <!--                                            color="primary"-->
-                <!--                                            @click="toggleNodeLabels"-->
-                <!--                                        ></v-switch>-->
-                <!--                                    </v-list-item-action>-->
-                <!--                                    <v-list-item-title>Labels</v-list-item-title>-->
-                <!--                                </v-list-item>-->
+                <v-list-item>
+                    <v-list-item-action>
+                        <v-switch
+                            v-model="nodeLabelsEnabled"
+                            color="primary"
+                            @click="toggleNodeLabels"
+                        ></v-switch>
+                    </v-list-item-action>
+                    <v-list-item-title>Labels</v-list-item-title>
+                </v-list-item>
 
                 <v-list-item>
                     <v-list-item-action>
@@ -47,17 +47,17 @@
                     <v-list-item-title>Physics</v-list-item-title>
                 </v-list-item>
 
-                <!--                <v-card-subtitle>Links</v-card-subtitle>-->
-                <!--                <v-list-item>-->
-                <!--                    <v-list-item-action>-->
-                <!--                        <v-switch-->
-                <!--                            v-model="linkLabelsEnabled"-->
-                <!--                            color="primary"-->
-                <!--                            @click="toggleLinkLabels"-->
-                <!--                        ></v-switch>-->
-                <!--                    </v-list-item-action>-->
-                <!--                    <v-list-item-title>Labels</v-list-item-title>-->
-                <!--                </v-list-item>-->
+                <v-card-subtitle>Links</v-card-subtitle>
+                <v-list-item>
+                    <v-list-item-action>
+                        <v-switch
+                            v-model="linkLabelsEnabled"
+                            color="primary"
+                            @click="toggleLinkLabels"
+                        ></v-switch>
+                    </v-list-item-action>
+                    <v-list-item-title>Labels</v-list-item-title>
+                </v-list-item>
 
                 <v-list-item>
                     <v-list-item-action>
@@ -98,8 +98,8 @@
 export default {
     emits: [
         'toggle-node-physics',
-        // 'toggle-node-labels',
-        // 'toggle-link-labels',
+        'toggle-node-labels',
+        'toggle-link-labels',
         'toggle-fixed-link-distance',
     ],
     data() {
@@ -116,14 +116,12 @@ export default {
         toggleNodePhysics() {
             this.$emit('toggle-node-physics', this.physicsEnabled)
         },
-        // toggleNodeLabels() {
-        //     console.log('show labels' + this.nodeLabelsEnabled)
-        //     this.$emit('toggle-node-labels', this.nodeLabelsEnabled)
-        // },
-        // toggleLinkLabels() {
-        //     console.log('show labels' + this.linkLabelsEnabled)
-        //     this.$emit('toggle-node-labels', this.linkLabelsEnabled)
-        // },
+        toggleNodeLabels() {
+            this.$emit('toggle-node-labels', this.nodeLabelsEnabled)
+        },
+        toggleLinkLabels() {
+            this.$emit('toggle-link-labels', this.linkLabelsEnabled)
+        },
         toggleFixedLinkDistance() {
             this.$emit(
                 'toggle-fixed-link-distance',

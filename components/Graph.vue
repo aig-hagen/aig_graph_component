@@ -36,6 +36,8 @@
             <!--            <theme-toggle />-->
             <settings
                 @toggle-node-physics="toggleForces"
+                @toggle-node-labels="toggleNodeLabels"
+                @toggle-link-labels="toggleLinkLabels"
                 @toggle-fixed-link-distance="toggleFixedLinkDistance"
             />
         </div>
@@ -347,6 +349,7 @@ export default Vue.extend({
                     update
                         .selectChild('text')
                         .selectChild('textPath')
+                        .classed('hidden', this.config.hideLinkLabels)
                         .attr('startOffset', (d) => {
                             if (d.pathType?.includes('REVERSE')) {
                                 return '46%'
@@ -406,6 +409,16 @@ export default Vue.extend({
                             () => (this.draggableLinkTargetNode = undefined)
                         )
                     return nodeGroup
+                },
+                (update) => {
+                    // update
+                    //     .selectChild('circle')
+                    //     .attr('r', this.config.nodeRadius)
+                    update
+                        .selectChild('text')
+                        .classed('hidden', this.config.hideNodeLabels)
+
+                    return update
                 }
             )
 
@@ -547,6 +560,12 @@ export default Vue.extend({
                 this.height
             )
         },
+        toggleNodeLabels(isEnabled: boolean): void {
+            this.config.hideNodeLabels = !isEnabled
+        },
+        toggleLinkLabels(isEnabled: boolean): void {
+            this.config.hideLinkLabels = !isEnabled
+        },
         toggleFixedLinkDistance(isEnabled: boolean): void {
             setFixedLinkDistance(
                 this.simulation,
@@ -645,12 +664,22 @@ export default Vue.extend({
         fill: black;
         stroke: none;
         font-size: 1rem;
+
+        &.hidden {
+            visibility: hidden;
+            cursor: pointer;
+        }
     }
 
     .link-label-placeholder {
         fill: dimgrey;
         font-style: oblique;
         font-size: 0.85rem;
+
+        &.hidden {
+            visibility: hidden;
+            cursor: pointer;
+        }
     }
 }
 
@@ -668,6 +697,11 @@ export default Vue.extend({
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
+
+    &.hidden {
+        visibility: hidden;
+        cursor: pointer;
+    }
 }
 .node-label-placeholder {
     fill: dimgrey;
@@ -678,6 +712,11 @@ export default Vue.extend({
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
+
+    &.hidden {
+        visibility: hidden;
+        cursor: pointer;
+    }
 }
 .label-input {
     background-color: rgba(255, 255, 255, 0.9);
