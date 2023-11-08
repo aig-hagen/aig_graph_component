@@ -25,6 +25,16 @@
 
             <v-list>
                 <v-card-subtitle>Nodes</v-card-subtitle>
+                <!--                                <v-list-item>-->
+                <!--                                    <v-list-item-action>-->
+                <!--                                        <v-switch-->
+                <!--                                            v-model="nodeLabelsEnabled"-->
+                <!--                                            color="primary"-->
+                <!--                                            @click="toggleNodeLabels"-->
+                <!--                                        ></v-switch>-->
+                <!--                                    </v-list-item-action>-->
+                <!--                                    <v-list-item-title>Labels</v-list-item-title>-->
+                <!--                                </v-list-item>-->
 
                 <v-list-item>
                     <v-list-item-action>
@@ -36,27 +46,89 @@
                     </v-list-item-action>
                     <v-list-item-title>Physics</v-list-item-title>
                 </v-list-item>
+
+                <!--                <v-card-subtitle>Links</v-card-subtitle>-->
+                <!--                <v-list-item>-->
+                <!--                    <v-list-item-action>-->
+                <!--                        <v-switch-->
+                <!--                            v-model="linkLabelsEnabled"-->
+                <!--                            color="primary"-->
+                <!--                            @click="toggleLinkLabels"-->
+                <!--                        ></v-switch>-->
+                <!--                    </v-list-item-action>-->
+                <!--                    <v-list-item-title>Labels</v-list-item-title>-->
+                <!--                </v-list-item>-->
+
+                <v-list-item>
+                    <v-list-item-action>
+                        <v-switch
+                            v-model="fixedLinkDistanceEnabled"
+                            color="primary"
+                            @click="toggleFixedLinkDistance"
+                        ></v-switch>
+                    </v-list-item-action>
+                    <v-list-item-title>Fixed distance</v-list-item-title>
+                </v-list-item>
+
+                <!--                <v-list-item>-->
+                <!--                    <v-list-item-action>-->
+                <!--                        <v-text-field-->
+                <!--                            v-model.number="radius"-->
+                <!--                            hide-details-->
+                <!--                            single-line-->
+                <!--                            type="number"-->
+                <!--                        >-->
+                <!--                        </v-text-field>-->
+                <!--                        &lt;!&ndash;                        <v-slider&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            v-model="radius"&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            color="primary"&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            min="10"&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            max="100"&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            thumb-label&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                            width="100"&ndash;&gt;-->
+                <!--                        &lt;!&ndash;                        ></v-slider>&ndash;&gt;-->
+                <!--                    </v-list-item-action>-->
+                <!--                    <v-list-item-title>Radius</v-list-item-title>-->
+                <!--                </v-list-item>-->
             </v-list>
         </v-card>
     </v-menu>
 </template>
 <script lang="ts">
 export default {
-    emits: ['toggle-node-physics'],
+    emits: [
+        'toggle-node-physics',
+        // 'toggle-node-labels',
+        // 'toggle-link-labels',
+        'toggle-fixed-link-distance',
+    ],
     data() {
         return {
             menu: false,
-            nodeLabels: true,
+            nodeLabelsEnabled: true,
+            linkLabelsEnabled: true,
             physicsEnabled: false,
-            physicsEnabledTest: false,
             radius: 24,
-            linkLabels: true,
-            fixedDistance: false,
+            fixedLinkDistanceEnabled: false,
         }
     },
     methods: {
         toggleNodePhysics() {
             this.$emit('toggle-node-physics', this.physicsEnabled)
+        },
+        // toggleNodeLabels() {
+        //     console.log('show labels' + this.nodeLabelsEnabled)
+        //     this.$emit('toggle-node-labels', this.nodeLabelsEnabled)
+        // },
+        // toggleLinkLabels() {
+        //     console.log('show labels' + this.linkLabelsEnabled)
+        //     this.$emit('toggle-node-labels', this.linkLabelsEnabled)
+        // },
+        toggleFixedLinkDistance() {
+            this.$emit(
+                'toggle-fixed-link-distance',
+                this.fixedLinkDistanceEnabled
+            )
         },
     },
 }

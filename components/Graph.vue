@@ -34,7 +34,10 @@
             <!--            </v-btn>-->
             <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
             <!--            <theme-toggle />-->
-            <settings @toggle-node-physics="toggleForces" />
+            <settings
+                @toggle-node-physics="toggleForces"
+                @toggle-fixed-link-distance="toggleFixedLinkDistance"
+            />
         </div>
         <div v-show="!graphHasNodes" class="info-text text-h5 text--secondary">
             Graph is empty
@@ -59,7 +62,11 @@ import {
     paddedLinePath,
     paddedReflexivePath,
 } from '~/d3/paths'
-import { createSimulation, setNodeChargeAndAttraction } from '~/d3/simulation'
+import {
+    createSimulation,
+    setNodeChargeAndAttraction,
+    setFixedLinkDistance,
+} from '~/d3/simulation'
 import { createZoom, Zoom } from '~/d3/zoom'
 import { defaultGraphConfig, GraphConfiguration } from '~/model/config'
 import Graph from '~/model/graph'
@@ -538,6 +545,14 @@ export default Vue.extend({
                 isEnabled,
                 this.width,
                 this.height
+            )
+        },
+        toggleFixedLinkDistance(isEnabled: boolean): void {
+            setFixedLinkDistance(
+                this.simulation,
+                this.graph,
+                this.config,
+                isEnabled
             )
         },
         resetDraggableLink(): void {

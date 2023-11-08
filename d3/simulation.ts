@@ -20,14 +20,6 @@ export function createSimulation(
             'collision',
             d3.forceCollide<Node>().radius(config.nodeRadius) //stop overlapping
         )
-        .force(
-            'link',
-            d3
-                .forceLink<Node, Link>() //for links to be a fixed distance apart
-                .links(graph!.links)
-                .id((d: Node) => d.id)
-                .distance(config.nodeRadius * 10)
-        )
         .force('bounds', () => {
             for (let node of graph!.nodes) {
                 node.x = Math.max(
@@ -58,5 +50,25 @@ export function setNodeChargeAndAttraction(
             .force('charge', null)
             .force('x', null)
             .force('y', null)
+    }
+}
+
+export function setFixedLinkDistance(
+    simulation: Simulation,
+    graph: Graph,
+    config: GraphConfiguration,
+    setForces: boolean
+): Simulation {
+    if (setForces) {
+        return simulation.force(
+            'link',
+            d3
+                .forceLink<Node, Link>()
+                .links(graph!.links)
+                .id((d: Node) => d.id)
+                .distance(config.nodeRadius * 10)
+        )
+    } else {
+        return simulation.force('link', null)
     }
 }
