@@ -19,7 +19,12 @@
                 <v-icon v-text="'mdi-delete'" />
             </v-btn>
             <save
-                :graph-as-t-g-f="this.graph.toTGF()"
+                :graph-as-t-g-f="
+                    this.graph.toTGF(
+                        this.config.showNodeLabels,
+                        this.config.showLinkLabels
+                    )
+                "
                 :graph-as-tik-z="this.graph.toTikZ()"
             />
             <help />
@@ -349,7 +354,7 @@ export default Vue.extend({
                     update
                         .selectChild('text')
                         .selectChild('textPath')
-                        .classed('hidden', this.config.hideLinkLabels)
+                        .classed('hidden', !this.config.showLinkLabels)
                         .attr('startOffset', (d) => {
                             if (d.pathType?.includes('REVERSE')) {
                                 return '46%'
@@ -416,7 +421,7 @@ export default Vue.extend({
                     //     .attr('r', this.config.nodeRadius)
                     update
                         .selectChild('text')
-                        .classed('hidden', this.config.hideNodeLabels)
+                        .classed('hidden', !this.config.showNodeLabels)
 
                     return update
                 }
@@ -561,10 +566,10 @@ export default Vue.extend({
             )
         },
         toggleNodeLabels(isEnabled: boolean): void {
-            this.config.hideNodeLabels = !isEnabled
+            this.config.showNodeLabels = isEnabled
         },
         toggleLinkLabels(isEnabled: boolean): void {
-            this.config.hideLinkLabels = !isEnabled
+            this.config.showLinkLabels = isEnabled
         },
         toggleFixedLinkDistance(isEnabled: boolean): void {
             setFixedLinkDistance(
