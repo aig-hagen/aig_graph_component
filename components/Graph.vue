@@ -27,6 +27,7 @@
                 "
                 :graph-as-tik-z="this.graph.toTikZ()"
             />
+            <import></import>
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
             <!--            <v-btn-->
