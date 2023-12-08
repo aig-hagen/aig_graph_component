@@ -27,7 +27,7 @@
                 "
                 :graph-as-tik-z="this.graph.toTikZ()"
             />
-            <import></import>
+            <import-export @file-imported="onHandleGraphImport"></import-export>
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
             <!--            <v-btn-->
@@ -584,6 +584,11 @@ export default Vue.extend({
             this.draggableLinkSourceNode = undefined
             this.draggableLinkTargetNode = undefined
             this.draggableLinkEnd = undefined
+        },
+        onHandleGraphImport(importContent: string) {
+            console.log(
+                'TODO This will handle the graph import of: ' + importContent
+            )
         },
         resetView(): void {
             this.simulation!.stop()

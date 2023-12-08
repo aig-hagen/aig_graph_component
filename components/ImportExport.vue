@@ -23,9 +23,9 @@
                     <v-window-item>
                         <h3 class="heading">Select File</h3>
                         <v-file-input
+                            v-model="fileInput"
                             accept=".tgf"
                             label="Graph Format File"
-                            ref="file"
                             type="file"
                         >
                         </v-file-input>
@@ -34,7 +34,13 @@
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" text>OK</v-btn>
+                <v-btn
+                    color="primary"
+                    text
+                    :disabled="!fileInput"
+                    @click="readFile()"
+                    >OK</v-btn
+                >
                 <v-btn color="primary" text @click="onClose()">Close</v-btn>
             </v-card-actions>
         </v-card>
@@ -42,24 +48,47 @@
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent } from 'vue'
+export default defineComponent({
+    name: 'import-export',
     data() {
         return {
             dialog: false,
             tab: null,
-            file: null,
-            content: null,
+            fileInput: null,
         }
     },
+    emits: ['file-imported'],
     methods: {
+        readFile() {
+            if (this.fileInput) {
+                const reader = new FileReader()
+                reader.readAsText(this.fileInput)
+
+                reader.onload = (e) => {
+                    console.log('onload')
+                    //@ts-ignore
+                    this.$emit('file-imported', e.target?.result)
+                    this.onClose()
+                }
+
+                reader.onerror = (e) => {
+                    console.error(
+                        //@ts-ignore
+                        `Error reading the file ${this.fileInput!.name}: ${
+                            e.target?.error
+                        }`
+                    )
+                }
+            }
+        },
         onClose() {
-            //@ts-ignore
             this.dialog = false
-            //@ts-ignore
             this.tab = null
+            this.fileInput = null
         },
     },
-}
+})
 </script>
 
 <style lang="scss">
