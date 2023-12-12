@@ -25,7 +25,7 @@
                         <v-file-input
                             v-model="fileInput"
                             accept=".tgf"
-                            label="Graph Format File"
+                            label="Trivial Graph Format File"
                             type="file"
                         >
                         </v-file-input>
