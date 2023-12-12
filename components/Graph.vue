@@ -85,6 +85,7 @@ import Graph from '~/model/graph'
 import { Link } from '~/model/link'
 import { Node } from '~/model/node'
 import { PathType } from '~/model/path-type'
+import { parseTGF } from '~/model/parser'
 // @ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 
@@ -186,12 +187,17 @@ export default Vue.extend({
             //     `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
             // )
         },
-        createLink(source: Node, target: Node): void {
-            this.graph!.createLink(source.id, target.id)
+        createLink(source: Node, target: Node, label?: string): void {
+            this.graph!.createLink(source.id, target.id, label)
             this.restart()
         },
-        createNode(x?: number, y?: number): void {
-            this.graph.createNode(x ?? this.width / 2, y ?? this.height / 2)
+        createNode(x?: number, y?: number, id?: number, label?: string): void {
+            this.graph.createNode(
+                x ?? this.width / 2,
+                y ?? this.height / 2,
+                id,
+                label
+            )
             this.graphHasNodes = true
             this.restart()
         },
@@ -318,10 +324,12 @@ export default Vue.extend({
                     linkGroup
                         .append('text')
                         .append('textPath')
-                        .attr('class', 'link-label-placeholder')
+                        .attr('class', (d: Link) =>
+                            d.label ? 'link-label' : 'link-label-placeholder'
+                        )
                         .attr('href', (d) => `#${d.id}`)
                         .attr('startOffset', '50%')
-                        .text('add label')
+                        .text((d: Link) => (d.label ? d.label : 'add label'))
                         .on('click', (event: MouseEvent, d: Link) => {
                             this.onLinkLabelClicked(event, d)
                         })
@@ -406,8 +414,12 @@ export default Vue.extend({
                         })
                     nodeGroup
                         .append('text')
-                        .classed('node-label-placeholder', true)
-                        .text('click to add label')
+                        .attr('class', (d: Node) =>
+                            d.label ? 'node-label' : 'node-label-placeholder'
+                        )
+                        .text((d: Node) =>
+                            d.label !== undefined ? d.label : 'add label'
+                        )
                         .attr('dy', '0.33em')
                         .on('click', (event: MouseEvent, d: Node) => {
                             this.onNodeLabelClicked(event, d)
@@ -586,9 +598,25 @@ export default Vue.extend({
             this.draggableLinkEnd = undefined
         },
         onHandleGraphImport(importContent: string) {
-            console.log(
-                'TODO This will handle the graph import of: ' + importContent
-            )
+            let [nodes, links] = parseTGF(importContent)
+            this.resetGraph()
+            for (let parsedNode of nodes) {
+                this.createNode(
+                    undefined,
+                    undefined,
+                    parsedNode.id,
+                    parsedNode.label
+                )
+            }
+            const findNodeById = (id: number) =>
+                this.graph.nodes.find((node) => node.id === id)
+            for (let parsedLink of links) {
+                let srcNode = findNodeById(parsedLink.sourceId)
+                let targetNode = findNodeById(parsedLink.targetId)
+                if (srcNode && targetNode) {
+                    this.createLink(srcNode, targetNode, parsedLink.label)
+                }
+            }
         },
         resetView(): void {
             this.simulation!.stop()
