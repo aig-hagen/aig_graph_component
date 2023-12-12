@@ -32,6 +32,10 @@
                     </v-window-item>
                 </v-window>
             </v-card-text>
+            <v-card-text>
+                The import is limited to files in trivial graph format with
+                numerical IDs. Importing will <b>replace</b> your current graph.
+            </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn
