@@ -100,7 +100,12 @@ export default class Graph {
 
         if (includeNodeLabels) {
             nodeLines = this.nodes
-                .map((node) => `${node.id} ${node.label}`)
+                .map(
+                    (node) =>
+                        `${node.id} ${
+                            node.label !== undefined ? `${node.label}` : ''
+                        }`
+                )
                 .join('\n')
         } else {
             nodeLines = this.nodes.map((node) => `${node.id}`).join('\n')
@@ -110,7 +115,9 @@ export default class Graph {
             linkLines = this.links
                 .map(
                     (link) =>
-                        `${link.source.id} ${link.target.id} ${link.label}`
+                        `${link.source.id} ${link.target.id} ${
+                            link.label !== undefined ? `${link.label}` : ''
+                        }`
                 )
                 .join('\n')
         } else {
