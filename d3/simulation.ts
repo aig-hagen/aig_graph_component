@@ -13,7 +13,7 @@ export function createSimulation(
     height: number,
     onTick: () => void
 ): Simulation {
-    return d3
+    let simulation = d3
         .forceSimulation<Node, Link>(graph!.nodes)
         .on('tick', () => onTick())
         .force(
@@ -32,6 +32,21 @@ export function createSimulation(
                 )
             }
         })
+
+    simulation = setFixedLinkDistance(
+        simulation,
+        graph,
+        config,
+        config.fixedLinkDistanceEnabled
+    )
+    simulation = setNodeChargeAndAttraction(
+        simulation,
+        config.nodePhysicsEnabled,
+        width,
+        height
+    )
+
+    return simulation
 }
 
 export function setNodeChargeAndAttraction(

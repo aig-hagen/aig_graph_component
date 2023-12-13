@@ -27,7 +27,7 @@
                 "
                 :graph-as-tik-z="this.graph.toTikZ()"
             />
-            <import-export @file-imported="onHandleGraphImport"></import-export>
+            <import-export @file-imported="onHandleGraphImport" />
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
             <!--            <v-btn-->
@@ -41,6 +41,12 @@
             <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
             <!--            <theme-toggle />-->
             <settings
+                :node-labels-enabled="this.config.showNodeLabels"
+                :link-labels-enabled="this.config.showLinkLabels"
+                :physics-enabled="this.config.nodePhysicsEnabled"
+                :fixed-link-distance-enabled="
+                    this.config.fixedLinkDistanceEnabled
+                "
                 @toggle-node-physics="toggleForces"
                 @toggle-node-labels="
                     (isEnabled) => (this.config.showNodeLabels = isEnabled)
@@ -574,6 +580,7 @@ export default Vue.extend({
             return [x, y]
         },
         toggleForces(isEnabled: boolean): void {
+            this.config.nodePhysicsEnabled = isEnabled
             setNodeChargeAndAttraction(
                 this.simulation,
                 isEnabled,
@@ -582,6 +589,7 @@ export default Vue.extend({
             )
         },
         toggleFixedLinkDistance(isEnabled: boolean): void {
+            this.config.fixedLinkDistanceEnabled = isEnabled
             setFixedLinkDistance(
                 this.simulation,
                 this.graph,
