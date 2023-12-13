@@ -119,14 +119,6 @@ export default class Graph {
                 .join('\n')
         }
 
-        return `${nodeLines}${linkLines ? '\n###########\n' : ''}${linkLines}`
-    }
-
-    public toTikZ(): String {
-        if (this.nodes.length === 0 && this.links.length === 0) {
-            return 'Graph is empty'
-        }
-
-        return 'TODO: This still has to be implemented.'
+        return `${nodeLines}${linkLines ? '\n#\n' : ''}${linkLines}`
     }
 }

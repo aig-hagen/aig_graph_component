@@ -18,16 +18,15 @@
             >
                 <v-icon v-text="'mdi-delete'" />
             </v-btn>
-            <save
+            <import-export
                 :graph-as-t-g-f="
                     this.graph.toTGF(
                         this.config.showNodeLabels,
                         this.config.showLinkLabels
                     )
                 "
-                :graph-as-tik-z="this.graph.toTikZ()"
+                @file-imported="onHandleGraphImport"
             />
-            <import-export @file-imported="onHandleGraphImport" />
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
             <!--            <v-btn-->
