@@ -13,7 +13,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     let input: string[] = file.split('\n')
 
     let splitIndex: number = input.findIndex((element) =>
-        /[^\w*]#+[^\w*]/.test(element)
+        element.trim().startsWith('#')
     )
     let nodesInput: string[] =
         splitIndex !== -1 ? input.slice(0, splitIndex) : input
