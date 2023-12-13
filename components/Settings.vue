@@ -74,21 +74,31 @@
     </v-menu>
 </template>
 <script lang="ts">
-export default {
+import { defineComponent } from 'vue'
+export default defineComponent({
     emits: [
         'toggle-node-physics',
         'toggle-node-labels',
         'toggle-link-labels',
         'toggle-fixed-link-distance',
     ],
+    props: {
+        nodeLabelsEnabled: {
+            type: Boolean,
+        },
+        linkLabelsEnabled: {
+            type: Boolean,
+        },
+        physicsEnabled: {
+            type: Boolean,
+        },
+        fixedLinkDistanceEnabled: {
+            type: Boolean,
+        },
+    },
     data() {
         return {
             menu: false,
-            nodeLabelsEnabled: true,
-            linkLabelsEnabled: true,
-            physicsEnabled: false,
-            radius: 24,
-            fixedLinkDistanceEnabled: false,
         }
     },
     methods: {
@@ -108,5 +118,5 @@ export default {
             )
         },
     },
-}
+})
 </script>

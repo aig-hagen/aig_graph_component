@@ -18,14 +18,14 @@
             >
                 <v-icon v-text="'mdi-delete'" />
             </v-btn>
-            <save
+            <import-export
                 :graph-as-t-g-f="
                     this.graph.toTGF(
                         this.config.showNodeLabels,
                         this.config.showLinkLabels
                     )
                 "
-                :graph-as-tik-z="this.graph.toTikZ()"
+                @file-imported="onHandleGraphImport"
             />
             <help />
             <!--            for usage of resetView it is necessary to fix the reset of the labels-->
@@ -40,6 +40,12 @@
             <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
             <!--            <theme-toggle />-->
             <settings
+                :node-labels-enabled="this.config.showNodeLabels"
+                :link-labels-enabled="this.config.showLinkLabels"
+                :physics-enabled="this.config.nodePhysicsEnabled"
+                :fixed-link-distance-enabled="
+                    this.config.fixedLinkDistanceEnabled
+                "
                 @toggle-node-physics="toggleForces"
                 @toggle-node-labels="
                     (isEnabled) => (this.config.showNodeLabels = isEnabled)
@@ -84,6 +90,7 @@ import Graph from '~/model/graph'
 import { Link } from '~/model/link'
 import { Node } from '~/model/node'
 import { PathType } from '~/model/path-type'
+import { parseTGF } from '~/model/parser'
 // @ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 
@@ -185,12 +192,17 @@ export default Vue.extend({
             //     `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
             // )
         },
-        createLink(source: Node, target: Node): void {
-            this.graph!.createLink(source.id, target.id)
+        createLink(source: Node, target: Node, label?: string): void {
+            this.graph!.createLink(source.id, target.id, label)
             this.restart()
         },
-        createNode(x?: number, y?: number): void {
-            this.graph.createNode(x ?? this.width / 2, y ?? this.height / 2)
+        createNode(x?: number, y?: number, id?: number, label?: string): void {
+            this.graph.createNode(
+                x ?? this.width / 2,
+                y ?? this.height / 2,
+                id,
+                label
+            )
             this.graphHasNodes = true
             this.restart()
         },
@@ -317,10 +329,12 @@ export default Vue.extend({
                     linkGroup
                         .append('text')
                         .append('textPath')
-                        .attr('class', 'link-label-placeholder')
+                        .attr('class', (d: Link) =>
+                            d.label ? 'link-label' : 'link-label-placeholder'
+                        )
                         .attr('href', (d) => `#${d.id}`)
                         .attr('startOffset', '50%')
-                        .text('add label')
+                        .text((d: Link) => (d.label ? d.label : 'add label'))
                         .on('click', (event: MouseEvent, d: Link) => {
                             this.onLinkLabelClicked(event, d)
                         })
@@ -405,8 +419,12 @@ export default Vue.extend({
                         })
                     nodeGroup
                         .append('text')
-                        .classed('node-label-placeholder', true)
-                        .text('click to add label')
+                        .attr('class', (d: Node) =>
+                            d.label ? 'node-label' : 'node-label-placeholder'
+                        )
+                        .text((d: Node) =>
+                            d.label !== undefined ? d.label : 'add label'
+                        )
                         .attr('dy', '0.33em')
                         .on('click', (event: MouseEvent, d: Node) => {
                             this.onNodeLabelClicked(event, d)
@@ -561,6 +579,7 @@ export default Vue.extend({
             return [x, y]
         },
         toggleForces(isEnabled: boolean): void {
+            this.config.nodePhysicsEnabled = isEnabled
             setNodeChargeAndAttraction(
                 this.simulation,
                 isEnabled,
@@ -569,6 +588,7 @@ export default Vue.extend({
             )
         },
         toggleFixedLinkDistance(isEnabled: boolean): void {
+            this.config.fixedLinkDistanceEnabled = isEnabled
             setFixedLinkDistance(
                 this.simulation,
                 this.graph,
@@ -583,6 +603,27 @@ export default Vue.extend({
             this.draggableLinkSourceNode = undefined
             this.draggableLinkTargetNode = undefined
             this.draggableLinkEnd = undefined
+        },
+        onHandleGraphImport(importContent: string) {
+            let [nodes, links] = parseTGF(importContent)
+            this.resetGraph()
+            for (let parsedNode of nodes) {
+                this.createNode(
+                    undefined,
+                    undefined,
+                    parsedNode.id,
+                    parsedNode.label
+                )
+            }
+            const findNodeById = (id: number) =>
+                this.graph.nodes.find((node) => node.id === id)
+            for (let parsedLink of links) {
+                let srcNode = findNodeById(parsedLink.sourceId)
+                let targetNode = findNodeById(parsedLink.targetId)
+                if (srcNode && targetNode) {
+                    this.createLink(srcNode, targetNode, parsedLink.label)
+                }
+            }
         },
         resetView(): void {
             this.simulation!.stop()

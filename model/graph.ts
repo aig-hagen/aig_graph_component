@@ -13,13 +13,29 @@ export default class Graph {
         })
     }
 
-    public createNode(x?: number, y?: number): D3Node {
-        const node = new Node(this.nodeIdCounter++, x, y)
+    public createNode(
+        x?: number,
+        y?: number,
+        id?: number,
+        label?: string
+    ): D3Node {
+        const node = new Node(
+            this.nodeIdCounter++, //todo if id is passed, then in the future it will be used instead
+            x,
+            y,
+            undefined,
+            undefined,
+            label
+        )
         this.nodes.push(node)
         return node
     }
 
-    public createLink(sourceId: number, targetId: number): D3Link | undefined {
+    public createLink(
+        sourceId: number,
+        targetId: number,
+        label?: string
+    ): D3Link | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
         )
@@ -37,7 +53,7 @@ export default class Graph {
             return undefined
         }
 
-        const link = new Link(source, target)
+        const link = new Link(source, target, undefined, label)
         this.links.push(link)
         return link
     }
@@ -84,7 +100,12 @@ export default class Graph {
 
         if (includeNodeLabels) {
             nodeLines = this.nodes
-                .map((node) => `${node.id} ${node.label}`)
+                .map(
+                    (node) =>
+                        `${node.id} ${
+                            node.label !== undefined ? `${node.label}` : ''
+                        }`
+                )
                 .join('\n')
         } else {
             nodeLines = this.nodes.map((node) => `${node.id}`).join('\n')
@@ -94,7 +115,9 @@ export default class Graph {
             linkLines = this.links
                 .map(
                     (link) =>
-                        `${link.source.id} ${link.target.id} ${link.label}`
+                        `${link.source.id} ${link.target.id} ${
+                            link.label !== undefined ? `${link.label}` : ''
+                        }`
                 )
                 .join('\n')
         } else {
@@ -103,14 +126,6 @@ export default class Graph {
                 .join('\n')
         }
 
-        return `${nodeLines}${linkLines ? '\n###########\n' : ''}${linkLines}`
-    }
-
-    public toTikZ(): String {
-        if (this.nodes.length === 0 && this.links.length === 0) {
-            return 'Graph is empty'
-        }
-
-        return 'TODO: This still has to be implemented.'
+        return `${nodeLines}${linkLines ? '\n#\n' : ''}${linkLines}`
     }
 }
