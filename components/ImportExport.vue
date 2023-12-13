@@ -38,8 +38,6 @@
                     </v-window-item>
                     <v-window-item>
                         <h3 class="heading">Preview</h3>
-                        <v-spacer />
-                        <v-spacer />
                         <pre>{{ graphAsTGF }}</pre>
                         <v-card-text
                             >This export action will <b>copy</b> the graph in
@@ -137,6 +135,7 @@ export default defineComponent({
 
 <style lang="scss">
 .heading {
-    margin-top: 15px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 </style>
