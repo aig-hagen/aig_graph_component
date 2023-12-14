@@ -76,7 +76,7 @@ export default defineComponent({
         },
     },
     computed: {
-        isOkDisabled() {
+        isOkDisabled(): boolean {
             return (
                 (this.tab === 0 && !this.fileInput) ||
                 (this.tab === 1 && this.graphAsTGF === 'Graph is empty')
@@ -106,7 +106,7 @@ export default defineComponent({
         readFile() {
             if (this.fileInput) {
                 const reader = new FileReader()
-                reader.readAsText(this.fileInput)
+                reader.readAsText(this.fileInput!)
 
                 reader.onload = (e) => {
                     this.$emit('file-imported', e.target?.result)

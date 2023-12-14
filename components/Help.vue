@@ -39,8 +39,8 @@ interface Control {
     desktop: string
     mobile: string
 }
-
-export default {
+import { defineComponent } from 'vue'
+export default defineComponent({
     data(): { controls: Control[]; dialog: Boolean; headers: any[] } {
         return {
             controls: [
@@ -101,7 +101,7 @@ export default {
             ],
         }
     },
-}
+})
 </script>
 
 <style lang="scss">
