@@ -321,7 +321,11 @@ export default Vue.extend({
                     linkGroup
                         .append('path')
                         .classed('clickbox', true)
-                        .on('contextmenu', (event: MouseEvent, d: Link) => {
+                        .on('pointerdown', (event: MouseEvent, d: Link) => {
+                            if (event.button !== 1) {
+                                //mouse wheel
+                                return
+                            }
                             terminate(event)
                             this.graph.removeLink(d)
                             this.restart()
@@ -392,7 +396,11 @@ export default Vue.extend({
                     const nodeGroup = enter
                         .append('g')
                         .call(this.drag!)
-                        .on('contextmenu', (event: MouseEvent, d: Node) => {
+                        .on('pointerdown', (event: MouseEvent, d: Node) => {
+                            if (event.button !== 1) {
+                                //mouse wheel
+                                return
+                            }
                             terminate(event)
                             this.graph.removeNode(d)
                             this.graphHasNodes = this.graph.nodes.length > 0

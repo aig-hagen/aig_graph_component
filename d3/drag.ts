@@ -14,7 +14,7 @@ export function createDrag(
 ): Drag {
     return d3
         .drag<SVGGElement, Node, Node>()
-        .filter((event) => event.button === 1)
+        .filter((event) => event.button === 2) //right mouse click
         .on(
             'start',
             (event: D3DragEvent<SVGCircleElement, Node, Node>, d: Node) => {

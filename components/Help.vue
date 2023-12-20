@@ -44,25 +44,25 @@ export default defineComponent({
     data(): { controls: Control[]; dialog: Boolean; headers: any[] } {
         return {
             controls: [
-                {
-                    action: 'Pan',
-                    desktop: 'Left-click',
-                    mobile: 'Multi-touch',
-                },
-                {
-                    action: 'Zoom',
-                    desktop: 'Mouse wheel',
-                    mobile: 'Multi-touch',
-                },
-                {
-                    action: 'Move node',
-                    desktop: 'Middle click',
-                    mobile: '-',
-                },
+                // {
+                //     action: 'Pan',
+                //     desktop: 'Left-click',
+                //     mobile: 'Multi-touch',
+                // },
+                // {
+                //     action: 'Zoom',
+                //     desktop: 'Mouse wheel',
+                //     mobile: 'Multi-touch',
+                // },
                 {
                     action: 'Create node',
                     desktop: 'Double-click',
                     mobile: 'Double-tap',
+                },
+                {
+                    action: 'Move node',
+                    desktop: 'Right-click',
+                    mobile: 'Long tap',
                 },
                 {
                     action: 'Create link',
@@ -72,14 +72,13 @@ export default defineComponent({
                 {
                     action: 'Create/Update label',
                     desktop: 'Left-click on label',
-                    mobile: '-',
-                    // on mobile, it still has to be tested
+                    mobile: 'Touch',
                 },
                 {
                     action: 'Delete node/link',
-                    desktop: 'Right-click',
-                    mobile: 'Long tap',
-                },
+                    desktop: 'Middle-click',
+                    mobile: '-',
+                }, // still needs testing on mobile
             ],
             dialog: false,
             headers: [
