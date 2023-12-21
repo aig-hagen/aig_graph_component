@@ -1,12 +1,12 @@
 export interface parsedNode {
-    id: number
-    label: string
+    idImported: string
+    label: string | undefined
 }
 
 export interface parsedLink {
-    sourceId: number
-    targetId: number
-    label: string
+    sourceIdImported: string
+    targetIdImported: string
+    label: string | undefined
 }
 
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -23,11 +23,10 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     let nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (let node of nodesInput) {
-            let [, id, nodeLabel] = node.match(/(\d+) (.+)/) || []
+            let [, id, nodeLabel] =
+                node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []
             if (id) {
-                let nodeId: number = parseInt(id)
-                console.log(`IDs und Labels: ${nodeId}, ${nodeLabel}`)
-                nodes.push({ id: nodeId, label: nodeLabel })
+                nodes.push({ idImported: id.trim(), label: nodeLabel?.trim() })
             }
         }
     }
@@ -35,12 +34,17 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     let links: parsedLink[] = []
     if (linksInput.length) {
         for (let link of linksInput) {
-            let [, src, tar, label] = link.match(/(\d+) (\d+) (.+)/) || []
-            if (src && tar) {
-                let source = parseInt(src)
-                let target = parseInt(tar)
-                console.log(`src: ${source} targ: ${target} label: ${label}`)
-                links.push({ sourceId: source, targetId: target, label: label })
+            let [, source, target, label] =
+                link.match(/(\w+) (\w+) (.*)/) ||
+                link.match(/(\w+) (\w+)/) ||
+                []
+
+            if (source && target) {
+                links.push({
+                    sourceIdImported: source.trim(),
+                    targetIdImported: target.trim(),
+                    label: label?.trim(),
+                })
             }
         }
     }

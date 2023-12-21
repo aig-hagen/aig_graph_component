@@ -16,11 +16,12 @@ export default class Graph {
     public createNode(
         x?: number,
         y?: number,
-        id?: number,
+        importedId?: string | number,
         label?: string
     ): D3Node {
         const node = new Node(
-            this.nodeIdCounter++, //todo if id is passed, then in the future it will be used instead
+            this.nodeIdCounter++,
+            importedId,
             x,
             y,
             undefined,

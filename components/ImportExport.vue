@@ -32,8 +32,8 @@
                         </v-file-input>
                         <v-card-text>
                             The import is limited to files in trivial graph
-                            format with numerical IDs. Importing will
-                            <b>replace</b> your current graph.
+                            format. Importing will <b>replace</b> your current
+                            graph.
                         </v-card-text>
                     </v-window-item>
                     <v-window-item>

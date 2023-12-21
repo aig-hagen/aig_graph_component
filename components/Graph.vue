@@ -196,11 +196,16 @@ export default Vue.extend({
             this.graph!.createLink(source.id, target.id, label)
             this.restart()
         },
-        createNode(x?: number, y?: number, id?: number, label?: string): void {
+        createNode(
+            x?: number,
+            y?: number,
+            importedId?: string | number,
+            label?: string
+        ): void {
             this.graph.createNode(
                 x ?? this.width / 2,
                 y ?? this.height / 2,
-                id,
+                importedId,
                 label
             )
             this.graphHasNodes = true
@@ -556,7 +561,7 @@ export default Vue.extend({
                             'class',
                             `${elementType}-label`
                         )
-                        textContainingElement.textContent = input.value
+                        textContainingElement.textContent = input.value.trim()
                         element.label = textContainingElement.textContent
                     }
                 }
@@ -619,15 +624,18 @@ export default Vue.extend({
                 this.createNode(
                     undefined,
                     undefined,
-                    parsedNode.id,
+                    parsedNode.idImported,
                     parsedNode.label
                 )
             }
-            const findNodeById = (id: number) =>
-                this.graph.nodes.find((node) => node.id === id)
+            const findNodeByImportedId = (importedId: number | string) =>
+                this.graph.nodes.find((node) => node.idImported === importedId)
+
             for (let parsedLink of links) {
-                let srcNode = findNodeById(parsedLink.sourceId)
-                let targetNode = findNodeById(parsedLink.targetId)
+                let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
+                let targetNode = findNodeByImportedId(
+                    parsedLink.targetIdImported
+                )
                 if (srcNode && targetNode) {
                     this.createLink(srcNode, targetNode, parsedLink.label)
                 }
