@@ -25,8 +25,10 @@
                         <h3 class="heading">Select File</h3>
                         <v-file-input
                             v-model="fileInput"
+                            ref="fileInputRef"
                             accept=".tgf"
                             label="Trivial Graph Format File"
+                            :rules="fileInputRules"
                             type="file"
                         >
                         </v-file-input>
@@ -52,7 +54,7 @@
                 <v-btn
                     color="primary"
                     text
-                    :disabled="isOkDisabled"
+                    :disabled="!isSubmittable"
                     @click="onOk()"
                     >Ok</v-btn
                 >
@@ -76,10 +78,22 @@ export default defineComponent({
         },
     },
     computed: {
-        isOkDisabled(): boolean {
+        fileInputRules() {
+            return [
+                (v: any) => !!v || 'File is required',
+                (v: any) =>
+                    !v ||
+                    /\.(tgf|TGF)$/.test(v?.name) ||
+                    'Invalid file format. Please select a .tgf file.',
+            ]
+        },
+        isSubmittable(): boolean {
             return (
-                (this.tab === 0 && !this.fileInput) ||
-                (this.tab === 1 && this.graphAsTGF === 'Graph is empty')
+                (this.tab === 0 &&
+                    this.fileInput &&
+                    //@ts-ignore
+                    this.fileInput?.name.toLowerCase().endsWith('.tgf')) ||
+                (this.tab === 1 && this.graphAsTGF !== 'Graph is empty')
             )
         },
     },
@@ -124,6 +138,8 @@ export default defineComponent({
             }
         },
         onClose() {
+            //@ts-ignore
+            this.$refs.fileInputRef?.reset()
             this.dialog = false
             this.tab = 0
             this.fileInput = null
