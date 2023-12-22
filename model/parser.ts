@@ -10,7 +10,7 @@ export interface parsedLink {
 }
 
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
-    let input: string[] = file.split('\n')
+    let input: string[] = file.replace(/\r\n/g, '\n').split('\n')
 
     let splitIndex: number = input.findIndex((element) =>
         element.trim().startsWith('#')
