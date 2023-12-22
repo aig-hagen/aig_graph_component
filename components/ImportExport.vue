@@ -71,6 +71,7 @@
 import { defineComponent } from 'vue'
 export default defineComponent({
     name: 'import-export',
+    emits: ['file-imported'],
     props: {
         graphAsTGF: {
             type: String,

@@ -61,8 +61,8 @@ export default defineComponent({
                 },
                 {
                     action: 'Move node',
-                    desktop: 'Right-click',
-                    mobile: 'Long tap',
+                    desktop: 'Right-click & drag',
+                    mobile: 'Long tap & drag',
                 },
                 {
                     action: 'Create link',
