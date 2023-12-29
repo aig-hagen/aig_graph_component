@@ -106,7 +106,6 @@ export default defineComponent({
             copySuccessful: false,
         }
     },
-    emits: ['file-imported'],
     methods: {
         onOk() {
             if (this.tab === 0) {
