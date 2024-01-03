@@ -143,6 +143,10 @@ export default Vue.extend({
     },
     mounted() {
         this.init()
+        window.addEventListener('resize', this.resetView)
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.resetView)
     },
     methods: {
         init(): void {
