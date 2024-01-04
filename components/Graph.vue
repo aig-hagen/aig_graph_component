@@ -187,14 +187,14 @@ export default Vue.extend({
             this.restart()
         },
         onZoom(event: D3ZoomEvent<any, any>): void {
-            // this.xOffset = event.transform.x
-            // this.yOffset = event.transform.y
-            // this.scale = event.transform.k
-            //
-            // this.canvas!.attr(
-            //     'transform',
-            //     `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
-            // )
+            this.xOffset = event.transform.x
+            this.yOffset = event.transform.y
+            this.scale = event.transform.k
+
+            this.canvas!.attr(
+                'transform',
+                `translate(${this.xOffset},${this.yOffset})scale(${this.scale})`
+            )
         },
         createLink(source: Node, target: Node, label?: string): void {
             this.graph!.createLink(source.id, target.id, label)
@@ -674,6 +674,7 @@ export default Vue.extend({
     width: 100%;
     height: 100%;
     touch-action: none;
+    background-color: lightgrey;
 }
 
 .create-node-button {

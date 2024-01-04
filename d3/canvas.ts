@@ -23,7 +23,7 @@ export function createCanvas(
     onPointerUp: (event: PointerEvent) => void,
     onDoubleClick: (event: PointerEvent) => void
 ): Canvas {
-    return host
+    const canvasGroup = host
         .append('svg')
         .attr('width', '100%')
         .attr('height', '100%')
@@ -34,4 +34,12 @@ export function createCanvas(
         .call(zoom)
         .on('dblclick.zoom', null)
         .append('g')
+
+    canvasGroup
+        .append('rect')
+        .attr('width', '100%')
+        .attr('height', '100%')
+        .attr('fill', 'white')
+
+    return canvasGroup
 }
