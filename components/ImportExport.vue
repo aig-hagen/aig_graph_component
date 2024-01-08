@@ -1,15 +1,20 @@
 <template>
     <v-dialog v-model="dialog" max-width="800px">
         <template #activator="{ on, attrs }">
-            <v-btn
-                icon
-                elevation="6"
-                v-bind="attrs"
-                aria-label="Import"
-                v-on="on"
-            >
-                <v-icon v-text="'mdi-file-import-outline'" />
-            </v-btn>
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        v-bind="attrs"
+                        aria-label="Import"
+                        v-on="{ ...on, ...onTooltip }"
+                    >
+                        <v-icon v-text="'mdi-file-import-outline'" />
+                    </v-btn>
+                </template>
+                <span>Import/Export</span>
+            </v-tooltip>
         </template>
 
         <v-card>

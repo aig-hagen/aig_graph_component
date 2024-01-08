@@ -6,16 +6,21 @@
         :nudge-width="200"
         offset-x
     >
-        <template v-slot:activator="{ on, attrs }">
-            <v-btn
-                icon
-                elevation="6"
-                v-bind="attrs"
-                aria-label="Settings"
-                v-on="on"
-            >
-                <v-icon v-text="'mdi-cog-outline'" />
-            </v-btn>
+        <template #activator="{ on, attrs }">
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        v-bind="attrs"
+                        aria-label="Settings"
+                        v-on="{ ...on, ...onTooltip }"
+                    >
+                        <v-icon v-text="'mdi-cog-outline'" />
+                    </v-btn>
+                </template>
+                <span>Settings</span>
+            </v-tooltip>
         </template>
 
         <v-card>

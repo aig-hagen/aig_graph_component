@@ -2,22 +2,34 @@
     <div width="100%" height="100%">
         <div class="graph-host" width="100%" height="100%"></div>
         <div class="button-container">
-            <v-btn
-                icon
-                elevation="6"
-                aria-label="Create Node"
-                @click="createNode()"
-            >
-                <v-icon v-text="'mdi-plus'" />
-            </v-btn>
-            <v-btn
-                icon
-                elevation="6"
-                aria-label="Reset Graph"
-                @click="resetGraph()"
-            >
-                <v-icon v-text="'mdi-delete'" />
-            </v-btn>
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        aria-label="Create Node"
+                        @click="createNode()"
+                        v-on="onTooltip"
+                    >
+                        <v-icon v-text="'mdi-plus'" />
+                    </v-btn>
+                </template>
+                <span>Create node</span>
+            </v-tooltip>
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        aria-label="Reset Graph"
+                        @click="resetGraph()"
+                        v-on="onTooltip"
+                    >
+                        <v-icon v-text="'mdi-delete'" />
+                    </v-btn>
+                </template>
+                <span>Delete graph</span>
+            </v-tooltip>
             <import-export
                 :graph-as-t-g-f="
                     this.graph.toTGF(
@@ -27,17 +39,21 @@
                 "
                 @file-imported="onHandleGraphImport"
             />
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        aria-label="Reset View"
+                        @click="resetView()"
+                        v-on="onTooltip"
+                    >
+                        <v-icon v-text="'mdi-image-filter-center-focus'" />
+                    </v-btn>
+                </template>
+                <span>Reset view</span>
+            </v-tooltip>
             <help />
-            <v-btn
-                icon
-                elevation="6"
-                aria-label="Reset View"
-                @click="resetView()"
-            >
-                <v-icon v-text="'mdi-image-filter-center-focus'" />
-            </v-btn>
-            <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
-            <!--            <theme-toggle />-->
             <settings
                 :node-labels-enabled="this.config.showNodeLabels"
                 :link-labels-enabled="this.config.showLinkLabels"

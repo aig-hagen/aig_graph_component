@@ -1,15 +1,20 @@
 <template>
     <v-dialog v-model="dialog" max-width="800px">
         <template #activator="{ on, attrs }">
-            <v-btn
-                icon
-                elevation="6"
-                v-bind="attrs"
-                aria-label="Help"
-                v-on="on"
-            >
-                <v-icon v-text="'mdi-help'" />
-            </v-btn>
+            <v-tooltip bottom :open-delay="750">
+                <template #activator="{ on: onTooltip }">
+                    <v-btn
+                        icon
+                        elevation="6"
+                        v-bind="attrs"
+                        aria-label="Help"
+                        v-on="{ ...on, ...onTooltip }"
+                    >
+                        <v-icon v-text="'mdi-help'" />
+                    </v-btn>
+                </template>
+                <span>Help</span>
+            </v-tooltip>
         </template>
         <v-card>
             <v-card-title class="headline">Controls</v-card-title>
