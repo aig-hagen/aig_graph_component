@@ -28,15 +28,14 @@
                 @file-imported="onHandleGraphImport"
             />
             <help />
-            <!--            for usage of resetView it is necessary to fix the reset of the labels-->
-            <!--            <v-btn-->
-            <!--                icon-->
-            <!--                elevation="6"-->
-            <!--                aria-label="Reset View"-->
-            <!--                @click="resetView()"-->
-            <!--            >-->
-            <!--                <v-icon v-text="'mdi-image-filter-center-focus'" />-->
-            <!--            </v-btn>-->
+            <v-btn
+                icon
+                elevation="6"
+                aria-label="Reset View"
+                @click="resetView()"
+            >
+                <v-icon v-text="'mdi-image-filter-center-focus'" />
+            </v-btn>
             <!--                for usage of theme-toggle it is necessary to also toggle the labels and their input-->
             <!--            <theme-toggle />-->
             <settings
