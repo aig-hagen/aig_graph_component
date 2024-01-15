@@ -773,6 +773,7 @@ export default Vue.extend({
         stroke: cadetblue;
         stroke-dasharray: (8, 3);
         stroke-width: 2;
+        filter: grayscale(30%);
     }
 }
 
