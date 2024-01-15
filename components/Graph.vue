@@ -768,6 +768,12 @@ export default Vue.extend({
     fill: lightsalmon;
     stroke: none;
     cursor: pointer;
+
+    &:hover {
+        stroke: cadetblue;
+        stroke-dasharray: (8, 3);
+        stroke-width: 2;
+    }
 }
 
 .node-label {
