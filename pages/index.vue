@@ -1,16 +1,16 @@
 <template>
-    <graph class="graph-component-container" />
+    <graph class="graph-container" />
 </template>
 
 <script lang="ts">
 import Graph from '~/components/Graph.vue'
 export default {
-    components: { Graph },
+    components: Graph,
 }
 </script>
 
-<style scoped>
-.graph-component-container {
+<style lang="scss">
+.graph-container {
     width: 100%;
     height: 100%;
 }

@@ -1,6 +1,6 @@
 <template>
     <div width="100%" height="100%">
-        <div class="graph-host" width="100%" height="100%"></div>
+        <div class="graph-host"></div>
         <div class="button-container">
             <v-tooltip bottom :open-delay="750">
                 <template #activator="{ on: onTooltip }">
@@ -686,6 +686,7 @@ export default Vue.extend({
 
 <style lang="scss">
 .graph-host {
+    position: absolute;
     width: 100%;
     height: 100%;
     touch-action: none;
