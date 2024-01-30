@@ -1,5 +1,7 @@
 <template>
-    <graph class="graph-container" />
+    <v-app>
+        <graph class="graph-container" />
+    </v-app>
 </template>
 
 <script>

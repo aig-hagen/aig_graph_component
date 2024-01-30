@@ -1,6 +1,6 @@
 <template>
     <div width="100%" height="100%">
-        <div class="graph-host"></div>
+        <div class="graph-host" />
         <div class="button-container">
             <v-tooltip bottom :open-delay="750">
                 <template #activator="{ on: onTooltip }">
