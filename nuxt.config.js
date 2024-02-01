@@ -58,6 +58,9 @@ module.exports = {
                     {
                         name: 'GraphComponent',
                         path: '@/pages/index.vue',
+                        options: {
+                            props: { hasToolbar: true },
+                        },
                     },
                 ],
             },

@@ -1,7 +1,7 @@
 <template>
     <div width="100%" height="100%">
         <div class="graph-host" />
-        <div class="button-container">
+        <div v-if="hasToolbar" class="button-container">
             <v-tooltip bottom :open-delay="750">
                 <template #activator="{ on: onTooltip }">
                     <v-btn
@@ -131,6 +131,12 @@ interface Data {
 }
 
 export default Vue.extend({
+    props: {
+        hasToolbar: {
+            type: Boolean,
+            default: true,
+        },
+    },
     data(): Data {
         return {
             graph: new Graph(),
