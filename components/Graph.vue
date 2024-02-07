@@ -1,7 +1,7 @@
 <template>
     <div width="100%" height="100%">
         <div class="graph-host" />
-        <div v-if="hasToolbar" class="button-container">
+        <div v-if="this.config.hasToolbar" class="button-container">
             <v-tooltip bottom :open-delay="750">
                 <template #activator="{ on: onTooltip }">
                     <v-btn
@@ -131,12 +131,6 @@ interface Data {
 }
 
 export default Vue.extend({
-    props: {
-        hasToolbar: {
-            type: Boolean,
-            default: true,
-        },
-    },
     data(): Data {
         return {
             graph: new Graph(),
@@ -171,6 +165,7 @@ export default Vue.extend({
     },
     methods: {
         init(): void {
+            this.setGraphConfig()
             this.width = this.graphHost.node()!.clientWidth
             this.height = this.graphHost.node()!.clientHeight
             this.zoom = createZoom((event: D3ZoomEvent<any, any>) =>
@@ -206,6 +201,23 @@ export default Vue.extend({
                 this.config.nodeRadius
             )
             this.restart()
+        },
+        setGraphConfig() {
+            import('~/config.json')
+                .then((module) => {
+                    this.config = {
+                        ...module.default.GraphConfig,
+                        nodeRadius: defaultGraphConfig.nodeRadius,
+                        markerBoxSize: defaultGraphConfig.markerBoxSize,
+                        markerPadding: defaultGraphConfig.markerPadding,
+                        markerRef: defaultGraphConfig.markerRef,
+                        arrowPoints: defaultGraphConfig.arrowPoints,
+                        markerPath: defaultGraphConfig.markerPath,
+                    }
+                })
+                .catch((error) =>
+                    console.error('Error loading configuration file: ', error)
+                )
         },
         onZoom(event: D3ZoomEvent<any, any>): void {
             this.xOffset = event.transform.x

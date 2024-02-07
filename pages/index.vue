@@ -1,6 +1,6 @@
 <template>
     <v-app>
-        <graph class="graph-container" :has-toolbar="hasToolbar" />
+        <graph class="graph-container" />
     </v-app>
 </template>
 
@@ -26,14 +26,6 @@ export default {
                 },
             ],
         })
-    },
-    /* These props represent initial settings as used in the graph component. They are additionally defined here to be
-    accessible in the web component that is generated during production build (customElements in nuxt.config.js). */
-    props: {
-        hasToolbar: {
-            type: Boolean,
-            default: true,
-        },
     },
 }
 </script>

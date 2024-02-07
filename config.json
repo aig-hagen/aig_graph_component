@@ -1,0 +1,11 @@
+{
+    "GraphConfig": {
+        "hasToolbar": true,
+
+        "showNodeLabels": true,
+        "nodePhysicsEnabled": false,
+
+        "showLinkLabels": true,
+        "fixedLinkDistanceEnabled": false
+    }
+}

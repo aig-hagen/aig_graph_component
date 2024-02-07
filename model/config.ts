@@ -1,14 +1,12 @@
 export interface GraphConfiguration {
+    hasToolbar: boolean
+
     nodeRadius: number
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
 
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
-
-    tooltipOpacity: number
-    tooltipFadeInTame: number
-    tooltipFadeOutTime: number
 
     markerBoxSize: number
     markerPadding: number
@@ -17,6 +15,8 @@ export interface GraphConfiguration {
     markerPath: string
 }
 
+const hasToolbar = true
+
 const nodeRadius = 24
 const showNodeLabels = true
 const nodePhysicsEnabled = false
@@ -24,23 +24,17 @@ const nodePhysicsEnabled = false
 const showLinkLabels = true
 const fixedLinkDistanceEnabled = false
 
-const tooltipOpacity = 1
-const tooltipFadeInTame = 500
-const tooltipFadeOutTime = 200
-
 const markerBoxSize = 4
 
 export const defaultGraphConfig: GraphConfiguration = {
+    hasToolbar,
+
     nodeRadius,
     showNodeLabels,
     nodePhysicsEnabled,
 
     showLinkLabels,
     fixedLinkDistanceEnabled,
-
-    tooltipOpacity,
-    tooltipFadeInTame,
-    tooltipFadeOutTime,
 
     markerBoxSize,
     markerPadding: nodeRadius + 2 * markerBoxSize,
