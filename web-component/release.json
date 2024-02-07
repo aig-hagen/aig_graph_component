@@ -1,0 +1,13 @@
+{
+    "client": {
+        "timestamp": 1707304745226,
+        "hash": "36d1fb2bd55a1872f308",
+        "name": "client",
+        "files": [
+            {
+                "asset": "graph-custom-element",
+                "file": "graph-custom-element.js"
+            }
+        ]
+    }
+}
