@@ -2,17 +2,17 @@
     window.webpackJsonpNuxtCustomElementsGraphCustomElement || []).push([
     [0],
     {
-        562: function (e) {
+        563: function (e) {
             e.exports = JSON.parse(
                 '{"GraphConfig":' +
-                '   {' +
-                '       "hasToolbar":true,' +
-                '       "showNodeLabels":true,' +
-                '       "nodePhysicsEnabled":false,' +
-                '       "showLinkLabels":true,' +
-                '       "fixedLinkDistanceEnabled":false' +
-                '   }' +
-                '}'
+                    '   {' +
+                    '       "hasToolbar":true,' +
+                    '       "showNodeLabels":false,' +
+                    '       "nodePhysicsEnabled":true,' +
+                    '       "showLinkLabels":true,' +
+                    '       "fixedLinkDistanceEnabled":true' +
+                    '   }' +
+                    '}'
             )
         },
     },
