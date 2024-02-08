@@ -1,7 +1,7 @@
 The [graph-custom-element.js](graph-custom-element.js) file in this directory is a **custom element** of the graph component. 
 It allows you to embed the graph component using the HTML tag <code><graph-component/></code> as seen in the [index.html](index.html) file.
 
-If you want to **change the initial settings**, you can do so by changing the <code>GraphConfig</code> in [1.js](1.js).
+If you want to **change the initial settings**, you can do so by changing the <code>GraphConfig</code> in [graph-config.js](graph-config.js).
 
 *This content is what you also would get as an output in the dist-directory after executing <code>nuxt generate</code>.*
 

@@ -203,7 +203,7 @@ export default Vue.extend({
             this.restart()
         },
         setGraphConfig() {
-            import('~/config.json')
+            import(/*webpackChunkName: "graph-config"*/ '~/config.json')
                 .then((module) => {
                     this.config = {
                         ...module.default.GraphConfig,
