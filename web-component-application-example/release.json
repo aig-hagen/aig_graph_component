@@ -1,0 +1,14 @@
+{
+    "client": {
+        "timestamp": 1707467671258,
+        "hash": "10dad3aba99a558a914b",
+        "name": "client",
+        "files": [
+            { "asset": "graph-config", "file": "graph-config.js" },
+            {
+                "asset": "graph-custom-element",
+                "file": "graph-custom-element.js"
+            }
+        ]
+    }
+}
