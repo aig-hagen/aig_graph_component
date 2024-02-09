@@ -178,45 +178,47 @@ export default Vue.extend({
                     arrowPoints: defaultGraphConfig.arrowPoints,
                     markerPath: defaultGraphConfig.markerPath,
                 }
-
-                this.width = this.graphHost.node()!.clientWidth
-                this.height = this.graphHost.node()!.clientHeight
-                this.zoom = createZoom((event: D3ZoomEvent<any, any>) =>
-                    this.onZoom(event)
-                )
-                this.canvas = createCanvas(
-                    this.graphHost,
-                    this.zoom,
-                    (event) => this.onPointerMoved(event),
-                    (event) => this.onPointerUp(event),
-                    (event) => {
-                        this.createNode(
-                            d3.pointer(event, this.canvas!.node())[0],
-                            d3.pointer(event, this.canvas!.node())[1]
-                        )
-                    }
-                )
-                initMarkers(this.canvas, this.config)
-                this.draggableLink = createDraggableLink(this.canvas)
-                this.link = createLink(this.canvas)
-                this.node = createNode(this.canvas)
-                this.simulation = createSimulation(
-                    this.graph,
-                    this.config,
-                    this.width,
-                    this.height,
-                    () => this.onTick()
-                )
-                this.drag = createDrag(
-                    this.simulation,
-                    this.width,
-                    this.height,
-                    this.config.nodeRadius
-                )
-                this.restart()
+                this.initData()
             } catch (error) {
                 console.error('Error loading configuration file: ', error)
             }
+        },
+        initData() {
+            this.width = this.graphHost.node()!.clientWidth
+            this.height = this.graphHost.node()!.clientHeight
+            this.zoom = createZoom((event: D3ZoomEvent<any, any>) =>
+                this.onZoom(event)
+            )
+            this.canvas = createCanvas(
+                this.graphHost,
+                this.zoom,
+                (event) => this.onPointerMoved(event),
+                (event) => this.onPointerUp(event),
+                (event) => {
+                    this.createNode(
+                        d3.pointer(event, this.canvas!.node())[0],
+                        d3.pointer(event, this.canvas!.node())[1]
+                    )
+                }
+            )
+            initMarkers(this.canvas, this.config)
+            this.draggableLink = createDraggableLink(this.canvas)
+            this.link = createLink(this.canvas)
+            this.node = createNode(this.canvas)
+            this.simulation = createSimulation(
+                this.graph,
+                this.config,
+                this.width,
+                this.height,
+                () => this.onTick()
+            )
+            this.drag = createDrag(
+                this.simulation,
+                this.width,
+                this.height,
+                this.config.nodeRadius
+            )
+            this.restart()
         },
         onZoom(event: D3ZoomEvent<any, any>): void {
             this.xOffset = event.transform.x
@@ -690,7 +692,7 @@ export default Vue.extend({
             this.node = undefined
             this.simulation = undefined
             this.resetDraggableLink()
-            this.init()
+            this.initData()
         },
         resetGraph(): void {
             this.graph = new Graph()
