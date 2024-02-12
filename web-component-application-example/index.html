@@ -4,8 +4,22 @@
         <meta charset="utf-8" />
         <title></title>
     </head>
+    <script>
+        const graph1 = document.getElementById("graph1");
+        var g1 = graph1.getGraph();
+
+        console.log(g1);
+
+        var g2 = ... // load a graph as json from somewhere (or write a grpah manually or ...)
+
+        graph1.setGraph(g2); // should display the graph in "graph1"
+        graph1.setNodeColor("node1", "some color here"); // Example for another property
+        graph1.setZoom(false); // Another example (disables the zooming)
+        // ...
+
+    </script>
     <body>
-        <graph-component></graph-component>
+        <graph-component id="graph1"></graph-component>
         <script src="./graph-custom-element.js"></script>
     </body>
 </html>
