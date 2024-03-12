@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import GraphEditor from '@/components/GraphEditor.vue'
+import GraphEditor from '@/components/GraphEditor.ce.vue'
 </script>
 
 <template>
@@ -9,7 +9,7 @@ import GraphEditor from '@/components/GraphEditor.vue'
 </template>
 
 <style>
-* {
+body {
     margin: 0 !important;
     padding: 0 !important;
 }
