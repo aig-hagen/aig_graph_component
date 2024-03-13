@@ -1,3 +1,4 @@
+// @ts-nocheck
 // https://github.com/vuejs/core/issues/4314#issuecomment-1021393430
 import {
     ComponentOptionsMixin,
