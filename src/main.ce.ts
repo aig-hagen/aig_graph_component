@@ -1,12 +1,9 @@
 /* Since there currently is no way of using vue custom elements without the shadow-dom
-the vue3-webcomponent-wrapper (from the community) is used
-until official support (https://github.com/vuejs/vue-web-component-wrapper/issues/93).
-(We need it to use without shadow dom, since otherwise d3.js is not working properly.)*/
+the apiCustomElement.ts (https://github.com/vuejs/core/issues/4314#issuecomment-1021393430)
+from a community PR is used. (We need it to have a custom element without shadow dom,
+since otherwise d3.js is not working properly.) */
 
-import { createApp, h } from 'vue'
-//@ts-ignore
-import wrapper from 'vue3-webcomponent-wrapper'
+import { defineCustomElement } from '@/external/apiCustomElement'
 import GraphEditor from '@/components/GraphEditor.vue'
 
-const CustomElement = wrapper(GraphEditor, createApp, h)
-window.customElements.define('graph-editor', CustomElement)
+customElements.define('graph-editor', defineCustomElement(GraphEditor, { shadowRoot: false }))

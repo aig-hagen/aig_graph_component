@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="stylesheet" href="../dist/style.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Graph Editor</title>
+    </head>
+    <body style="margin: 0; padding: 0">
+        <graph-editor></graph-editor>
+        <script src="graph-editor.js"></script>
+        <script>
+            let x1 = document.getElementsByTagName('graph-editor')
+            x1 = x1[0]
+            x1._instance.exposed.testingExposedFunctionCall()
+        </script>
+    </body>
+</html>

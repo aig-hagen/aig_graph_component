@@ -53,6 +53,11 @@ let yOffset = 0
 let scale = 1
 const config = defaultGraphConfig
 
+defineExpose({ testingExposedFunctionCall })
+
+function testingExposedFunctionCall() {
+    console.log('Hi from inside the function')
+}
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight

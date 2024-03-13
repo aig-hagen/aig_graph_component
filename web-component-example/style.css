@@ -1,0 +1,154 @@
+.graph-host {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    background-color: #d3d3d3;
+}
+.create-node-button {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+}
+.link {
+    stroke: #5f9ea0;
+    stroke-width: 4px;
+    fill: none;
+}
+.link.hidden {
+    stroke-width: 0;
+}
+.link.draggable {
+    stroke: #add8e6;
+    stroke-dasharray: 8px 2px;
+    pointer-events: none;
+}
+.clickbox {
+    stroke: #0000;
+    stroke-width: 16px;
+    fill: none;
+    cursor: pointer;
+}
+.arrow {
+    fill: #5f9ea0;
+}
+.arrow.draggable {
+    fill: #add8e6;
+}
+.line-path-text,
+.arc-path-text,
+.line-reverse-path-text,
+.arc-reverse-path-text,
+.reflexive-path-text {
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
+    opacity: 1;
+    stroke: none;
+}
+.line-path-text .link-label,
+.arc-path-text .link-label,
+.line-reverse-path-text .link-label,
+.arc-reverse-path-text .link-label,
+.reflexive-path-text .link-label {
+    fill: #000;
+    stroke: none;
+    font-size: 1rem;
+}
+.line-path-text .link-label.hidden,
+.arc-path-text .link-label.hidden,
+.line-reverse-path-text .link-label.hidden,
+.arc-reverse-path-text .link-label.hidden,
+.reflexive-path-text .link-label.hidden {
+    visibility: hidden;
+    cursor: pointer;
+    pointer-events: none;
+}
+.line-path-text .link-label-placeholder,
+.arc-path-text .link-label-placeholder,
+.line-reverse-path-text .link-label-placeholder,
+.arc-reverse-path-text .link-label-placeholder,
+.reflexive-path-text .link-label-placeholder {
+    fill: #696969;
+    font-style: oblique;
+    font-size: 0.85rem;
+}
+.line-path-text .link-label-placeholder.hidden,
+.arc-path-text .link-label-placeholder.hidden,
+.line-reverse-path-text .link-label-placeholder.hidden,
+.arc-reverse-path-text .link-label-placeholder.hidden,
+.reflexive-path-text .link-label-placeholder.hidden {
+    visibility: hidden;
+    cursor: pointer;
+    pointer-events: none;
+}
+.node {
+    fill: #ffa07a;
+    stroke: none;
+    cursor: pointer;
+}
+.node:hover {
+    stroke: #5f9ea0;
+    stroke-dasharray: 8, 3;
+    stroke-width: 2;
+    filter: grayscale(30%);
+}
+.node-label {
+    fill: #000;
+    stroke: none;
+    font-size: 1rem;
+    opacity: 1;
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
+}
+.node-label.hidden {
+    visibility: hidden;
+    cursor: pointer;
+    pointer-events: none;
+}
+.node-label-placeholder {
+    fill: #696969;
+    font-style: oblique;
+    stroke: none;
+    font-size: 0.85rem;
+    opacity: 1;
+    text-anchor: middle;
+    pointer-events: all;
+    cursor: text;
+}
+.node-label-placeholder.hidden {
+    visibility: hidden;
+    cursor: pointer;
+    pointer-events: none;
+}
+.label-input {
+    background-color: #ffffffe6;
+}
+.button-container {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    margin-top: -6px;
+}
+.button-container > * {
+    margin-top: 6px;
+}
+*:not(input):not(.selectable) {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+}
+.info-text {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    top: 1rem;
+    bottom: 1rem;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
