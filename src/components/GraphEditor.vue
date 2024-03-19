@@ -20,6 +20,7 @@ import { GraphNode } from '@/model/graphNode'
 import type { GraphLink } from '@/model/graphLink'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
+import ImportExport from '@/components/ImportExport.vue'
 
 const graphHost = computed(() => {
     return d3.select<HTMLDivElement, undefined>('.graph-host')
@@ -34,8 +35,8 @@ onUnmounted(() => {
     window.removeEventListener('resize', resetView)
 })
 
-let graph: Graph = new Graph()
-let graphHasNodes = ref(false)
+const graph = ref(new Graph())
+const graphHasNodes = ref(false)
 let width: number = 400
 let height: number = 400
 let simulation: any = undefined
@@ -75,7 +76,7 @@ function initData() {
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
-    simulation = createSimulation(graph, config, width, height, () => onTick())
+    simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config.nodeRadius)
     restart()
 }
@@ -89,11 +90,11 @@ function onZoom(event: D3ZoomEvent<any, any>): void {
 }
 
 function createLink(source: GraphNode, target: GraphNode, label?: string): void {
-    graph!.createLink(source.id, target.id, label)
+    graph.value.createLink(source.id, target.id, label)
     restart()
 }
 function createNode(x?: number, y?: number, importedId?: string | number, label?: string): void {
-    graph.createNode(x ?? width / 2, y ?? height / 2, importedId, label)
+    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label)
     graphHasNodes.value = true
     restart()
 }
@@ -144,8 +145,8 @@ function setPath(d: GraphLink) {
 function isBidirectional(source: GraphNode, target: GraphNode): boolean {
     return (
         source.id !== target.id &&
-        graph!.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
-        graph!.links.some((l) => l.target.id === target.id && l.source.id === source.id)
+        graph.value.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
+        graph.value.links.some((l) => l.target.id === target.id && l.source.id === source.id)
     )
 }
 function needsReversion(source: GraphNode, target: GraphNode): boolean {
@@ -173,7 +174,7 @@ function updateDraggableLinkPath(): void {
 }
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
-        .data(graph!.links, (d: GraphLink) => d.id)
+        .data(graph.value.links, (d: GraphLink) => d.id)
         .join(
             (enter) => {
                 const linkGroup = enter.append('g')
@@ -191,7 +192,7 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.removeLink(d)
+                        graph.value.removeLink(d)
                         restart()
                     })
                 linkGroup
@@ -252,7 +253,7 @@ function restart(alpha: number = 0.5): void {
         )
 
     nodeSelection = nodeSelection!
-        .data(graph!.nodes, (d) => d.id)
+        .data(graph.value.nodes, (d) => d.id)
         .join(
             (enter) => {
                 const nodeGroup = enter
@@ -264,8 +265,8 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.removeNode(d)
-                        graphHasNodes.value = graph.nodes.length > 0
+                        graph.value.removeNode(d)
+                        graphHasNodes.value = graph.value.nodes.length > 0
                         resetDraggableLink()
                         restart()
                     })
@@ -302,7 +303,7 @@ function restart(alpha: number = 0.5): void {
             }
         )
 
-    simulation!.nodes(graph!.nodes)
+    simulation!.nodes(graph.value.nodes)
     simulation!.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
@@ -343,7 +344,7 @@ function onPointerMoved(event: PointerEvent): void {
             point[1] = point[1] - 4 * config.nodeRadius
             // PointerEvents are not firing correctly for touch input.
             // So for TouchEvents, we have to manually detect Nodes within range and set them as the current target node.
-            draggableLinkTargetNode = graph!.nodes.find(
+            draggableLinkTargetNode = graph.value.nodes.find(
                 (node) =>
                     Math.sqrt(Math.pow(node.x! - point[0], 2) + Math.pow(node.y! - point[1], 2)) <
                     config.nodeRadius
@@ -427,7 +428,7 @@ function toggleForces(isEnabled: boolean): void {
 }
 function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
-    setFixedLinkDistance(simulation, graph, config, isEnabled)
+    setFixedLinkDistance(simulation, graph.value, config, isEnabled)
 }
 function resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
@@ -442,7 +443,7 @@ function onHandleGraphImport(importContent: string) {
         createNode(undefined, undefined, parsedNode.idImported, parsedNode.label)
     }
     const findNodeByImportedId = (importedId: number | string) =>
-        graph.nodes.find((node) => node.idImported === importedId)
+        graph.value.nodes.find((node) => node.idImported === importedId)
 
     for (let parsedLink of links) {
         let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
@@ -469,7 +470,7 @@ function resetView(): void {
 }
 
 function resetGraph(): void {
-    graph = new Graph()
+    graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
 }
@@ -477,7 +478,60 @@ function resetGraph(): void {
 
 <template>
     <div class="graph-host" />
-    <div v-show="!graphHasNodes" class="info-text text-h5 text--secondary">Graph is empty</div>
+    <div v-if="config.hasToolbar" class="button-container">
+        <v-tooltip location="bottom" :open-delay="750" text="Create Node">
+            <template #activator="{ props }">
+                <v-btn
+                    aria-label="Create Node"
+                    class="mx-1"
+                    color="grey"
+                    density="comfortable"
+                    elevation="6"
+                    icon="$addNode"
+                    v-bind="props"
+                    variant="plain"
+                    @click="createNode()"
+                >
+                </v-btn>
+            </template>
+        </v-tooltip>
+        <v-tooltip location="bottom" :open-delay="750" text="Delete Graph">
+            <template #activator="{ props }">
+                <v-btn
+                    aria-label="Delete Graph"
+                    class="mx-1"
+                    color="grey"
+                    density="comfortable"
+                    elevation="6"
+                    icon="$deleteGraph"
+                    v-bind="props"
+                    variant="plain"
+                    @click="resetGraph()"
+                >
+                </v-btn>
+            </template>
+        </v-tooltip>
+        <v-tooltip location="bottom" :open-delay="750" text="Reset View">
+            <template #activator="{ props }">
+                <v-btn
+                    aria-label="Reset View"
+                    class="mx-1"
+                    color="grey"
+                    density="comfortable"
+                    elevation="6"
+                    icon="$resetView"
+                    v-bind="props"
+                    variant="plain"
+                    @click="resetView()"
+                ></v-btn>
+            </template>
+        </v-tooltip>
+        <import-export
+            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels)"
+            @file-imported="onHandleGraphImport"
+        />
+    </div>
+    <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
 
 <!--<style scoped>-->

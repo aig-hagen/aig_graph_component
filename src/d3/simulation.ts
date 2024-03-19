@@ -3,11 +3,12 @@ import type { GraphConfiguration } from '@/model/config'
 import Graph from '@/model/graph'
 import { GraphLink } from '@/model/graphLink'
 import { GraphNode } from '@/model/graphNode'
+import type { UnwrapRef } from 'vue'
 
 export type Simulation = d3.Simulation<GraphNode, GraphLink>
 
 export function createSimulation(
-    graph: Graph,
+    graph: UnwrapRef<Graph> | Graph,
     config: GraphConfiguration,
     width: number,
     height: number,
@@ -30,7 +31,7 @@ export function createSimulation(
 }
 
 export function updateBounds(
-    graph: Graph,
+    graph: UnwrapRef<Graph> | Graph,
     simulation: Simulation,
     width: number,
     height: number,
@@ -62,7 +63,7 @@ export function setNodeChargeAndAttraction(
 
 export function setFixedLinkDistance(
     simulation: Simulation,
-    graph: Graph,
+    graph: UnwrapRef<Graph> | Graph,
     config: GraphConfiguration,
     setForces: boolean
 ): Simulation {
