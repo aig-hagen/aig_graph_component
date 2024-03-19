@@ -1,7 +1,13 @@
 import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
 import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
-import { mdiDelete, mdiFileImportOutline, mdiImageFilterCenterFocus, mdiPlusThick } from '@mdi/js'
+import {
+    mdiDelete,
+    mdiFileImportOutline,
+    mdiHelp,
+    mdiImageFilterCenterFocus,
+    mdiPlusThick
+} from '@mdi/js'
 
 export default createVuetify({
     icons: {
@@ -10,8 +16,9 @@ export default createVuetify({
             ...aliases,
             addNode: mdiPlusThick,
             deleteGraph: mdiDelete,
-            resetView: mdiImageFilterCenterFocus,
-            importExport: mdiFileImportOutline
+            help: mdiHelp,
+            importExport: mdiFileImportOutline,
+            resetView: mdiImageFilterCenterFocus
         },
         sets: {
             mdi

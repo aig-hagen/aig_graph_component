@@ -21,6 +21,7 @@ import type { GraphLink } from '@/model/graphLink'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
+import Help from '@/components/Help.vue'
 
 const graphHost = computed(() => {
     return d3.select<HTMLDivElement, undefined>('.graph-host')
@@ -530,6 +531,7 @@ function resetGraph(): void {
             :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels)"
             @file-imported="onHandleGraphImport"
         />
+        <help></help>
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
