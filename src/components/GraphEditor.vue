@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as d3 from 'd3'
 import Graph from '@/model/graph'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
@@ -21,7 +21,8 @@ import type { GraphLink } from '@/model/graphLink'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
-import Help from '@/components/Help.vue'
+import GraphSettings from '@/components/GraphSettings.vue'
+import GraphHelp from '@/components/GraphHelp.vue'
 
 const graphHost = computed(() => {
     return d3.select<HTMLDivElement, undefined>('.graph-host')
@@ -38,9 +39,10 @@ onUnmounted(() => {
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
+const config = reactive(defaultGraphConfig)
+let simulation: any = undefined
 let width: number = 400
 let height: number = 400
-let simulation: any = undefined
 let zoom: Zoom | undefined
 let drag: Drag
 let canvas: Canvas | undefined
@@ -53,7 +55,6 @@ let draggableLinkEnd: [number, number] | undefined
 let xOffset = 0
 let yOffset = 0
 let scale = 1
-const config = defaultGraphConfig
 
 defineExpose({ testingExposedFunctionCall })
 
@@ -304,8 +305,8 @@ function restart(alpha: number = 0.5): void {
             }
         )
 
-    simulation!.nodes(graph.value.nodes)
-    simulation!.alpha(alpha).restart()
+    simulation.nodes(graph.value.nodes)
+    simulation.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
     if (event.button !== 0) {
@@ -455,7 +456,7 @@ function onHandleGraphImport(importContent: string) {
     }
 }
 function resetView(): void {
-    simulation!.stop()
+    simulation.stop()
     graphHost.value.selectChildren().remove()
     zoom = undefined
     xOffset = 0
@@ -531,7 +532,17 @@ function resetGraph(): void {
             :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels)"
             @file-imported="onHandleGraphImport"
         />
-        <help></help>
+        <graph-help />
+        <graph-settings
+            :node-labels-enabled="config.showNodeLabels"
+            :link-labels-enabled="config.showLinkLabels"
+            :physics-enabled="config.nodePhysicsEnabled"
+            :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
+            @toggle-node-physics="toggleForces"
+            @toggle-node-labels="(isEnabled: any) => (config.showNodeLabels = isEnabled)"
+            @toggle-link-labels="(isEnabled: any) => (config.showLinkLabels = isEnabled)"
+            @toggle-fixed-link-distance="toggleFixedLinkDistance"
+        />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
