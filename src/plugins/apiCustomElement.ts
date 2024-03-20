@@ -24,10 +24,10 @@ import {
     ComponentOptions,
     ComponentInjectOptions,
     SlotsType
-} from '@vue/runtime-core'
+} from 'vue'
 import { camelize, extend, hyphenate, isArray, toNumber } from '@vue/shared'
 import HTMLParsedElement from 'html-parsed-element'
-import { hydrate, render } from '@vue/runtime-dom'
+import { hydrate, render } from 'vue'
 
 export type VueElementConstructor<P = {}> = {
     new (initialProps?: Record<string, any>): VueElement & P
