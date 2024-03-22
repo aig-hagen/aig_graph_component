@@ -1,5 +1,11 @@
 // @ts-nocheck
-// https://github.com/vuejs/core/issues/4314#issuecomment-1021393430
+/* This overrides the defineCustomElement function of vue
+source:
+https://github.com/vuejs/core/issues/4314#issuecomment-1021393430
+expansion for plugins (like vuetify) as seen here:
+https://stackoverflow.com/questions/69808113/how-to-use-vue-router-and-vuex-inside-custom-element-from-root/69820280#69820280
+https://stackoverflow.com/questions/76933641/how-can-add-libraries-like-vuetify-inside-of-a-web-component-created-by-vue-3 */
+
 import {
     ComponentOptionsMixin,
     ComponentOptionsWithArrayProps,
@@ -23,7 +29,10 @@ import {
     ConcreteComponent,
     ComponentOptions,
     ComponentInjectOptions,
-    SlotsType
+    SlotsType,
+    h,
+    createApp,
+    getCurrentInstance
 } from 'vue'
 import { camelize, extend, hyphenate, isArray, toNumber } from '@vue/shared'
 import HTMLParsedElement from 'html-parsed-element'
@@ -39,6 +48,7 @@ export interface DefineCustomElementConfig {
      * @default true
      */
     shadowRoot?: boolean
+    plugins?: any
 }
 
 // defineCustomElement provides the same type inference as defineComponent
@@ -157,11 +167,25 @@ export function defineCustomElement(
 
 /*! #__NO_SIDE_EFFECTS__ */
 export function defineCustomElement(
-    options: any,
+    component: any,
     config?: DefineCustomElementConfig,
     hydrate?: RootHydrateFunction
 ): VueElementConstructor {
-    const Comp = defineComponent(options) as any
+    const Comp = defineComponent({
+        render: () => h(component),
+        setup() {
+            const app = createApp(component)
+
+            // install plugins
+            config?.plugins.forEach(app.use)
+
+            const inst = getCurrentInstance()
+            if (inst) {
+                Object.assign(inst.appContext, app._context)
+                Object.assign(inst.provides, app._context.provides)
+            }
+        }
+    }) as any
     class VueCustomElement extends VueElement {
         static def = Comp
         constructor(initialProps?: Record<string, any>) {
