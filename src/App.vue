@@ -9,7 +9,6 @@ import GraphEditor from '@/components/GraphEditor.vue'
 </template>
 
 <style>
-@import 'vuetify/dist/vuetify.min.css';
 body {
     margin: 0 !important;
     padding: 0 !important;
