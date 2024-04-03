@@ -167,25 +167,11 @@ export function defineCustomElement(
 
 /*! #__NO_SIDE_EFFECTS__ */
 export function defineCustomElement(
-    component: any,
+    options: any,
     config?: DefineCustomElementConfig,
     hydrate?: RootHydrateFunction
 ): VueElementConstructor {
-    const Comp = defineComponent({
-        render: () => h(component),
-        setup() {
-            const app = createApp(component)
-
-            // install plugins
-            config?.plugins.forEach(app.use)
-
-            const inst = getCurrentInstance()
-            if (inst) {
-                Object.assign(inst.appContext, app._context)
-                Object.assign(inst.provides, app._context.provides)
-            }
-        }
-    }) as any
+    const Comp = defineComponent(options) as any
     class VueCustomElement extends VueElement {
         static def = Comp
         constructor(initialProps?: Record<string, any>) {
