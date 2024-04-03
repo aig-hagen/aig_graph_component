@@ -56,11 +56,20 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ testingExposedFunctionCall })
-
-function testingExposedFunctionCall() {
-    console.log('Hi from inside the function')
+defineExpose({ getGraph, setGraph, printGraph })
+function getGraph() {
+    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
 }
+
+function setGraph(graphAsTGF: string) {
+    if (graphAsTGF !== 'Graph is empty') {
+        onHandleGraphImport(graphAsTGF)
+    }
+}
+function printGraph() {
+    console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+}
+
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
