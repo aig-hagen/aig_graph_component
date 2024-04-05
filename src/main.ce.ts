@@ -12,5 +12,5 @@ import vuetify from '@/plugins/vuetify'
 
 customElements.define(
     'graph-editor',
-    defineCustomElement(GraphEditor, { shadowRoot: false, plugins: [vuetify] })
+    defineCustomElement(GraphEditor, { shadowRoot: true, plugins: [vuetify] })
 )

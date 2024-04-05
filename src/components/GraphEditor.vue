@@ -24,8 +24,26 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 
+//todo this currently doesn't work in dev-mode
+//determining graphHost for when the component is used as a custom element
 const graphHost = computed(() => {
-    return d3.select<HTMLDivElement, undefined>('.graph-host')
+    const hosts = document.querySelectorAll('graph-editor')
+
+    let graphHost = undefined
+    for (let i = 0; i < hosts.length; i++) {
+        const hostElement = hosts[i]
+        //@ts-ignore
+        const hostShadow = d3.select<HTMLElement, undefined>(hostElement.shadowRoot)
+
+        const graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
+        if (!graphHostToInit.empty()) {
+            graphHostToInit.classed('uninitialised', false)
+            graphHost = graphHostToInit
+            break
+        }
+    }
+
+    return graphHost
 })
 
 onMounted(() => {
@@ -71,11 +89,12 @@ function printGraph() {
 }
 
 function initData() {
-    width = graphHost.value.node()!.clientWidth
-    height = graphHost.value.node()!.clientHeight
+    // todo since currently we are experimenting with using more graph-custom-elements in one html and using the shadow dom, width and height do not work that way
+    // width = graphHost.value.node()!.clientWidth
+    // height = graphHost.value.node()!.clientHeight
     zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event))
     canvas = createCanvas(
-        graphHost.value,
+        graphHost.value!,
         zoom,
         (event) => onPointerMoved(event),
         (event) => onPointerUp(event),
@@ -346,7 +365,7 @@ function onPointerUp(event: PointerEvent): void {
 function onPointerMoved(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
-        const pointer = d3.pointers(event, graphHost.value.node())[0]
+        const pointer = d3.pointers(event, graphHost.value!.node())[0]
         const point: [number, number] = [
             (pointer[0] - xOffset) / scale,
             (pointer[1] - yOffset) / scale
@@ -466,7 +485,7 @@ function onHandleGraphImport(importContent: string) {
 }
 function resetView(): void {
     simulation.stop()
-    graphHost.value.selectChildren().remove()
+    graphHost.value!.selectChildren().remove()
     zoom = undefined
     xOffset = 0
     yOffset = 0
@@ -488,7 +507,7 @@ function resetGraph(): void {
 </script>
 
 <template>
-    <div class="graph-host" />
+    <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
