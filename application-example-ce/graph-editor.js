@@ -17186,13 +17186,24 @@ const Vc = ae()({
   for (const [r, i] of t)
     n[r] = i;
   return n;
-}, j2 = /* @__PURE__ */ z2(H2, [["__scopeId", "data-v-6c8401af"]]), W2 = /* @__PURE__ */ Ne("div", { class: "graph-host" }, null, -1), U2 = {
+}, j2 = /* @__PURE__ */ z2(H2, [["__scopeId", "data-v-6c8401af"]]), W2 = /* @__PURE__ */ Ne("div", { class: "graph-host uninitialised" }, null, -1), U2 = {
   key: 0,
   class: "button-container"
 }, G2 = { class: "info-text text-h5 text-grey" }, q2 = /* @__PURE__ */ wr({
   __name: "GraphEditor",
   setup(e, { expose: t }) {
-    const n = V(() => Nt(".graph-host"));
+    const n = V(() => {
+      const z = document.querySelectorAll("graph-editor");
+      let w;
+      for (let _ = 0; _ < z.length; _++) {
+        const L = z[_], H = Nt(L.shadowRoot).select(".graph-host.uninitialised");
+        if (!H.empty()) {
+          H.classed("uninitialised", !1), w = H;
+          break;
+        }
+      }
+      return w;
+    });
     Cn(() => {
       I(), window.addEventListener("resize", ot);
     }), $l(() => {
@@ -17211,7 +17222,7 @@ const Vc = ae()({
       console.log(r.value.toTGF(o.showNodeLabels, o.showLinkLabels));
     }
     function I() {
-      l = n.value.node().clientWidth, a = n.value.node().clientHeight, u = Hy((z) => A(z)), f = jy(
+      u = Hy((z) => A(z)), f = jy(
         n.value,
         u,
         (z) => j(z),
@@ -18244,5 +18255,5 @@ const jx = Wh({
 });
 customElements.define(
   "graph-editor",
-  /* @__PURE__ */ wv(q2, { shadowRoot: !1, plugins: [jx] })
+  /* @__PURE__ */ wv(q2, { shadowRoot: !0, plugins: [jx] })
 );

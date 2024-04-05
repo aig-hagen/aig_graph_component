@@ -9,35 +9,12 @@
     </head>
     <body style="margin: 0; padding: 0">
         <graph-editor id='ge1'></graph-editor>
+        <graph-editor id='ge2'></graph-editor>
         <script src="graph-editor.js"></script>
-        <script>
-            // get the graph editor instance by its id, on this you will call all available functions
-            ge = getGraphEditorById('ge1')
-
-            // print the (currently displayed) graph
-            ge.printGraph()
-
-            // assign the (currently displayed) graph to a variable and afterward log it to the console
-            g = ge.getGraph();
-            console.log(g)
-
-            // display a graph in the graph editor
-            ge.setGraph(g)
-
-            //__________________
-
-            // var g2 = ... // load a graph as json from somewhere (or write a graph manually or ...)
-
-            // graph1.setGraph(g2); // should display the graph in "graph1"
-            // graph1.setNodeColor("node1", "some color here"); // Example for another property
-            // graph1.setZoom(false); // Another example (disables the zooming)
-            // ...
-
-            /*** This function can be used to get the graph editor instance by its id.
-             ***/
-            function getGraphEditorById(id) {
-                return document.getElementById(id)._instance.exposed
-            }
-        </script>
+    <script>
+        function getGraphEditorById(id) {
+            return document.getElementById(id)._instance.exposed
+        }
+    </script>
     </body>
 </html>
