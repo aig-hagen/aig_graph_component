@@ -25,7 +25,26 @@ import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 
 const graphHost = computed(() => {
-    return d3.select<HTMLDivElement, undefined>('.graph-host')
+    //this is the case for production mode (one and multiple components)
+    const editors = document.querySelectorAll('graph-editor')
+    let graphHost = undefined
+    for (let i = 0; i < editors.length; i++) {
+        const editor = editors[i]
+        const graphHostToInit = d3.select(editor).select('.graph-host.uninitialised')
+        if (!graphHostToInit.empty()) {
+            graphHostToInit.classed('uninitialised', false)
+            graphHost = graphHostToInit
+            break
+        }
+    }
+
+    // this is the case for dev mode (one component)
+    if (graphHost === undefined) {
+        graphHost = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+        graphHost.classed('uninitialised', false)
+    }
+
+    return graphHost
 })
 
 onMounted(() => {
@@ -488,7 +507,7 @@ function resetGraph(): void {
 </script>
 
 <template>
-    <div class="graph-host" />
+    <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
