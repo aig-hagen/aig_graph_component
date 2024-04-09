@@ -2,7 +2,7 @@ import * as d3 from 'd3'
 import type { GraphConfiguration } from '@/model/config'
 
 export function initMarkers(
-    canvas: d3.Selection<SVGGElement, undefined, HTMLElement, undefined>,
+    canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
     config: GraphConfiguration
 ): void {
     createLinkMarker(canvas, config, 'link-arrow', 'arrow', false)
@@ -11,7 +11,7 @@ export function initMarkers(
 }
 
 function createLinkMarker(
-    canvas: d3.Selection<SVGGElement, undefined, HTMLElement, undefined>,
+    canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
     config: GraphConfiguration,
     id: string,
     classes: string,

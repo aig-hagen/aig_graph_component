@@ -30,7 +30,9 @@ const graphHost = computed(() => {
     let graphHost = undefined
     for (let i = 0; i < editors.length; i++) {
         const editor = editors[i]
-        const graphHostToInit = d3.select(editor).select('.graph-host.uninitialised')
+        const graphHostToInit = d3
+            .select<HTMLElement, undefined>(<HTMLElement>editor)
+            .select<HTMLDivElement>('.graph-host.uninitialised')
         if (!graphHostToInit.empty()) {
             graphHostToInit.classed('uninitialised', false)
             graphHost = graphHostToInit
