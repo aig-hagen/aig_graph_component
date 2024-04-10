@@ -450,9 +450,10 @@ function handleInputForLabel(
     input.focus()
 }
 function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
-    let rect = textPathElement.getBoundingClientRect()
-    let x = (rect.x - xOffset) / scale
-    let y = (rect.y - yOffset) / scale
+    let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
+    let rectTextPath = textPathElement.getBoundingClientRect()
+    let x = (rectTextPath.x - rectSvg.x - xOffset) / scale
+    let y = (rectTextPath.y - rectSvg.y - yOffset) / scale
     return [x, y]
 }
 
