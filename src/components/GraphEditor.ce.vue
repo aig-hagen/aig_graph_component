@@ -24,9 +24,8 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 
-//todo this currently doesn't work in dev-mode
-//determining graphHost for when the component is used as a custom element
 const graphHost = computed(() => {
+    //this is the case for production mode (one and multiple components)
     const hosts = document.querySelectorAll('graph-editor')
 
     let graphHost = undefined
@@ -41,6 +40,12 @@ const graphHost = computed(() => {
             graphHost = graphHostToInit
             break
         }
+    }
+
+    // this is the case for dev mode (one component)
+    if (graphHost === undefined) {
+        graphHost = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+        graphHost.classed('uninitialised', false)
     }
 
     return graphHost
@@ -89,9 +94,8 @@ function printGraph() {
 }
 
 function initData() {
-    // todo since currently we are experimenting with using more graph-custom-elements in one html and using the shadow dom, width and height do not work that way
-    // width = graphHost.value.node()!.clientWidth
-    // height = graphHost.value.node()!.clientHeight
+    width = graphHost.value.node()!.clientWidth
+    height = graphHost.value.node()!.clientHeight
     zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event))
     canvas = createCanvas(
         graphHost.value!,
