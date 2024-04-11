@@ -20,10 +20,8 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     if (nodesInput.length) {
         for (const node of nodesInput) {
             const [, id, nodeLabel] = node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []
-            if (id && nodeLabel) {
-                nodes.push({ idImported: id.trim(), label: nodeLabel.trim() })
-            } else if (id) {
-                nodes.push({ idImported: id.trim(), label: id.trim() })
+            if (id) {
+                nodes.push({ idImported: id.trim(), label: nodeLabel?.trim() })
             }
         }
     }

@@ -321,7 +321,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('class', (d: GraphNode) =>
                         d.label ? 'node-label' : 'node-label-placeholder'
                     )
-                    .text((d: GraphNode) => (d.label !== undefined ? d.label : 'add label'))
+                    .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
                         onNodeLabelClicked(event, d)
