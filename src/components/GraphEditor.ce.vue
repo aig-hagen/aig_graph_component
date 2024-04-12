@@ -15,7 +15,13 @@ import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
 import { terminate } from '@/d3/event'
-import { parseTGF } from '@/model/parser'
+import {
+    parseTGF,
+    parseTextGraph,
+    type textGraph,
+    type parsedNode,
+    type parsedLink
+} from '@/model/parser'
 import { GraphNode } from '@/model/graphNode'
 import type { GraphLink } from '@/model/graphLink'
 //@ts-ignore
@@ -80,18 +86,28 @@ let yOffset = 0
 let scale = 1
 
 defineExpose({ getGraph, setGraph, printGraph })
+//region exposed functions
+
 function getGraph() {
     return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
 }
 
-function setGraph(graphAsTGF: string) {
-    if (graphAsTGF !== 'Graph is empty') {
-        onHandleGraphImport(graphAsTGF)
+function setGraph(graphToSet: string | textGraph | undefined) {
+    if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
+        onHandleGraphImport(graphToSet)
+    } else if (typeof graphToSet === 'object') {
+        const [nodes, links] = parseTextGraph(graphToSet)
+        resetGraph()
+        parsedToGraph(nodes, links)
+    } else {
+        resetGraph()
     }
 }
+
 function printGraph() {
     console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
 }
+//endregion
 
 function initData() {
     width = graphHost.value.node()!.clientWidth
@@ -474,6 +490,9 @@ function resetDraggableLink(): void {
 function onHandleGraphImport(importContent: string) {
     let [nodes, links] = parseTGF(importContent)
     resetGraph()
+    parsedToGraph(nodes, links)
+}
+function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(undefined, undefined, parsedNode.idImported, parsedNode.label)
     }

@@ -1,12 +1,26 @@
-export interface parsedNode {
-    idImported: string
+export type parsedNode = {
+    idImported: string | number
     label: string | undefined
 }
 
-export interface parsedLink {
-    sourceIdImported: string
-    targetIdImported: string
+export type parsedLink = {
+    sourceIdImported: string | number
+    targetIdImported: string | number
     label: string | undefined
+}
+
+export type textNode = {
+    id: number
+    label?: string
+}
+export type textLink = {
+    sourceId: number
+    targetId: number
+    label?: string
+}
+export type textGraph = {
+    nodes: textNode[]
+    links: textLink[]
 }
 
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -42,5 +56,21 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
         }
     }
 
+    return [nodes, links]
+}
+
+export function parseTextGraph(textGraph: textGraph): [parsedNode[], parsedLink[]] {
+    const nodes: parsedNode[] = []
+    for (let node of textGraph.nodes) {
+        nodes.push({ idImported: node.id, label: node.label })
+    }
+    const links: parsedLink[] = []
+    for (let link of textGraph.links) {
+        links.push({
+            sourceIdImported: link.sourceId,
+            targetIdImported: link.targetId,
+            label: link.label
+        })
+    }
     return [nodes, links]
 }
