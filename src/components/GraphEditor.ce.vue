@@ -85,7 +85,7 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ getGraph, setGraph, printGraph })
+defineExpose({ getGraph, setGraph, printGraph, setNodeColor })
 //region exposed functions
 
 function getGraph() {
@@ -106,6 +106,20 @@ function setGraph(graphToSet: string | textGraph | undefined) {
 
 function printGraph() {
     console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+}
+
+function setNodeColor(color: string, ids: number[] | undefined) {
+    //if no ids are provided, the color is set for all currently existing nodes
+    if (!ids) {
+        nodeSelection!.selectAll('circle').style('fill', color)
+        return
+    }
+    for (const id of ids) {
+        nodeSelection!
+            .selectAll('circle')
+            .filter((d: any) => d.id === id)
+            .style('fill', color)
+    }
 }
 //endregion
 
@@ -323,6 +337,7 @@ function restart(alpha: number = 0.5): void {
                 nodeGroup
                     .append('circle')
                     .classed('node', true)
+                    .attr('id', (d) => d.id)
                     .attr('r', config.nodeRadius)
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
