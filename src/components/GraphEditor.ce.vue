@@ -120,6 +120,8 @@ function setNodeColor(color: string, ids: number[] | undefined) {
             .filter((d: any) => d.id === id)
             .style('fill', color)
     }
+
+    nodeSelection!.data(graph.value.nodes, (d) => d.id)
 }
 
 function toggleZoom(isEnabled: boolean) {
