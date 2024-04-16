@@ -8,7 +8,7 @@ so we can use vuetify in the custom element.*/
 
 import { defineCustomElement } from '@/overrides/apiCustomElement'
 // import { defineCustomElement } from 'vue'
-import GraphEditor from '@/components/GraphEditor.ce.vue'
+import GraphEditor from '@/components/GraphEditor.vue'
 import vuetify from '@/plugins/vuetify'
 
 customElements.define(
