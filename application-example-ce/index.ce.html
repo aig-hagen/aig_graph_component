@@ -2,42 +2,59 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="./favicon.ico" />
         <link rel="stylesheet" href="./style.css" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Graph Editor</title>
     </head>
     <body style="margin: 0; padding: 0">
-        <graph-editor id='ge1'></graph-editor>
-        <script src="graph-editor.js"></script>
-        <script>
-            // get the graph editor instance by its id, on this you will call all available functions
-            ge = getGraphEditorById('ge1')
+    <div style='display: flex; position: relative; height: 100vh'>
+        <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
+        <graph-editor id='ge2' style='flex: 1; position: relative'></graph-editor>
+    </div>
+    <script src="graph-editor.js"></script>
+    <script>
+        // get the graph editor instance by its id, on this you will call all available functions
+        let inst1 = getGraphEditorById('ge1')
+        let inst2 = getGraphEditorById('ge2')
 
-            // print the (currently displayed) graph
-            ge.printGraph()
+        // print the (currently displayed) graph
+        inst1.printGraph()
 
-            // assign the (currently displayed) graph to a variable and afterward log it to the console
-            g = ge.getGraph();
-            console.log(g)
+        // assign the (currently displayed) graph to a variable and afterward log it to the console
+        let graph1 = inst1.getGraph();
+        console.log(graph1)
 
-            // display a graph in the graph editor
-            ge.setGraph(g)
+        // display a graph in the second graph editor
+        inst2.setGraph(graph1)
 
-            //__________________
+        // write a graph manually
+        let graphAsObject = {nodes: [{id: 0, label: "A"}, {id: 1, label: "B"}], links: [{sourceId: 0, targetId: 1, label: "A to B"}]}
+        let graphAsTgf = "0 A\n 1 B\n#\n 0 1 A to B"
 
-            // var g2 = ... // load a graph as json from somewhere (or write a graph manually or ...)
+        // display the (manually written graph as object) in the first graph editor, and the other one in the second
+        inst1.setGraph(graphAsObject)
+        inst2.setGraph(graphAsTgf)
+        inst1.setGraph(graph1) //or the one you assigned to the variable and got with getGraph()
 
-            // graph1.setGraph(g2); // should display the graph in "graph1"
-            // graph1.setNodeColor("node1", "some color here"); // Example for another property
-            // graph1.setZoom(false); // Another example (disables the zooming)
-            // ...
+        // if you call setGraph without arguments, it will clear the graph editor
+        inst1.setGraph()
 
-            /*** This function can be used to get the graph editor instance by its id.
-             ***/
-            function getGraphEditorById(id) {
-                return document.getElementById(id)._instance.exposed
-            }
-        </script>
+        // change the color of existing nodes by their id
+        // this color can be a html color name (https://www.w3schools.com/colors/colors_names.asp), hexadecimal, rgb or hsl-color-model format
+        inst1.setNodeColor("bisque", [0,1])
+        // change the color of all existing nodes by just providing a color without providing ids
+        inst2.setNodeColor("HSL(212,92%,45%,0.5)")
+        inst2.setNodeColor("RGB(250,70,99)")
+        inst2.setNodeColor("#8FBC8F")
+
+        // turning ability to zoom on and of
+        inst1.toggleZoom(false)
+
+        //This function can be used, to get the graph editor instance by its id.
+        function getGraphEditorById(id) {
+            return document.getElementById(id)._instance.exposed
+        }
+    </script>
     </body>
 </html>

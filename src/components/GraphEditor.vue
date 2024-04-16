@@ -15,7 +15,13 @@ import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
 import { terminate } from '@/d3/event'
-import { parseTGF } from '@/model/parser'
+import {
+    parseTGF,
+    parseTextGraph,
+    type textGraph,
+    type parsedNode,
+    type parsedLink
+} from '@/model/parser'
 import { GraphNode } from '@/model/graphNode'
 import type { GraphLink } from '@/model/graphLink'
 //@ts-ignore
@@ -26,13 +32,15 @@ import GraphHelp from '@/components/GraphHelp.vue'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
-    const editors = document.querySelectorAll('graph-editor')
+    const hosts = document.querySelectorAll('graph-editor')
+
     let graphHost = undefined
-    for (let i = 0; i < editors.length; i++) {
-        const editor = editors[i]
-        const graphHostToInit = d3
-            .select<HTMLElement, undefined>(<HTMLElement>editor)
-            .select<HTMLDivElement>('.graph-host.uninitialised')
+    for (let i = 0; i < hosts.length; i++) {
+        const hostElement = hosts[i]
+        //@ts-ignore
+        const hostShadow = d3.select<HTMLElement, undefined>(hostElement.shadowRoot)
+
+        const graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
         if (!graphHostToInit.empty()) {
             graphHostToInit.classed('uninitialised', false)
             graphHost = graphHostToInit
@@ -77,26 +85,61 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ getGraph, setGraph, printGraph })
+defineExpose({ getGraph, setGraph, printGraph, setNodeColor, toggleZoom })
+//region exposed functions
+
 function getGraph() {
     return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
 }
 
-function setGraph(graphAsTGF: string) {
-    if (graphAsTGF !== 'Graph is empty') {
-        onHandleGraphImport(graphAsTGF)
+function setGraph(graphToSet: string | textGraph | undefined) {
+    if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
+        onHandleGraphImport(graphToSet)
+    } else if (typeof graphToSet === 'object') {
+        const [nodes, links] = parseTextGraph(graphToSet)
+        resetGraph()
+        parsedToGraph(nodes, links)
+    } else {
+        resetGraph()
     }
 }
+
 function printGraph() {
     console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
 }
+
+function setNodeColor(color: string, ids: number[] | undefined) {
+    //if no ids are provided, the color is set for all currently existing nodes
+    if (!ids) {
+        nodeSelection!.selectAll('circle').style('fill', color)
+        return
+    }
+    for (const id of ids) {
+        nodeSelection!
+            .selectAll('circle')
+            .filter((d: any) => d.id === id)
+            .style('fill', color)
+    }
+
+    nodeSelection!.data(graph.value.nodes, (d) => d.id)
+}
+
+function toggleZoom(isEnabled: boolean) {
+    if (isEnabled) {
+        zoom!.scaleExtent([0.5, 5]).on('zoom', (event) => onZoom(event, true))
+    } else {
+        resetView()
+        zoom!.scaleExtent([1, 1]).on('zoom', (event) => onZoom(event, false))
+    }
+}
+//endregion
 
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
     zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event))
     canvas = createCanvas(
-        graphHost.value,
+        graphHost.value!,
         zoom,
         (event) => onPointerMoved(event),
         (event) => onPointerUp(event),
@@ -113,12 +156,14 @@ function initData() {
     restart()
 }
 
-function onZoom(event: D3ZoomEvent<any, any>): void {
-    xOffset = event.transform.x
-    yOffset = event.transform.y
-    scale = event.transform.k
+function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
+    if (isEnabled) {
+        xOffset = event.transform.x
+        yOffset = event.transform.y
+        scale = event.transform.k
 
-    canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+        canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+    }
 }
 
 function createLink(source: GraphNode, target: GraphNode, label?: string): void {
@@ -305,6 +350,7 @@ function restart(alpha: number = 0.5): void {
                 nodeGroup
                     .append('circle')
                     .classed('node', true)
+                    .attr('id', (d) => d.id)
                     .attr('r', config.nodeRadius)
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
@@ -319,7 +365,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('class', (d: GraphNode) =>
                         d.label ? 'node-label' : 'node-label-placeholder'
                     )
-                    .text((d: GraphNode) => (d.label !== undefined ? d.label : 'add label'))
+                    .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
                         onNodeLabelClicked(event, d)
@@ -367,7 +413,7 @@ function onPointerUp(event: PointerEvent): void {
 function onPointerMoved(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
-        const pointer = d3.pointers(event, graphHost.value.node())[0]
+        const pointer = d3.pointers(event, graphHost.value!.node())[0]
         const point: [number, number] = [
             (pointer[0] - xOffset) / scale,
             (pointer[1] - yOffset) / scale
@@ -448,9 +494,10 @@ function handleInputForLabel(
     input.focus()
 }
 function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
-    let rect = textPathElement.getBoundingClientRect()
-    let x = (rect.x - xOffset) / scale
-    let y = (rect.y - yOffset) / scale
+    let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
+    let rectTextPath = textPathElement.getBoundingClientRect()
+    let x = (rectTextPath.x - rectSvg.x - xOffset) / scale
+    let y = (rectTextPath.y - rectSvg.y - yOffset) / scale
     return [x, y]
 }
 
@@ -471,6 +518,9 @@ function resetDraggableLink(): void {
 function onHandleGraphImport(importContent: string) {
     let [nodes, links] = parseTGF(importContent)
     resetGraph()
+    parsedToGraph(nodes, links)
+}
+function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(undefined, undefined, parsedNode.idImported, parsedNode.label)
     }
@@ -487,7 +537,7 @@ function onHandleGraphImport(importContent: string) {
 }
 function resetView(): void {
     simulation.stop()
-    graphHost.value.selectChildren().remove()
+    graphHost.value!.selectChildren().remove()
     zoom = undefined
     xOffset = 0
     yOffset = 0
@@ -586,12 +636,6 @@ function resetGraph(): void {
     height: 100%;
     touch-action: none;
     background-color: lightgrey;
-}
-
-.create-node-button {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
 }
 
 .link {

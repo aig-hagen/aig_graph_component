@@ -7,10 +7,12 @@ since otherwise d3.js is not working properly, and with the option for plugins,
 so we can use vuetify in the custom element.*/
 
 import { defineCustomElement } from '@/overrides/apiCustomElement'
+// import { defineCustomElement } from 'vue'
 import GraphEditor from '@/components/GraphEditor.vue'
 import vuetify from '@/plugins/vuetify'
 
 customElements.define(
     'graph-editor',
-    defineCustomElement(GraphEditor, { shadowRoot: false, plugins: [vuetify] })
+    // defineCustomElement(GraphEditor, { shadowRoot: true, plugins: [vuetify] })
+    defineCustomElement(GraphEditor)
 )

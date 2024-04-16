@@ -1,5 +1,5 @@
 import { createApp } from 'vue'
-import App from '@/App.vue'
+import GraphEditor from '@/components/GraphEditor.vue'
 import vuetify from '@/plugins/vuetify'
 
-createApp(App).use(vuetify).mount('#app')
+createApp(GraphEditor).use(vuetify).mount('#app')
