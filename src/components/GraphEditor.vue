@@ -638,12 +638,6 @@ function resetGraph(): void {
     background-color: lightgrey;
 }
 
-.create-node-button {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-}
-
 .link {
     stroke: cadetblue;
     stroke-width: 4px;
