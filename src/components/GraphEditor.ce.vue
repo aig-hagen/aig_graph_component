@@ -85,7 +85,7 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ getGraph, setGraph, printGraph, setNodeColor })
+defineExpose({ getGraph, setGraph, printGraph, setNodeColor, toggleZoom })
 //region exposed functions
 
 function getGraph() {
@@ -121,6 +121,15 @@ function setNodeColor(color: string, ids: number[] | undefined) {
             .style('fill', color)
     }
 }
+
+function toggleZoom(isEnabled: boolean) {
+    if (isEnabled) {
+        zoom!.scaleExtent([0.5, 5]).on('zoom', (event) => onZoom(event, true))
+    } else {
+        resetView()
+        zoom!.scaleExtent([1, 1]).on('zoom', (event) => onZoom(event, false))
+    }
+}
 //endregion
 
 function initData() {
@@ -145,12 +154,14 @@ function initData() {
     restart()
 }
 
-function onZoom(event: D3ZoomEvent<any, any>): void {
-    xOffset = event.transform.x
-    yOffset = event.transform.y
-    scale = event.transform.k
+function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
+    if (isEnabled) {
+        xOffset = event.transform.x
+        yOffset = event.transform.y
+        scale = event.transform.k
 
-    canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+        canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+    }
 }
 
 function createLink(source: GraphNode, target: GraphNode, label?: string): void {
