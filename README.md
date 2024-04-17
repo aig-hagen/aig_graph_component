@@ -1,6 +1,5 @@
 # Graph-Component
 
-## Usage
 The graph component is available as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
 Refer to the [index.ce.html](application-example-ce/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
@@ -15,17 +14,16 @@ You can use the UI to build your graph or programmatically interact with it via 
 To be able to call the following functions, we need to get the graph-editors instance.
 ```javascript
 // when it is included as a custom element in an html file (<graph-editor id='ge1'>)
-let instance = document.getElementById(ge1)._instance.exposed
+const instance = document.getElementById(ge1)._instance.exposed
 ```           
 
 ```javascript
 // when you run the component in development mode
-let instance = document.getElementById(app).__vue_app__._instance.exposed
+const instance = document.getElementById(app).__vue_app__._instance.exposed
 ``` 
 
 #### Manually write a Graph
-We can manually write a graph using a _JSON_ kind of format or a string in _Trivial Graph Format (TGF)_ to later 
-give it to the component.
+We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
 
 ```javascript
 let graphAsObject = {
@@ -42,14 +40,9 @@ let graphAsObject = {
 
 let graphAsTgf = "0 A\n 1 B\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
 ```
-#### Getting a Graph
-Gets the graph that is currently displayed in the graph component instance.
-```javascript
-let graphFromInstance = instance.getGraph()
-```
 
 #### Display a Graph in the Component
-To actually display a graph we can use ```setGraph()```.
+To actually display a graph in the graph component, we call ```setGraph()```.
 
 ```javascript
 instance.setGraph(graphAsObject)
@@ -58,6 +51,12 @@ instance.setGraph(graphFromInstance)
 
 //if you call it without arguments, it will clear the graph editor
 instance.setGraph()
+```
+
+#### Getting a Graph
+Gets the graph that is currently displayed in the graph component instance.
+```javascript
+let graphFromInstance = instance.getGraph()
 ```
 
 #### Print a Graph
@@ -85,7 +84,7 @@ _This will not influence the color of nodes created in the future and is also no
 
 
 ```javascript
-//setting the color for the node with id 0 using a html color name
+//setting the color for the node with id 0 using an html color name
 instance.setNodeColor("bisque", [0])
 //setting the color for the node with id 0 and the node with id 1 using hexadecimal
 instance.setNodeColor("#8FBC8F", [0,1])
@@ -96,7 +95,7 @@ instance.setNodeColor("HSL(212,92%,45%,0.5)")
 
 #### Miscellaneous
 ```javascript
-//Switch off the ability to zoom (or switch it on again with true)
+//switch off the ability to zoom (or switch it on again with true)
 instance.toggleZoom(false)
 ```
 
