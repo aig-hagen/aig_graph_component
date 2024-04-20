@@ -1,6 +1,7 @@
 export type parsedNode = {
     idImported: string | number
     label: string | undefined
+    color: string | undefined
 }
 
 export type parsedLink = {
@@ -12,6 +13,7 @@ export type parsedLink = {
 export type textNode = {
     id: number
     label?: string
+    color?: string
 }
 export type textLink = {
     sourceId: number
@@ -33,9 +35,17 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (const node of nodesInput) {
-            const [, id, nodeLabel] = node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []
+            const [, id, nodeLabel, nodeColor] =
+                node.match(/(\w+) (.*) \/COLOR:\/(.+)/) ||
+                node.match(/(\w+) (.*)/) ||
+                node.match(/(\w+)/) ||
+                []
             if (id) {
-                nodes.push({ idImported: id.trim(), label: nodeLabel?.trim() })
+                nodes.push({
+                    idImported: id.trim(),
+                    label: nodeLabel?.trim(),
+                    color: nodeColor?.trim()
+                })
             }
         }
     }
@@ -62,7 +72,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
 export function parseTextGraph(textGraph: textGraph): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     for (let node of textGraph.nodes) {
-        nodes.push({ idImported: node.id, label: node.label })
+        nodes.push({ idImported: node.id, label: node.label, color: node.color })
     }
     const links: parsedLink[] = []
     for (let link of textGraph.links) {

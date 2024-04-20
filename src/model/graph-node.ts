@@ -8,6 +8,7 @@ export interface D3Node extends SimulationNodeDatum {
     fx?: number
     fy?: number
     label?: string
+    color?: string
 }
 
 export class GraphNode implements D3Node {
@@ -20,6 +21,7 @@ export class GraphNode implements D3Node {
      * @param fx
      * @param fy
      * @param label
+     * @param color
      */
     public constructor(
         public readonly id: number,
@@ -28,6 +30,7 @@ export class GraphNode implements D3Node {
         public y?: number,
         public fx?: number,
         public fy?: number,
-        public label?: string
+        public label?: string,
+        public color?: string
     ) {}
 }

@@ -1,5 +1,5 @@
 import { type SimulationLinkDatum } from 'd3'
-import { type D3Node } from '@/model/graphNode'
+import { type D3Node } from '@/model/graph-node'
 import { PathType } from '@/model/path-type'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {

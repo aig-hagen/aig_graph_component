@@ -1,8 +1,8 @@
 import * as d3 from 'd3'
 import type { GraphConfiguration } from '@/model/config'
 import Graph from '@/model/graph'
-import { GraphLink } from '@/model/graphLink'
-import { GraphNode } from '@/model/graphNode'
+import { GraphLink } from '@/model/graph-link'
+import { GraphNode } from '@/model/graph-node'
 import type { UnwrapRef } from 'vue'
 
 export type Simulation = d3.Simulation<GraphNode, GraphLink>

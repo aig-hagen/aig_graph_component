@@ -1,5 +1,5 @@
-import { type D3Link, GraphLink } from '@/model/graphLink'
-import { type D3Node, GraphNode } from '@/model/graphNode'
+import { type D3Link, GraphLink } from '@/model/graph-link'
+import { type D3Node, GraphNode } from '@/model/graph-node'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -17,7 +17,8 @@ export default class Graph {
         x?: number,
         y?: number,
         importedId?: string | number,
-        label?: string
+        label?: string,
+        color?: string
     ): D3Node {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -26,7 +27,8 @@ export default class Graph {
             y,
             undefined,
             undefined,
-            label
+            label,
+            color
         )
         this.nodes.push(node)
         return node
@@ -85,8 +87,16 @@ export default class Graph {
         return link
     }
 
-    // formats the graph in Trivial Graph Format
-    public toTGF(includeNodeLabels: boolean, includeLinkLabels: boolean): String {
+    /** Formats the Graph in Trivial Graph Format.
+     * @param includeNodeLabels include node labels
+     * @param includeLinkLabels include link labels
+     * @param includeNodeColor TGF normally has no color option, this ist just used for internal purposes
+     */
+    public toTGF(
+        includeNodeLabels: boolean = true,
+        includeLinkLabels: boolean = true,
+        includeNodeColor: boolean = false
+    ): String {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return 'Graph is empty'
         }
@@ -94,13 +104,19 @@ export default class Graph {
         let nodeLines: string
         let linkLines: string
 
-        if (includeNodeLabels) {
-            nodeLines = this.nodes
-                .map((node) => `${node.id} ${node.label !== undefined ? `${node.label}` : ''}`)
-                .join('\n')
-        } else {
-            nodeLines = this.nodes.map((node) => `${node.id}`).join('\n')
-        }
+        nodeLines = this.nodes
+            .map((node) => {
+                let line = `${node.id}`
+
+                if (includeNodeLabels && node.label !== undefined) {
+                    line += ` ${node.label}`
+                }
+                if (includeNodeColor && node.color !== undefined) {
+                    line += ` /COLOR:/${node.color}`
+                }
+                return line
+            })
+            .join('\n')
 
         if (includeLinkLabels) {
             linkLines = this.links

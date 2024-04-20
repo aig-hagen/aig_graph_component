@@ -2,7 +2,7 @@ import * as d3 from 'd3'
 import type { D3DragEvent } from 'd3'
 import { terminate } from '@/d3/event'
 import type { Simulation } from '@/d3/simulation'
-import { GraphNode } from '@/model/graphNode'
+import { GraphNode } from '@/model/graph-node'
 
 export type Drag = d3.DragBehavior<SVGGElement, GraphNode, GraphNode>
 

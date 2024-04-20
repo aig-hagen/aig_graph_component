@@ -22,8 +22,8 @@ import {
     type parsedNode,
     type parsedLink
 } from '@/model/parser'
-import { GraphNode } from '@/model/graphNode'
-import type { GraphLink } from '@/model/graphLink'
+import { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
@@ -89,7 +89,7 @@ defineExpose({ getGraph, setGraph, printGraph, setNodeColor, toggleZoom })
 //region exposed functions
 
 function getGraph() {
-    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
+    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true)
 }
 
 function setGraph(graphToSet: string | textGraph | undefined) {
@@ -116,12 +116,11 @@ function setNodeColor(color: string, ids: number[] | undefined) {
     }
     for (const id of ids) {
         nodeSelection!
-            .selectAll('circle')
-            .filter((d: any) => d.id === id)
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .filter((d) => d.id === id)
+            .each((d) => (d.color = color))
             .style('fill', color)
     }
-
-    nodeSelection!.data(graph.value.nodes, (d) => d.id)
 }
 
 function toggleZoom(isEnabled: boolean) {
@@ -170,8 +169,14 @@ function createLink(source: GraphNode, target: GraphNode, label?: string): void 
     graph.value.createLink(source.id, target.id, label)
     restart()
 }
-function createNode(x?: number, y?: number, importedId?: string | number, label?: string): void {
-    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label)
+function createNode(
+    x?: number,
+    y?: number,
+    importedId?: string | number,
+    label?: string,
+    nodeColor?: string
+): void {
+    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label, nodeColor)
     graphHasNodes.value = true
     restart()
 }
@@ -352,6 +357,7 @@ function restart(alpha: number = 0.5): void {
                     .classed('node', true)
                     .attr('id', (d) => d.id)
                     .attr('r', config.nodeRadius)
+                    .style('fill', (d) => (d.color ? d.color : ''))
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
@@ -522,7 +528,7 @@ function onHandleGraphImport(importContent: string) {
 }
 function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
-        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label)
+        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label, parsedNode.color)
     }
     const findNodeByImportedId = (importedId: number | string) =>
         graph.value.nodes.find((node) => node.idImported === importedId)
@@ -609,7 +615,7 @@ function resetGraph(): void {
             </template>
         </v-tooltip>
         <import-export
-            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels)"
+            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false)"
             @file-imported="onHandleGraphImport"
         />
         <graph-help />
