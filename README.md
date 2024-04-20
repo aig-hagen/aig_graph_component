@@ -1,4 +1,5 @@
 # Graph-Component
+*TODO (งツ)ว: write a quick intro what you can do with this component*
 
 The graph component is available as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
@@ -8,7 +9,7 @@ For a quick start, simply run the referenced index file.
 
 You can use the UI to build your graph or programmatically interact with it via the browser console or with a script.
 ### UI
-
+*TODO (งツ)ว*
 ### API
 #### Preparation
 To be able to call the following functions, we need to get the graph-editors instance.
@@ -29,7 +30,7 @@ We can write a graph manually using a _JSON-like_ format or a string in _Trivial
 let graphAsObject = {
     nodes: [
         {id: 0, label: "A"},
-        {id: 1, label: "B"},
+        {id: 1, label: "B", color: "lavenderblush"},
         {id: 2, label: "C"}
     ],
     links: [
@@ -37,9 +38,13 @@ let graphAsObject = {
         {sourceId: 2, targetId: 2, label: "C to C"}
     ]
 }
-
-let graphAsTgf = "0 A\n 1 B\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
 ```
+```javascript
+let graphAsTgf = "0 A\n 1 B /COLOR:/lavenderblush\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
+```
+*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
+Read more about [changing node colors](#changing-color-of-a-node).*
+
 
 #### Display a Graph in the Component
 To actually display a graph in the graph component, we call ```setGraph()```.
@@ -80,7 +85,7 @@ The color can be:
 - RGB
 - HSL / HSLA
 
-_This will not influence the color of nodes created in the future and is also not persisted._
+_This will not influence the color of nodes created in the future._
 
 
 ```javascript
