@@ -74,10 +74,18 @@ instance.printGraph()
 // log a graph assigned to a variable to the console
 console.log(graphAsTgf)
 ```
+#### Delete a Node
+We can delete one or multiple nodes by their id.
+```javascript
+// delete node with id 0
+instance.deleteNode(0)
 
+// delete node with id 4 and node with id 2
+instance.deleteNode([4,2])
+```
 
 #### Changing Color of a Node
-We can change the color of an existing node by its id `instance.setNodeColor(color, [id])` or change the color of all existing nodes.
+We can change the color of one or more existing node by their id or change the color of all existing ones.
 The color can be:
 - HTML Color Name
 - Hexadecimal
@@ -89,7 +97,7 @@ _This will not influence the color of nodes created in the future._
 
 ```javascript
 //setting the color for the node with id 0 using an html color name
-instance.setNodeColor("bisque", [0])
+instance.setNodeColor("bisque", 0)
 //setting the color for the node with id 0 and the node with id 1 using hexadecimal
 instance.setNodeColor("#8FBC8F", [0,1])
 //setting the color for all currently existing nodes using RBG and HSLA

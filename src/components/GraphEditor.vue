@@ -90,6 +90,7 @@ defineExpose({
     setGraph,
     printGraph,
     setNodeColor,
+    deleteNode,
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance
@@ -116,19 +117,31 @@ function printGraph() {
     console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
 }
 
-function setNodeColor(color: string, ids: number[] | undefined) {
+function setNodeColor(color: string, ids: number[] | number | undefined) {
     //if no ids are provided, the color is set for all currently existing nodes
     if (!ids) {
         nodeSelection!.selectAll('circle').style('fill', color)
         return
     }
-    for (const id of ids) {
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
         nodeSelection!
             .selectAll<SVGCircleElement, GraphNode>('circle')
             .filter((d) => d.id === id)
             .each((d) => (d.color = color))
             .style('fill', color)
     }
+}
+
+function deleteNode(ids: number[] | number) {
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .filter((d) => d.id === id)
+            .each((d) => graph.value.removeNode(d))
+    }
+    graphHasNodes.value = graph.value.nodes.length > 0
 }
 
 function toggleZoom(isEnabled: boolean) {
