@@ -42,8 +42,7 @@ let graphAsObject = {
 ```javascript
 let graphAsTgf = "0 A\n 1 B /COLOR:/lavenderblush\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
 ```
-*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
-Read more about [changing node colors](#changing-color-of-a-node).*
+*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.*
 
 
 #### Display a Graph in the Component
@@ -99,9 +98,15 @@ instance.setNodeColor("HSL(212,92%,45%,0.5)")
 ```
 
 #### Miscellaneous
+We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
 ```javascript
-//switch off the ability to zoom (or switch it on again with true)
 instance.toggleZoom(false)
+```
+```javascript
+instance.toggleNodePhysics(true)
+```
+```javascript
+instance.toggleFixedLinkDistance(true)
 ```
 
 ## Development

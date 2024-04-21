@@ -85,9 +85,17 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ getGraph, setGraph, printGraph, setNodeColor, toggleZoom })
-//region exposed functions
+defineExpose({
+    getGraph,
+    setGraph,
+    printGraph,
+    setNodeColor,
+    toggleZoom,
+    toggleNodePhysics,
+    toggleFixedLinkDistance
+})
 
+//region functions that are solely used as exposed ones
 function getGraph() {
     return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true)
 }
@@ -507,7 +515,7 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-function toggleForces(isEnabled: boolean): void {
+function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
     setNodeChargeAndAttraction(simulation, isEnabled, width, height)
 }
@@ -624,7 +632,7 @@ function resetGraph(): void {
             :link-labels-enabled="config.showLinkLabels"
             :physics-enabled="config.nodePhysicsEnabled"
             :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
-            @toggle-node-physics="toggleForces"
+            @toggle-node-physics="toggleNodePhysics"
             @toggle-node-labels="(isEnabled: any) => (config.showNodeLabels = isEnabled)"
             @toggle-link-labels="(isEnabled: any) => (config.showLinkLabels = isEnabled)"
             @toggle-fixed-link-distance="toggleFixedLinkDistance"
