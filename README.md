@@ -74,14 +74,22 @@ instance.printGraph()
 // log a graph assigned to a variable to the console
 console.log(graphAsTgf)
 ```
-#### Delete a Node
-We can delete one or multiple nodes by their id.
+#### Delete Nodes and Links
+We can delete one or multiple **nodes** by their id.
 ```javascript
 // delete node with id 0
 instance.deleteNode(0)
 
 // delete node with id 4 and node with id 2
 instance.deleteNode([4,2])
+```
+We can also delete one or multiple **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
+```javascript
+// delete link that from node id 0 to node id 1
+instance.deleteLink("0-1")
+
+// delete links from node with id 1 to node with id 0 and the self-pointing edge of node with id 2
+instance.deleteLink(["1-0", "2-2"])
 ```
 
 #### Changing Color of a Node

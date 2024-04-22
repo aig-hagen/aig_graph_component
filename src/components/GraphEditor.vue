@@ -91,6 +91,9 @@ defineExpose({
     printGraph,
     setNodeColor,
     deleteNode,
+    deleteLink,
+    toggleNodeLabel,
+    toggleLinkLabel,
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance
@@ -142,6 +145,16 @@ function deleteNode(ids: number[] | number) {
             .each((d) => graph.value.removeNode(d))
     }
     graphHasNodes.value = graph.value.nodes.length > 0
+}
+
+function deleteLink(ids: string[] | string) {
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('path')
+            .filter((d) => d.id === id)
+            .each((d) => graph.value.removeLink(d))
+    }
 }
 
 function toggleZoom(isEnabled: boolean) {
@@ -536,6 +549,15 @@ function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
     setFixedLinkDistance(simulation, graph.value, config, isEnabled)
 }
+
+function toggleLinkLabel(isEnabled: boolean) {
+    config.showLinkLabels = isEnabled
+}
+
+function toggleNodeLabel(isEnabled: boolean) {
+    config.showNodeLabels = isEnabled
+}
+
 function resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
     draggableLinkSourceNode = undefined
@@ -646,8 +668,8 @@ function resetGraph(): void {
             :physics-enabled="config.nodePhysicsEnabled"
             :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
             @toggle-node-physics="toggleNodePhysics"
-            @toggle-node-labels="(isEnabled: any) => (config.showNodeLabels = isEnabled)"
-            @toggle-link-labels="(isEnabled: any) => (config.showLinkLabels = isEnabled)"
+            @toggle-node-labels="toggleNodeLabel"
+            @toggle-link-labels="toggleLinkLabel"
             @toggle-fixed-link-distance="toggleFixedLinkDistance"
         />
     </div>
