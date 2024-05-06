@@ -7,7 +7,7 @@ import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
-import { initMarkers } from '@/d3/markers'
+import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
 import { defaultGraphConfig } from '@/model/config'
@@ -85,11 +85,13 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
+//exposing for the browser api
 defineExpose({
     getGraph,
     setGraph,
     printGraph,
     setNodeColor,
+    setLinkColor,
     deleteNode,
     deleteLink,
     toggleNodeLabel,
@@ -123,7 +125,10 @@ function printGraph() {
 function setNodeColor(color: string, ids: number[] | number | undefined) {
     //if no ids are provided, the color is set for all currently existing nodes
     if (!ids) {
-        nodeSelection!.selectAll('circle').style('fill', color)
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .each((d) => (d.color = color))
+            .style('fill', color)
         return
     }
     const idArray = Array.isArray(ids) ? ids : [ids]
@@ -133,6 +138,27 @@ function setNodeColor(color: string, ids: number[] | number | undefined) {
             .filter((d) => d.id === id)
             .each((d) => (d.color = color))
             .style('fill', color)
+    }
+}
+
+function setLinkColor(color: string, ids: string[] | string | undefined) {
+    createLinkMarkerColored(canvas!, config, color)
+
+    //if no ids are provided, the color is set for all currently existing links
+    if (!ids) {
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('.link')
+            .each((d) => (d.color = color))
+            .style('stroke', color)
+        return
+    }
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('.link')
+            .filter((d) => d.id === id)
+            .each((d) => (d.color = color))
+            .style('stroke', color)
     }
 }
 
@@ -297,19 +323,27 @@ function restart(alpha: number = 0.5): void {
                 linkGroup
                     .append('path')
                     .classed('link', true)
+                    .style('stroke', (d) => (d.color ? d.color : ''))
                     .attr('id', (d) => d.id)
-                    .attr('marker-end', 'url(#link-arrow)')
+                    .attr('marker-end', (d) =>
+                        d.color ? 'url(#link-arrow-' + d.color : 'url(#link-arrow)'
+                    )
                 linkGroup
                     .append('path')
                     .classed('clickbox', true)
                     .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
+                        let color = d.color
                         if (event.button !== 1) {
                             //mouse wheel
                             return
                         }
                         terminate(event)
                         graph.value.removeLink(d)
-                        restart()
+                        if (color) {
+                            if (!graph.value.linkColorExists(color)) {
+                                deleteLinkMarkerColored(canvas!, color)
+                            }
+                        }
                     })
                 linkGroup
                     .append('text')
@@ -328,12 +362,30 @@ function restart(alpha: number = 0.5): void {
             (update) => {
                 update
                     .selectChild('path')
-                    .attr('marker-start', (d) =>
-                        d.pathType?.includes('REVERSE') ? 'url(#link-arrow-reverse)' : null
-                    )
-                    .attr('marker-end', (d) =>
-                        d.pathType?.includes('REVERSE') ? null : 'url(#link-arrow)'
-                    )
+                    .attr('marker-start', function (d) {
+                        if (d.pathType?.includes('REVERSE')) {
+                            let markerName = 'url(#link-arrow-reverse'
+                            if (d.color) {
+                                markerName += '-' + d.color
+                            }
+                            markerName += ')'
+                            return markerName
+                        } else {
+                            return null
+                        }
+                    })
+                    .attr('marker-end', function (d) {
+                        if (!d.pathType?.includes('REVERSE')) {
+                            let markerName = 'url(#link-arrow'
+                            if (d.color) {
+                                markerName += '-' + d.color
+                            }
+                            markerName += ')'
+                            return markerName
+                        } else {
+                            return null
+                        }
+                    })
 
                 update
                     .selectChild('text')

@@ -10,12 +10,50 @@ export function initMarkers(
     createLinkMarker(canvas, config, 'draggable-link-arrow', 'arrow draggable', false)
 }
 
+export function createLinkMarkerColored(
+    canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
+    config: GraphConfiguration,
+    color: string
+) {
+    if (canvas.select('#link-arrow-' + color).empty()) {
+        createLinkMarker(canvas, config, 'link-arrow-' + color, 'arrow ' + color, false, color)
+        createLinkMarker(
+            canvas,
+            config,
+            'link-arrow-reverse-' + color,
+            'arrow ' + color,
+            true,
+            color
+        )
+    }
+}
+
+export function deleteLinkMarkerColored(
+    canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
+    color: string
+) {
+    canvas
+        .select<SVGMarkerElement>('#link-arrow-' + color)
+        .select<SVGDefsElement>(function (): any {
+            return this.parentNode!
+        })
+        .remove()
+
+    canvas
+        .select<SVGMarkerElement>('#link-arrow-reverse-' + color)
+        .select<SVGDefsElement>(function (): any {
+            return this.parentNode!
+        })
+        .remove()
+}
+
 function createLinkMarker(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
     config: GraphConfiguration,
     id: string,
     classes: string,
-    reverse: boolean
+    reverse: boolean,
+    color?: string
 ): void {
     canvas
         .append('defs')
@@ -30,4 +68,5 @@ function createLinkMarker(
         .classed(classes, true)
         .append('path')
         .attr('d', `${d3.line()(config.arrowPoints)}`)
+        .style('fill', color ? color : '')
 }

@@ -87,6 +87,18 @@ export default class Graph {
         return link
     }
 
+    public linkColorExists(color: string) {
+        console.log('in link color exitst')
+        for (const link of this.links) {
+            console.log('in for')
+            if (link.color === color) {
+                console.log('color same')
+                return true
+            }
+        }
+        return false
+    }
+
     /** Formats the Graph in Trivial Graph Format.
      * @param includeNodeLabels include node labels
      * @param includeLinkLabels include link labels
