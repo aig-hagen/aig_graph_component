@@ -15,13 +15,14 @@ You can use the UI to build your graph or programmatically interact with it via 
 To be able to call the following functions, we need to get the graph-editors instance.
 ```javascript
 // when it is included as a custom element in an html file (<graph-editor id='ge1'>)
-const instance = document.getElementById(ge1)._instance.exposed
+const instance = document.getElementById('ge1')._instance.exposed
 ```           
 
 ```javascript
 // when you run the component in development mode
-const instance = document.getElementById(app).__vue_app__._instance.exposed
+const instance = document.getElementById('app').__vue_app__._instance.exposed
 ``` 
+_Note that when you run the app in development mode, this does not work after a hot-reload. It only works correctly on the initial run or after refreshing the site._
 
 #### Manually write a Graph
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
@@ -92,15 +93,15 @@ instance.deleteLink("0-1")
 instance.deleteLink(["1-0", "2-2"])
 ```
 
-#### Changing Color of a Node
-We can change the color of one or more existing node by their id or change the color of all existing ones.
+#### Changing Color of Nodes and Links
+We can change the color of one or more existing nodes or links by their id or change the color of all existing ones.
 The color can be:
 - HTML Color Name
 - Hexadecimal
 - RGB
 - HSL / HSLA
 
-_This will not influence the color of nodes created in the future._
+_This will not influence the color of nodes or links created in the future._
 
 
 ```javascript
@@ -111,6 +112,10 @@ instance.setNodeColor("#8FBC8F", [0,1])
 //setting the color for all currently existing nodes using RBG and HSLA
 instance.setNodeColor("RGB(250,70,99)")
 instance.setNodeColor("HSL(212,92%,45%,0.5)")
+```
+
+```javascript
+instance.setLinkColor()
 ```
 
 #### Miscellaneous
