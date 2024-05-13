@@ -103,7 +103,7 @@ The color can be:
 
 _This will not influence the color of nodes or links created in the future._
 
-
+For changing the color of nodes, we use `setNodeColor(color, id(s))`.
 ```javascript
 //setting the color for the node with id 0 using an html color name
 instance.setNodeColor("bisque", 0)
@@ -114,9 +114,18 @@ instance.setNodeColor("RGB(250,70,99)")
 instance.setNodeColor("HSL(212,92%,45%,0.5)")
 ```
 
+Changing the color of links, is similar to the one of nodes, just use `setLinkColor(color, id(s))`.
+_A links id consists of the source nodes and target nodes id, joined by a hyphen._
 ```javascript
-instance.setLinkColor()
+//setting the color for the link that originates from node with id 0 to node with id 1
+instance.setLinkColor("orangered", "0-1")
+//setting the color for more links
+instance.setLinkColor("#FFDAB9", ["0-1", "2-2"])
+//setting the color for all currently existing links using RBG and HSLA
+instance.setLinkColor("RGB(250,70,99)")
+instance.setLinkColor("HSL(212,92%,45%,0.5)")
 ```
+
 
 #### Miscellaneous
 We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
