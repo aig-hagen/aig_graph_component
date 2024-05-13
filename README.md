@@ -138,6 +138,10 @@ instance.toggleNodePhysics(true)
 ```javascript
 instance.toggleFixedLinkDistance(true)
 ```
+After zooming you can reset the canvas to its default position.
+```javascript
+instance.resetView()
+```
 
 ## Development
 ### Project Setup

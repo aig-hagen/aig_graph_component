@@ -98,7 +98,8 @@ defineExpose({
     toggleLinkLabel,
     toggleZoom,
     toggleNodePhysics,
-    toggleFixedLinkDistance
+    toggleFixedLinkDistance,
+    resetView
 })
 
 //region functions that are solely used as exposed ones
