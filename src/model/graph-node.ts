@@ -21,7 +21,7 @@ export class GraphNode implements D3Node {
      * @param fx
      * @param fy
      * @param label
-     * @param color
+     * @param color - The color of the node which was set (for default color this is empty)
      */
     public constructor(
         public readonly id: number,

@@ -207,7 +207,7 @@ function initData() {
             createNode(d3.pointer(event, canvas!.node())[0], d3.pointer(event, canvas!.node())[1])
         }
     )
-    initMarkers(canvas, config)
+    initMarkers(canvas, config, graph.value.getNonDefaultLinkColors())
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
@@ -341,7 +341,7 @@ function restart(alpha: number = 0.5): void {
                         terminate(event)
                         graph.value.removeLink(d)
                         if (color) {
-                            if (!graph.value.linkColorExists(color)) {
+                            if (!graph.value.hasNonDefaultLinkColor(color)) {
                                 deleteLinkMarkerColored(canvas!, color)
                             }
                         }

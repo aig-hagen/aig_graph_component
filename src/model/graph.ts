@@ -87,22 +87,35 @@ export default class Graph {
         return link
     }
 
-    public linkColorExists(color: string) {
-        console.log('in link color exitst')
+    /**
+     * Checks if a link in a given (not default) color exists.
+     * @param color
+     * @returns True if non-default colored links exist, false otherwise.
+     */
+    public hasNonDefaultLinkColor(color: string) {
         for (const link of this.links) {
-            console.log('in for')
             if (link.color === color) {
-                console.log('color same')
                 return true
             }
         }
         return false
     }
 
+    /**
+     * Get the existing non-default colors of links.
+     * @returns An array of strings representing non-default colors, empty if none exist.
+     */
+    public getNonDefaultLinkColors(): string[] {
+        return this.links
+            .map((link) => link.color)
+            .filter((color) => color !== undefined && color !== '') as string[]
+    }
+
     /** Formats the Graph in Trivial Graph Format.
-     * @param includeNodeLabels include node labels
-     * @param includeLinkLabels include link labels
-     * @param includeNodeColor TGF normally has no color option, this ist just used for internal purposes
+     * @param includeNodeLabels if node labels should be included
+     * @param includeLinkLabels if link labels should be included
+     * @param includeNodeColor TGF normally has no color option, this is just used for internal purposes
+     * @returns The graph in TGF format
      */
     public toTGF(
         includeNodeLabels: boolean = true,

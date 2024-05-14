@@ -3,11 +3,17 @@ import type { GraphConfiguration } from '@/model/config'
 
 export function initMarkers(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
-    config: GraphConfiguration
+    config: GraphConfiguration,
+    colors?: string[]
 ): void {
     createLinkMarker(canvas, config, 'link-arrow', 'arrow', false)
     createLinkMarker(canvas, config, 'link-arrow-reverse', 'arrow', true)
     createLinkMarker(canvas, config, 'draggable-link-arrow', 'arrow draggable', false)
+    if (colors) {
+        for (let color of colors) {
+            createLinkMarkerColored(canvas, config, color)
+        }
+    }
 }
 
 export function createLinkMarkerColored(
