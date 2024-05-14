@@ -8,6 +8,7 @@ export type parsedLink = {
     sourceIdImported: string | number
     targetIdImported: string | number
     label: string | undefined
+    color: string | undefined
 }
 
 export type textNode = {
@@ -19,6 +20,7 @@ export type textLink = {
     sourceId: number
     targetId: number
     label?: string
+    color?: string
 }
 export type textGraph = {
     nodes: textNode[]
@@ -35,16 +37,22 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (const node of nodesInput) {
-            const [, id, nodeLabel, nodeColor] =
+            let [, id, nodeLabel, nodeColor] = (
                 node.match(/(\w+) (.*) \/COLOR:\/(.+)/) ||
                 node.match(/(\w+) (.*)/) ||
                 node.match(/(\w+)/) ||
                 []
+            ).map((item) => item.trim())
+            //when there is no nodeLabel but a nodeColor
+            if (nodeLabel?.includes('/COLOR:/')) {
+                nodeColor = nodeLabel
+                nodeLabel = ''
+            }
             if (id) {
                 nodes.push({
-                    idImported: id.trim(),
-                    label: nodeLabel?.trim(),
-                    color: nodeColor?.trim()
+                    idImported: id,
+                    label: nodeLabel,
+                    color: nodeColor?.replace('/COLOR:/', '')
                 })
             }
         }
@@ -53,14 +61,25 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const links: parsedLink[] = []
     if (linksInput.length) {
         for (const link of linksInput) {
-            const [, source, target, label] =
-                link.match(/(\w+) (\w+) (.*)/) || link.match(/(\w+) (\w+)/) || []
+            let [, source, target, linkLabel, linkColor] = (
+                link.match(/(\w+) (\w+) (.*) \/COLOR:\/(.+)/) ||
+                link.match(/(\w+) (\w+) (.*)/) ||
+                link.match(/(\w+) (\w+)/) ||
+                []
+            ).map((item) => item.trim())
+            //when there is no linkLabel but a linkColor
+            if (linkLabel?.includes('/COLOR:/')) {
+                linkColor = linkLabel
+                linkLabel = ''
+            }
 
             if (source && target) {
+                console.log('link label: ' + linkLabel + ' linkColor: ' + linkColor)
                 links.push({
-                    sourceIdImported: source.trim(),
-                    targetIdImported: target.trim(),
-                    label: label?.trim()
+                    sourceIdImported: source,
+                    targetIdImported: target,
+                    label: linkLabel,
+                    color: linkColor?.replace('/COLOR:/', '')
                 })
             }
         }
@@ -79,7 +98,8 @@ export function parseTextGraph(textGraph: textGraph): [parsedNode[], parsedLink[
         links.push({
             sourceIdImported: link.sourceId,
             targetIdImported: link.targetId,
-            label: link.label
+            label: link.label,
+            color: link.color
         })
     }
     return [nodes, links]

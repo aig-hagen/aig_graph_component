@@ -34,7 +34,12 @@ export default class Graph {
         return node
     }
 
-    public createLink(sourceId: number, targetId: number, label?: string): D3Link | undefined {
+    public createLink(
+        sourceId: number,
+        targetId: number,
+        label?: string,
+        color?: string
+    ): D3Link | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
         )
@@ -52,7 +57,7 @@ export default class Graph {
             return undefined
         }
 
-        const link = new GraphLink(source, target, undefined, label)
+        const link = new GraphLink(source, target, undefined, label, color)
         this.links.push(link)
         return link
     }
@@ -115,12 +120,14 @@ export default class Graph {
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
      * @param includeNodeColor TGF normally has no color option, this is just used for internal purposes
+     * @param includeLinkColor TGF normally has no color option, this is just used for internal purposes
      * @returns The graph in TGF format
      */
     public toTGF(
         includeNodeLabels: boolean = true,
         includeLinkLabels: boolean = true,
-        includeNodeColor: boolean = false
+        includeNodeColor: boolean = false,
+        includeLinkColor: boolean = false
     ): String {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return 'Graph is empty'
@@ -143,18 +150,19 @@ export default class Graph {
             })
             .join('\n')
 
-        if (includeLinkLabels) {
-            linkLines = this.links
-                .map(
-                    (link) =>
-                        `${link.source.id} ${link.target.id} ${
-                            link.label !== undefined ? `${link.label}` : ''
-                        }`
-                )
-                .join('\n')
-        } else {
-            linkLines = this.links.map((link) => `${link.source.id} ${link.target.id}`).join('\n')
-        }
+        linkLines = this.links
+            .map((link) => {
+                let line = `${link.source.id} ${link.target.id}`
+
+                if (includeLinkLabels && link.label !== undefined) {
+                    line += ` ${link.label}`
+                }
+                if (includeLinkColor && link.color !== undefined) {
+                    line += ` /COLOR:/${link.color}`
+                }
+                return line
+            })
+            .join('\n')
 
         return `${nodeLines}${linkLines ? '\n#\n' : ''}${linkLines}`
     }

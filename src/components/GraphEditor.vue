@@ -104,7 +104,7 @@ defineExpose({
 
 //region functions that are solely used as exposed ones
 function getGraph() {
-    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true)
+    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
 }
 
 function setGraph(graphToSet: string | textGraph | undefined) {
@@ -226,8 +226,8 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
     }
 }
 
-function createLink(source: GraphNode, target: GraphNode, label?: string): void {
-    graph.value.createLink(source.id, target.id, label)
+function createLink(source: GraphNode, target: GraphNode, label?: string, color?: string): void {
+    graph.value.createLink(source.id, target.id, label, color)
     restart()
 }
 function createNode(
@@ -633,7 +633,7 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
-            createLink(srcNode, targetNode, parsedLink.label)
+            createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
         }
     }
 }
@@ -711,7 +711,7 @@ function resetGraph(): void {
             </template>
         </v-tooltip>
         <import-export
-            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false)"
+            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false, false)"
             @file-imported="onHandleGraphImport"
         />
         <graph-help />
