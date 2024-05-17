@@ -185,19 +185,15 @@ function deleteLink(ids: string[] | string) {
 }
 
 function toggleZoom(isEnabled: boolean) {
-    if (isEnabled) {
-        zoom!.scaleExtent([0.5, 5]).on('zoom', (event) => onZoom(event, true))
-    } else {
-        resetView()
-        zoom!.scaleExtent([1, 1]).on('zoom', (event) => onZoom(event, false))
-    }
+    config.zoomEnabled = isEnabled
+    resetView()
 }
 //endregion
 
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
-    zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event))
+    zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event), config.zoomEnabled)
     canvas = createCanvas(
         graphHost.value!,
         zoom,

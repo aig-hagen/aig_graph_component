@@ -8,6 +8,8 @@ export interface GraphConfiguration {
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
 
+    zoomEnabled: boolean
+
     markerBoxSize: number
     markerPadding: number
     markerRef: number
@@ -20,6 +22,8 @@ const hasToolbar = true
 const nodeRadius = 24
 const showNodeLabels = true
 const nodePhysicsEnabled = false
+
+const zoomEnabled = true
 
 const showLinkLabels = true
 const fixedLinkDistanceEnabled = false
@@ -35,6 +39,8 @@ export const defaultGraphConfig: GraphConfiguration = {
 
     showLinkLabels,
     fixedLinkDistanceEnabled,
+
+    zoomEnabled,
 
     markerBoxSize,
     markerPadding: nodeRadius + 2 * markerBoxSize,
