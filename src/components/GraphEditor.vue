@@ -634,6 +634,9 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
             createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
+            if (parsedLink.color) {
+                createLinkMarkerColored(canvas!, config, parsedLink.color)
+            }
         }
     }
 }
