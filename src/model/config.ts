@@ -17,38 +17,26 @@ export interface GraphConfiguration {
     markerPath: string
 }
 
-const hasToolbar = true
+export class GraphConfigDefault implements GraphConfiguration {
+    hasToolbar = true
 
-const nodeRadius = 24
-const showNodeLabels = true
-const nodePhysicsEnabled = false
+    nodeRadius = 24
+    showNodeLabels = true
+    nodePhysicsEnabled = false
 
-const zoomEnabled = true
+    zoomEnabled = true
 
-const showLinkLabels = true
-const fixedLinkDistanceEnabled = false
+    showLinkLabels = true
+    fixedLinkDistanceEnabled = false
 
-const markerBoxSize = 4
+    markerBoxSize = 4
 
-export const defaultGraphConfig: GraphConfiguration = {
-    hasToolbar,
-
-    nodeRadius,
-    showNodeLabels,
-    nodePhysicsEnabled,
-
-    showLinkLabels,
-    fixedLinkDistanceEnabled,
-
-    zoomEnabled,
-
-    markerBoxSize,
-    markerPadding: nodeRadius + 2 * markerBoxSize,
-    markerRef: markerBoxSize / 2,
-    arrowPoints: [
+    markerPadding = this.nodeRadius + 2 * this.markerBoxSize
+    markerRef = this.markerBoxSize / 2
+    arrowPoints: [number, number][] = [
         [0, 0],
-        [0, markerBoxSize],
-        [markerBoxSize, markerBoxSize / 2]
-    ],
-    markerPath: [0, 0, markerBoxSize, markerBoxSize].join(',')
+        [0, this.markerBoxSize],
+        [this.markerBoxSize, this.markerBoxSize / 2]
+    ]
+    markerPath = [0, 0, this.markerBoxSize, this.markerBoxSize].join(',')
 }

@@ -10,7 +10,7 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { defaultGraphConfig } from '@/model/config'
+import { GraphConfigDefault } from '@/model/config'
 import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
@@ -68,7 +68,7 @@ onUnmounted(() => {
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
-const config = reactive(defaultGraphConfig)
+const config = reactive(new GraphConfigDefault())
 let simulation: any = undefined
 let width: number = 400
 let height: number = 400

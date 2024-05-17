@@ -74,7 +74,6 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
             }
 
             if (source && target) {
-                console.log('link label: ' + linkLabel + ' linkColor: ' + linkColor)
                 links.push({
                     sourceIdImported: source,
                     targetIdImported: target,
