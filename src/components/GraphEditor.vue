@@ -193,7 +193,10 @@ function toggleZoom(isEnabled: boolean) {
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
-    zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event), config.zoomEnabled)
+    zoom = createZoom(
+        (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
+        config.zoomEnabled
+    )
     canvas = createCanvas(
         graphHost.value!,
         zoom,
