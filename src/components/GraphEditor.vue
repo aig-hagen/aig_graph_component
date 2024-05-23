@@ -29,6 +29,7 @@ import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
 import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
+import InitialSettings from '@/components/InitialSettings.vue'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -84,6 +85,8 @@ let draggableLinkEnd: [number, number] | undefined
 let xOffset = 0
 let yOffset = 0
 let scale = 1
+
+let showInitialDialog = true
 
 //exposing for the browser api
 defineExpose({
@@ -728,6 +731,7 @@ function resetGraph(): void {
             @toggle-fixed-link-distance="toggleFixedLinkDistance"
         />
     </div>
+    <InitialSettings v-model="showInitialDialog" />
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
 
