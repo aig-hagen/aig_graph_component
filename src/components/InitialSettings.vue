@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import type { GraphConfiguration } from '@/model/config'
 
 //TODO attach all data to the config, the ones that currently are not attached are disabled in the view
@@ -26,10 +26,6 @@ const toggleFixedLinkDistance = ref(props.config.fixedLinkDistanceEnabled)
 
 const toggleZoom = ref(props.config.zoomEnabled)
 
-onMounted(() => {
-    initFromLocalStorage()
-})
-
 const radius = ref(String(props.config.nodeRadius))
 const nodeColor = ref('')
 const nodeLabelColor = ref('black')
@@ -37,28 +33,6 @@ const nodeLabelColor = ref('black')
 const linkColor = ref('')
 
 const emit = defineEmits(['update-graph-settings'])
-
-const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
-
-function initFromLocalStorage() {
-    if (localStorage.showNodeLabels) {
-        toggleNodeLabels.value = stringToBoolean(localStorage.showNodeLabels)
-    }
-    if (localStorage.enableNodePhysics) {
-        toggleNodePhysics.value = stringToBoolean(localStorage.enableNodePhysics)
-    }
-
-    if (localStorage.showLinkLabels) {
-        toggleLinkLabels.value = stringToBoolean(localStorage.showLinkLabels)
-    }
-    if (localStorage.enableFixedLinkDistance) {
-        toggleFixedLinkDistance.value = stringToBoolean(localStorage.enableFixedLinkDistance)
-    }
-
-    if (localStorage.enableZoom) {
-        toggleZoom.value = stringToBoolean(localStorage.enableZoom)
-    }
-}
 
 function saveInLocalStorage() {
     localStorage.showNodeLabels = toggleNodeLabels.value

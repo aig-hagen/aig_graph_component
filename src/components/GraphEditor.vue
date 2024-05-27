@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as d3 from 'd3'
 import Graph from '@/model/graph'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
@@ -60,6 +60,10 @@ const graphHost = computed(() => {
 
 const wasHere = computed(() => {
     return localStorage.wasHere
+})
+
+onBeforeMount(() => {
+    initFromLocalStorage()
 })
 
 onMounted(() => {
@@ -190,8 +194,27 @@ function deleteLink(ids: string[] | string) {
 }
 //endregion
 
+function initFromLocalStorage() {
+    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
+
+    if (localStorage.showNodeLabels) {
+        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
+    }
+    if (localStorage.enableNodePhysics) {
+        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
+    }
+    if (localStorage.showLinkLabels) {
+        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
+    }
+    if (localStorage.enableFixedLinkDistance) {
+        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
+    }
+    if (localStorage.enableZoom) {
+        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
+    }
+}
+
 function initData() {
-    initFromLocalStorage()
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
     zoom = createZoom(
@@ -214,26 +237,6 @@ function initData() {
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config.nodeRadius)
     restart()
-}
-
-function initFromLocalStorage() {
-    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
-
-    if (localStorage.showNodeLabels) {
-        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
-    }
-    if (localStorage.enableNodePhysics) {
-        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
-    }
-    if (localStorage.showLinkLabels) {
-        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
-    }
-    if (localStorage.enableFixedLinkDistance) {
-        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
-    }
-    if (localStorage.enableZoom) {
-        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
-    }
 }
 
 function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
@@ -684,6 +687,7 @@ function resetView(): void {
     nodeSelection = undefined
     simulation = undefined
     resetDraggableLink()
+    initFromLocalStorage()
     initData()
 }
 
