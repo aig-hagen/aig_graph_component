@@ -142,6 +142,11 @@ After zooming we can reset the canvas to its default position.
 ```javascript
 instance.resetView()
 ```
+You can also toggle if the nodes and links should have labels.
+```javascript
+instance.toggleNodeLabels(true)
+instance.toggleLinkLabels(false)
+```
 
 ## Development
 ### Project Setup

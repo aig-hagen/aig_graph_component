@@ -27,9 +27,9 @@ import type { GraphLink } from '@/model/graph-link'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
-import GraphSettings from '@/components/GraphSettings.vue'
+import GraphSettingsOld from '@/components/GraphSettingsOld.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
-import InitialSettings from '@/components/InitialSettings.vue'
+import InitialSettings, { type GraphSettings } from '@/components/InitialSettings.vue'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -56,6 +56,10 @@ const graphHost = computed(() => {
     }
 
     return graphHost
+})
+
+const wasHere = computed(() => {
+    return localStorage.wasHere
 })
 
 onMounted(() => {
@@ -86,8 +90,6 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-let showInitialDialog = true
-
 //exposing for the browser api
 defineExpose({
     getGraph,
@@ -97,8 +99,8 @@ defineExpose({
     setLinkColor,
     deleteNode,
     deleteLink,
-    toggleNodeLabel,
-    toggleLinkLabel,
+    toggleNodeLabels,
+    toggleLinkLabels,
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
@@ -186,14 +188,10 @@ function deleteLink(ids: string[] | string) {
             .each((d) => graph.value.removeLink(d))
     }
 }
-
-function toggleZoom(isEnabled: boolean) {
-    config.zoomEnabled = isEnabled
-    resetView()
-}
 //endregion
 
 function initData() {
+    initFromLocalStorage()
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
     zoom = createZoom(
@@ -216,6 +214,26 @@ function initData() {
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config.nodeRadius)
     restart()
+}
+
+function initFromLocalStorage() {
+    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
+
+    if (localStorage.showNodeLabels) {
+        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
+    }
+    if (localStorage.enableNodePhysics) {
+        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
+    }
+    if (localStorage.showLinkLabels) {
+        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
+    }
+    if (localStorage.enableFixedLinkDistance) {
+        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
+    }
+    if (localStorage.enableZoom) {
+        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
+    }
 }
 
 function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
@@ -596,6 +614,15 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
+function onUpdateGraphSettings(newSettings: GraphSettings): void {
+    toggleNodeLabels(newSettings.showNodeLabels)
+    toggleNodePhysics(newSettings.nodePhysicsEnabled)
+
+    toggleLinkLabels(newSettings.showLinkLabels)
+    toggleFixedLinkDistance(newSettings.fixedLinkDistanceEnabled)
+
+    toggleZoom(newSettings.zoomEnabled)
+}
 function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
     setNodeChargeAndAttraction(simulation, isEnabled, width, height)
@@ -604,13 +631,15 @@ function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
     setFixedLinkDistance(simulation, graph.value, config, isEnabled)
 }
-
-function toggleLinkLabel(isEnabled: boolean) {
+function toggleLinkLabels(isEnabled: boolean) {
     config.showLinkLabels = isEnabled
 }
-
-function toggleNodeLabel(isEnabled: boolean) {
+function toggleNodeLabels(isEnabled: boolean) {
     config.showNodeLabels = isEnabled
+}
+function toggleZoom(isEnabled: boolean) {
+    config.zoomEnabled = isEnabled
+    resetView()
 }
 
 function resetDraggableLink(): void {
@@ -720,19 +749,23 @@ function resetGraph(): void {
             @file-imported="onHandleGraphImport"
         />
         <graph-help />
-        <graph-settings
+        <graph-settings-old
             :node-labels-enabled="config.showNodeLabels"
             :link-labels-enabled="config.showLinkLabels"
             :physics-enabled="config.nodePhysicsEnabled"
             :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
             @toggle-node-physics="toggleNodePhysics"
-            @toggle-node-labels="toggleNodeLabel"
-            @toggle-link-labels="toggleLinkLabel"
+            @toggle-node-labels="toggleNodeLabels"
+            @toggle-link-labels="toggleLinkLabels"
             @toggle-fixed-link-distance="toggleFixedLinkDistance"
         />
     </div>
-    <InitialSettings v-model="showInitialDialog" />
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
+    <initial-settings
+        v-if="!wasHere"
+        :config="config"
+        @update-graph-settings="onUpdateGraphSettings"
+    />
 </template>
 
 <!--<style scoped>-->
