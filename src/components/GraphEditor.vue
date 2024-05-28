@@ -27,9 +27,8 @@ import type { GraphLink } from '@/model/graph-link'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
-import GraphSettingsOld from '@/components/GraphSettingsOld.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
-import InitialSettings, { type GraphSettings } from '@/components/InitialSettings.vue'
+import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -58,10 +57,6 @@ const graphHost = computed(() => {
     return graphHost
 })
 
-const wasHere = computed(() => {
-    return localStorage.wasHere
-})
-
 onBeforeMount(() => {
     initFromLocalStorage()
 })
@@ -74,6 +69,8 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', resetView)
 })
+
+const wasHere = ref(false)
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
@@ -197,6 +194,12 @@ function deleteLink(ids: string[] | string) {
 function initFromLocalStorage() {
     const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
 
+    //checks if the user already visited the site
+    if (localStorage.wasHere) {
+        wasHere.value = stringToBoolean(localStorage.wasHere)
+    }
+
+    //config
     if (localStorage.showNodeLabels) {
         config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
     }
@@ -617,7 +620,7 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-function onUpdateGraphSettings(newSettings: GraphSettings): void {
+function onUpdateGraphSettings(newSettings: Settings): void {
     toggleNodeLabels(newSettings.showNodeLabels)
     toggleNodePhysics(newSettings.nodePhysicsEnabled)
 
@@ -753,23 +756,13 @@ function resetGraph(): void {
             @file-imported="onHandleGraphImport"
         />
         <graph-help />
-        <graph-settings-old
-            :node-labels-enabled="config.showNodeLabels"
-            :link-labels-enabled="config.showLinkLabels"
-            :physics-enabled="config.nodePhysicsEnabled"
-            :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
-            @toggle-node-physics="toggleNodePhysics"
-            @toggle-node-labels="toggleNodeLabels"
-            @toggle-link-labels="toggleLinkLabels"
-            @toggle-fixed-link-distance="toggleFixedLinkDistance"
+        <graph-settings
+            :config="config"
+            :is-welcome="!wasHere"
+            @update-graph-settings="onUpdateGraphSettings"
         />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
-    <initial-settings
-        v-if="!wasHere"
-        :config="config"
-        @update-graph-settings="onUpdateGraphSettings"
-    />
 </template>
 
 <!--<style scoped>-->

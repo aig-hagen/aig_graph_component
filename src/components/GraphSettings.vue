@@ -2,9 +2,9 @@
 import { ref } from 'vue'
 import type { GraphConfiguration } from '@/model/config'
 
-//TODO attach all data to the config, the ones that currently are not attached are disabled in the view
+//TODO attach all data to the config, the ones that currently are not attached are not shown in the view
 
-export type GraphSettings = {
+export type Settings = {
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
     showLinkLabels: boolean
@@ -14,9 +14,11 @@ export type GraphSettings = {
 
 interface Props {
     config: GraphConfiguration
+    isWelcome: boolean
 }
 const props = defineProps<Props>()
-const dialog = ref(true)
+
+const dialog = ref(props.isWelcome)
 
 const toggleNodeLabels = ref(props.config.showNodeLabels)
 const toggleNodePhysics = ref(props.config.nodePhysicsEnabled)
@@ -62,14 +64,37 @@ function onSave() {
 
 <template>
     <v-dialog max-width="900" max-height="550" scrollable v-model="dialog">
+        <template #activator="{ props }">
+            <v-tooltip location="bottom" :open-delay="750" text="Settings">
+                <template #activator="{ props: onTooltip }">
+                    <v-btn
+                        aria-label="Settings"
+                        class="mx-1"
+                        color="grey"
+                        density="comfortable"
+                        elevation="6"
+                        icon="$settings"
+                        v-bind="{ ...props, ...onTooltip }"
+                        variant="plain"
+                    >
+                    </v-btn>
+                </template>
+            </v-tooltip>
+        </template>
         <template v-slot:default="{ isActive }">
-            <v-card title="Welcome to the Graph Tool!" class="pa-3">
+            <v-card class="pa-3">
+                <v-card-title v-if="props.isWelcome">Welcome to the Graph Tool!</v-card-title>
+                <v-card-title v-else>Settings</v-card-title>
                 <v-card-subtitle
+                    v-if="props.isWelcome"
                     class="px-6 pb-1"
                     aria-describedby="Welcome to the Graph Tool! You can proceed with the default settings or change them if you wish."
                 >
                     You can proceed with the default settings or change them if you wish.
                 </v-card-subtitle>
+                <v-card-subtitle class="px-6 pb-1"
+                    >The settings are saved in your browsers local storage.</v-card-subtitle
+                >
                 <v-card-text>
                     <v-row>
                         <v-col cols="5">
@@ -78,7 +103,7 @@ function onSave() {
                             >
                             <v-row>
                                 <v-expansion-panels>
-                                    <v-expansion-panel disabled>
+                                    <v-expansion-panel v-if="false">
                                         <v-expansion-panel-title>
                                             <v-row no-gutters>
                                                 <v-col cols="4"> Node Color </v-col>
@@ -121,7 +146,7 @@ function onSave() {
                                         variant="solo"
                                         v-model="nodeLabelColor"
                                         required
-                                        disabled
+                                        v-if="false"
                                     ></v-select
                                 ></v-col>
                             </v-row>
@@ -138,6 +163,7 @@ function onSave() {
                                     class="mt-2"
                                     variant="text"
                                     size="small"
+                                    v-if="false"
                                 ></v-btn>
                             </v-row>
 
@@ -148,7 +174,7 @@ function onSave() {
                                     variant="solo"
                                     v-model="radius"
                                     required
-                                    disabled
+                                    v-if="false"
                                 ></v-select
                             ></v-row>
                         </v-col>
@@ -159,7 +185,7 @@ function onSave() {
                             >
                             <v-row>
                                 <v-expansion-panels>
-                                    <v-expansion-panel disabled>
+                                    <v-expansion-panel v-if="false">
                                         <v-expansion-panel-title>
                                             <v-row no-gutters>
                                                 <v-col cols="4"> Link Color </v-col>
@@ -205,6 +231,7 @@ function onSave() {
                                     class="mt-2"
                                     variant="text"
                                     size="small"
+                                    v-if="false"
                                 ></v-btn>
                             </v-row>
                             <v-row class="my-0 py-0">
