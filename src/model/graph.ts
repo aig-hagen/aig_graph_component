@@ -94,16 +94,12 @@ export default class Graph {
 
     /**
      * Checks if a link in a given (not default) color exists.
-     * @param color
+     * @param color - Color to check on.
+     * @param excludedLinkId - You can optionally exclude one or more links via their ID from this check
      * @returns True if non-default colored links exist, false otherwise.
      */
-    public hasNonDefaultLinkColor(color: string) {
-        for (const link of this.links) {
-            if (link.color === color) {
-                return true
-            }
-        }
-        return false
+    public hasNonDefaultLinkColor(color: string, excludedLinkId: string = ''): boolean {
+        return this.links.some((link) => link.color === color && link.id !== excludedLinkId)
     }
 
     /**
@@ -114,6 +110,18 @@ export default class Graph {
         return this.links
             .map((link) => link.color)
             .filter((color) => color !== undefined && color !== '') as string[]
+    }
+
+    /**
+     * Get the link ids of links with provided color.
+     * @param color - Color to check on.
+     * @param excludedLinkId - You can optionally exclude a link from this check via its ID
+     * @returns An array of link IDs that have the provided color (without the excludedLinkId)
+     */
+    public getLinkIdsWithNonDefaultLinkColors(color: string, excludedLinkId: string = '') {
+        return this.links
+            .filter((link) => link.color === color && link.id !== excludedLinkId)
+            .map((link) => link.id)
     }
 
     /** Formats the Graph in Trivial Graph Format.
@@ -128,7 +136,7 @@ export default class Graph {
         includeLinkLabels: boolean = true,
         includeNodeColor: boolean = false,
         includeLinkColor: boolean = false
-    ): String {
+    ): string {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return 'Graph is empty'
         }

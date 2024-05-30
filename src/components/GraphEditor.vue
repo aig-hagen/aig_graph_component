@@ -144,24 +144,29 @@ function setNodeColor(color: string, ids: number[] | number | undefined) {
 }
 
 function setLinkColor(color: string, ids: string[] | string | undefined) {
-    createLinkMarkerColored(canvas!, config, color)
+    if (ids) {
+        const idArray = Array.isArray(ids) ? ids : [ids]
 
-    //if no ids are provided, the color is set for all currently existing links
-    if (!ids) {
+        deleteNotNeededColorMarker(idArray)
+
+        for (const id of idArray) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('.link')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('stroke', color)
+        }
+    } else {
+        //if no ids are provided, the color is set for all currently existing links
+        deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
+
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.link')
             .each((d) => (d.color = color))
             .style('stroke', color)
-        return
     }
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('.link')
-            .filter((d) => d.id === id)
-            .each((d) => (d.color = color))
-            .style('stroke', color)
-    }
+
+    createLinkMarkerColored(canvas!, config, color)
 }
 
 function deleteNode(ids: number[] | number) {
@@ -636,6 +641,39 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
             createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
             if (parsedLink.color) {
                 createLinkMarkerColored(canvas!, config, parsedLink.color)
+            }
+        }
+    }
+}
+/***
+ Checks the links that will change color and deletes colored link markers that are then not needed anymore
+ @params idArrayOfLinkColorToChanged - links that will change color
+ */
+function deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
+    for (let id of idsOfLinkColorToChange) {
+        const currentColorOfLink = graph.value.links
+            .filter((link) => link.id === id)
+            .map((link) => link.color)
+            .shift()
+
+        if (currentColorOfLink) {
+            //the color of the link we are about to change doesn't exist on another link -> marker can be deleted
+            if (!graph.value.hasNonDefaultLinkColor(currentColorOfLink, id)) {
+                deleteLinkMarkerColored(canvas!, currentColorOfLink)
+            }
+            //the link color we are about to change exists in other links
+            else {
+                //check if this other links will also have a color change (then the marker for this color can be deleted)
+                const linkIdsWithColorToChange = graph.value.getLinkIdsWithNonDefaultLinkColors(
+                    currentColorOfLink,
+                    id
+                )
+                let canBeDeleted = linkIdsWithColorToChange.every((linkId) =>
+                    idsOfLinkColorToChange.includes(linkId)
+                )
+                if (canBeDeleted) {
+                    deleteLinkMarkerColored(canvas!, currentColorOfLink)
+                }
             }
         }
     }
