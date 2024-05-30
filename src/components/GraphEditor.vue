@@ -29,6 +29,7 @@ import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
 import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
+import { escapeColor } from '@/model/color'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -366,7 +367,7 @@ function restart(alpha: number = 0.5): void {
                         if (d.pathType?.includes('REVERSE')) {
                             let markerName = 'url(#link-arrow-reverse'
                             if (d.color) {
-                                markerName += '-' + d.color
+                                markerName += '-' + escapeColor(d.color)
                             }
                             markerName += ')'
                             return markerName
@@ -378,7 +379,7 @@ function restart(alpha: number = 0.5): void {
                         if (!d.pathType?.includes('REVERSE')) {
                             let markerName = 'url(#link-arrow'
                             if (d.color) {
-                                markerName += '-' + d.color
+                                markerName += '-' + escapeColor(d.color)
                             }
                             markerName += ')'
                             return markerName
@@ -743,7 +744,7 @@ function resetGraph(): void {
 }
 
 .link {
-    stroke: cadetblue;
+    stroke: #004c97;
     stroke-width: 4px;
     fill: none;
 
@@ -752,7 +753,7 @@ function resetGraph(): void {
     }
 
     &.draggable {
-        stroke: lightblue;
+        stroke: #007dae;
         stroke-dasharray: 8px 2px;
         pointer-events: none;
     }
@@ -766,10 +767,10 @@ function resetGraph(): void {
 }
 
 .arrow {
-    fill: cadetblue;
+    fill: #004c97;
 
     &.draggable {
-        fill: lightblue;
+        fill: #007dae;
     }
 }
 
@@ -809,12 +810,12 @@ function resetGraph(): void {
 }
 
 .node {
-    fill: lightsalmon;
+    fill: #eb9850;
     stroke: none;
     cursor: pointer;
 
     &:hover {
-        stroke: cadetblue;
+        stroke: #006597;
         stroke-dasharray: (8, 3);
         stroke-width: 2;
         filter: grayscale(30%);

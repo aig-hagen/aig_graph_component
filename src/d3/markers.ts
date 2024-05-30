@@ -1,5 +1,6 @@
 import * as d3 from 'd3'
 import type { GraphConfiguration } from '@/model/config'
+import { escapeColor } from '@/model/color'
 
 export function initMarkers(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
@@ -21,13 +22,13 @@ export function createLinkMarkerColored(
     config: GraphConfiguration,
     color: string
 ) {
-    if (canvas.select('#link-arrow-' + color).empty()) {
+    if (canvas.select('#link-arrow-' + escapeColor(color)).empty()) {
         createLinkMarker(canvas, config, 'link-arrow-' + color, 'arrow ' + color, false, color)
         createLinkMarker(
             canvas,
             config,
             'link-arrow-reverse-' + color,
-            'arrow ' + color,
+            'arrow colored',
             true,
             color
         )
@@ -39,14 +40,14 @@ export function deleteLinkMarkerColored(
     color: string
 ) {
     canvas
-        .select<SVGMarkerElement>('#link-arrow-' + color)
+        .select<SVGMarkerElement>('#link-arrow-' + escapeColor(color))
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })
         .remove()
 
     canvas
-        .select<SVGMarkerElement>('#link-arrow-reverse-' + color)
+        .select<SVGMarkerElement>('#link-arrow-reverse-' + escapeColor(color))
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })
