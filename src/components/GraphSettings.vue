@@ -63,7 +63,7 @@ function onSave() {
 </script>
 
 <template>
-    <v-dialog max-width="900" max-height="550" scrollable v-model="dialog">
+    <v-dialog max-width="900" max-height="550" scrollable v-model="dialog" persistent>
         <template #activator="{ props }">
             <v-tooltip location="bottom" :open-delay="750" text="Settings">
                 <template #activator="{ props: onTooltip }">
