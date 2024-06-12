@@ -86,7 +86,7 @@ instance.deleteNode([4,2])
 ```
 We can also delete one or multiple **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
 ```javascript
-// delete link that from node id 0 to node id 1
+// delete link that goes from node id 0 to node id 1
 instance.deleteLink("0-1")
 
 // delete links from node with id 1 to node with id 0 and the self-pointing edge of node with id 2
