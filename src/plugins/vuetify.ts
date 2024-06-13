@@ -6,6 +6,7 @@ import {
     mdiDelete,
     mdiFileImportOutline,
     mdiHelp,
+    mdiHelpCircleOutline,
     mdiImageFilterCenterFocus,
     mdiPlusThick
 } from '@mdi/js'
@@ -20,7 +21,8 @@ export default createVuetify({
             help: mdiHelp,
             importExport: mdiFileImportOutline,
             resetView: mdiImageFilterCenterFocus,
-            settings: mdiCogOutline
+            settings: mdiCogOutline,
+            helpCircle: mdiHelpCircleOutline
         },
         sets: {
             mdi
