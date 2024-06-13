@@ -1,5 +1,8 @@
 # Graph-Component
+
 *TODO (งツ)ว: write a quick intro what you can do with this component*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 The graph component is available as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
