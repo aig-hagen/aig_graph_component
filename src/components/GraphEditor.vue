@@ -130,20 +130,21 @@ function printGraph() {
     console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
 }
 
-function setNodeColor(color: string, ids: number[] | number | undefined) {
-    //if no ids are provided, the color is set for all currently existing nodes
-    if (!ids) {
+function setNodeColor(color: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const idStringArray = Array.isArray(ids) ? ids : [ids]
+        const idArray = idStringArray.map(Number)
+        for (const id of idArray) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('fill', color)
+        }
+    } else {
+        //if no ids are provided, the color is set for all currently existing nodes
         nodeSelection!
             .selectAll<SVGCircleElement, GraphNode>('circle')
-            .each((d) => (d.color = color))
-            .style('fill', color)
-        return
-    }
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
-            .filter((d) => d.id === id)
             .each((d) => (d.color = color))
             .style('fill', color)
     }

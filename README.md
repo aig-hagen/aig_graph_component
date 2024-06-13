@@ -7,8 +7,8 @@ Refer to the [index.ce.html](application-example-ce/index.ce.html) file in the [
 
 For a quick start, simply run the referenced index file.
 
-You can use the UI to build your graph or programmatically interact with it via the browser console or with a script.
-### UI
+You can use the GUI to build your graph or programmatically interact with it via the browser console or with a script.
+### GUI
 *TODO (งツ)ว*
 ### API
 #### Preparation
