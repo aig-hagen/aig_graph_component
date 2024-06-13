@@ -1,5 +1,7 @@
 # Graph-Component
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Usage
 ### Web Component / Custom Element
 The graph component is available as a **custom element**
