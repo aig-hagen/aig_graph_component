@@ -1,12 +1,30 @@
-export interface parsedNode {
-    idImported: string
+export type parsedNode = {
+    idImported: string | number
     label: string | undefined
+    color: string | undefined
 }
 
-export interface parsedLink {
-    sourceIdImported: string
-    targetIdImported: string
+export type parsedLink = {
+    sourceIdImported: string | number
+    targetIdImported: string | number
     label: string | undefined
+    color: string | undefined
+}
+
+export type textNode = {
+    id: number
+    label?: string
+    color?: string
+}
+export type textLink = {
+    sourceId: number
+    targetId: number
+    label?: string
+    color?: string
+}
+export type textGraph = {
+    nodes: textNode[]
+    links: textLink[]
 }
 
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -19,11 +37,23 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (const node of nodesInput) {
-            const [, id, nodeLabel] = node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []
-            if (id && nodeLabel) {
-                nodes.push({ idImported: id.trim(), label: nodeLabel.trim() })
-            } else if (id) {
-                nodes.push({ idImported: id.trim(), label: id.trim() })
+            let [, id, nodeLabel, nodeColor] = (
+                node.match(/(\w+) (.*) \/COLOR:\/(.+)/) ||
+                node.match(/(\w+) (.*)/) ||
+                node.match(/(\w+)/) ||
+                []
+            ).map((item) => item.trim())
+            //when there is no nodeLabel but a nodeColor
+            if (nodeLabel?.includes('/COLOR:/')) {
+                nodeColor = nodeLabel
+                nodeLabel = ''
+            }
+            if (id) {
+                nodes.push({
+                    idImported: id,
+                    label: nodeLabel,
+                    color: nodeColor?.replace('/COLOR:/', '')
+                })
             }
         }
     }
@@ -31,18 +61,45 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const links: parsedLink[] = []
     if (linksInput.length) {
         for (const link of linksInput) {
-            const [, source, target, label] =
-                link.match(/(\w+) (\w+) (.*)/) || link.match(/(\w+) (\w+)/) || []
+            let [, source, target, linkLabel, linkColor] = (
+                link.match(/(\w+) (\w+) (.*) \/COLOR:\/(.+)/) ||
+                link.match(/(\w+) (\w+) (.*)/) ||
+                link.match(/(\w+) (\w+)/) ||
+                []
+            ).map((item) => item.trim())
+            //when there is no linkLabel but a linkColor
+            if (linkLabel?.includes('/COLOR:/')) {
+                linkColor = linkLabel
+                linkLabel = ''
+            }
 
             if (source && target) {
                 links.push({
-                    sourceIdImported: source.trim(),
-                    targetIdImported: target.trim(),
-                    label: label?.trim()
+                    sourceIdImported: source,
+                    targetIdImported: target,
+                    label: linkLabel,
+                    color: linkColor?.replace('/COLOR:/', '')
                 })
             }
         }
     }
 
+    return [nodes, links]
+}
+
+export function parseTextGraph(textGraph: textGraph): [parsedNode[], parsedLink[]] {
+    const nodes: parsedNode[] = []
+    for (let node of textGraph.nodes) {
+        nodes.push({ idImported: node.id, label: node.label, color: node.color })
+    }
+    const links: parsedLink[] = []
+    for (let link of textGraph.links) {
+        links.push({
+            sourceIdImported: link.sourceId,
+            targetIdImported: link.targetId,
+            label: link.label,
+            color: link.color
+        })
+    }
     return [nodes, links]
 }

@@ -1,6 +1,6 @@
 import * as d3 from 'd3'
 import { type Canvas } from '@/d3/canvas'
-import { GraphNode } from '@/model/graphNode'
+import { GraphNode } from '@/model/graph-node'
 
 export type NodeSelection = d3.Selection<SVGGElement, GraphNode, SVGGElement, undefined>
 

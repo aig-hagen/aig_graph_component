@@ -2,9 +2,9 @@ import * as d3 from 'd3'
 import { terminate } from '@/d3/event'
 import type { Zoom } from '@/d3/zoom'
 
-export type GraphHost = d3.Selection<HTMLDivElement, undefined, HTMLElement, undefined>
+export type GraphHost = d3.Selection<HTMLDivElement, undefined, HTMLElement | null, undefined>
 
-export type Canvas = d3.Selection<SVGGElement, undefined, HTMLElement, undefined>
+export type Canvas = d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>
 
 export function createCanvas(
     host: GraphHost,

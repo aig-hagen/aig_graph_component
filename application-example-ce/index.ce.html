@@ -2,18 +2,72 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="./favicon.ico" />
         <link rel="stylesheet" href="./style.css" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Graph Editor</title>
     </head>
     <body style="margin: 0; padding: 0">
-        <graph-editor></graph-editor>
-        <script src="graph-editor.js"></script>
-        <script>
-            let x1 = document.getElementsByTagName('graph-editor')
-            x1 = x1[0]
-            x1._instance.exposed.testingExposedFunctionCall()
-        </script>
+    <div style='display: flex; position: relative; height: 100vh'>
+        <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
+        <graph-editor id='ge2' style='flex: 1; position: relative'></graph-editor>
+    </div>
+    <script src="graph-editor.js"></script>
+    <script>
+        // get the graph editor instance by its id, on this you will call all available functions
+        let inst1 = getGraphEditorById('ge1')
+        let inst2 = getGraphEditorById('ge2')
+
+        // print the (currently displayed) graph
+        inst1.printGraph()
+
+        // assign the (currently displayed) graph to a variable and afterward log it to the console
+        let graph1 = inst1.getGraph();
+        console.log(graph1)
+
+        // display a graph in the second graph editor
+        inst2.setGraph(graph1)
+
+        // write a graph manually
+        let graphAsObject = {nodes: [{id: 0, label: "A"}, {id: 1, label: "B"}], links: [{sourceId: 0, targetId: 1, label: "A to B"}]}
+        let graphAsTgf = "0 A\n 1 B\n#\n 0 1 A to B"
+
+        // display the (manually written graph as object) in the first graph editor, and the other one in the second
+        inst1.setGraph(graphAsObject)
+        inst2.setGraph(graphAsTgf)
+        inst1.setGraph(graph1) //or the one you assigned to the variable and got with getGraph()
+
+        // if you call setGraph without arguments, it will clear the graph editor
+        inst1.setGraph()
+
+        // change the color of existing nodes and links by their id
+        // this color can be a html color name (https://www.w3schools.com/colors/colors_names.asp), hexadecimal, rgb or hsl-color-model format
+        inst1.setNodeColor("bisque", [0,1])
+        // change the color of all existing nodes by just providing a color without providing ids
+        inst2.setNodeColor("HSL(212,92%,45%,0.5)")
+        inst2.setNodeColor("RGB(250,70,99)")
+        inst2.setNodeColor("#8FBC8F")
+        //the same for links
+        inst2.setLinkColor("orangered", ["0-1", "2-2"])
+
+        // delete nodes or links by their id
+        // delete link that origins in node with id 0 and points to node with id 1
+        inst2.deleteLink("0-1")
+        // delete node with id 0 and id 1
+        inst2.deleteNode([0, 1])
+
+        // turning ability on and off for zooming, that nodes repel each other and that there is a fixed link distance
+        inst1.toggleZoom(false)
+        inst1.toggleNodePhysics(true)
+        inst1.toggleFixedLinkDistance(true)
+
+        // after zooming, reset the view to the default position
+        inst2.resetView()
+
+        //This function can be used, to get the graph editor instance by its id.
+        function getGraphEditorById(id) {
+            return document.getElementById(id)._instance.exposed
+        }
+    </script>
     </body>
 </html>

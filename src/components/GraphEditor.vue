@@ -1,31 +1,65 @@
 <script setup lang="ts">
 import * as d3 from 'd3'
 import Graph from '@/model/graph'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
-import { initMarkers } from '@/d3/markers'
+import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { defaultGraphConfig } from '@/model/config'
+import { GraphConfigDefault } from '@/model/config'
 import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
 import { terminate } from '@/d3/event'
-import { parseTGF } from '@/model/parser'
-import { GraphNode } from '@/model/graphNode'
-import type { GraphLink } from '@/model/graphLink'
+import {
+    parseTGF,
+    parseTextGraph,
+    type textGraph,
+    type parsedNode,
+    type parsedLink
+} from '@/model/parser'
+import { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import ImportExport from '@/components/ImportExport.vue'
-import GraphSettings from '@/components/GraphSettings.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
+import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
+import { escapeColor } from '@/model/color'
 
 const graphHost = computed(() => {
-    return d3.select<HTMLDivElement, undefined>('.graph-host')
+    //this is the case for production mode (one and multiple components)
+    const hosts = document.querySelectorAll('graph-editor')
+
+    let graphHost = undefined
+    for (let i = 0; i < hosts.length; i++) {
+        const hostElement = hosts[i]
+        //@ts-ignore
+        const hostShadow = d3.select<HTMLElement, undefined>(hostElement.shadowRoot)
+
+        const graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
+        if (!graphHostToInit.empty()) {
+            graphHostToInit.classed('uninitialised', false)
+            graphHost = graphHostToInit
+            break
+        }
+    }
+
+    // this is the case for dev mode (one component)
+    if (graphHost === undefined) {
+        graphHost = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+        graphHost.classed('uninitialised', false)
+    }
+
+    return graphHost
+})
+
+onBeforeMount(() => {
+    initFromLocalStorage()
 })
 
 onMounted(() => {
@@ -37,9 +71,11 @@ onUnmounted(() => {
     window.removeEventListener('resize', resetView)
 })
 
+const wasHere = ref(false)
+
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
-const config = reactive(defaultGraphConfig)
+const config = reactive(new GraphConfigDefault())
 let simulation: any = undefined
 let width: number = 400
 let height: number = 400
@@ -56,17 +92,147 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-defineExpose({ testingExposedFunctionCall })
+//exposing for the browser api
+defineExpose({
+    getGraph,
+    setGraph,
+    printGraph,
+    setNodeColor,
+    setLinkColor,
+    deleteNode,
+    deleteLink,
+    toggleNodeLabels,
+    toggleLinkLabels,
+    toggleZoom,
+    toggleNodePhysics,
+    toggleFixedLinkDistance,
+    resetView
+})
 
-function testingExposedFunctionCall() {
-    console.log('Hi from inside the function')
+//region functions that are solely used as exposed ones
+function getGraph() {
+    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
 }
+
+function setGraph(graphToSet: string | textGraph | undefined) {
+    if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
+        onHandleGraphImport(graphToSet)
+    } else if (typeof graphToSet === 'object') {
+        const [nodes, links] = parseTextGraph(graphToSet)
+        resetGraph()
+        parsedToGraph(nodes, links)
+    } else {
+        resetGraph()
+    }
+}
+
+function printGraph() {
+    console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+}
+
+function setNodeColor(color: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const idStringArray = Array.isArray(ids) ? ids : [ids]
+        const idArray = idStringArray.map(Number)
+        for (const id of idArray) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('fill', color)
+        }
+    } else {
+        //if no ids are provided, the color is set for all currently existing nodes
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .each((d) => (d.color = color))
+            .style('fill', color)
+    }
+}
+
+function setLinkColor(color: string, ids: string[] | string | undefined) {
+    if (ids) {
+        const idArray = Array.isArray(ids) ? ids : [ids]
+
+        deleteNotNeededColorMarker(idArray)
+
+        for (const id of idArray) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('.link')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('stroke', color)
+        }
+    } else {
+        //if no ids are provided, the color is set for all currently existing links
+        deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
+
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('.link')
+            .each((d) => (d.color = color))
+            .style('stroke', color)
+    }
+
+    createLinkMarkerColored(canvas!, config, color)
+}
+
+function deleteNode(ids: number[] | number) {
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .filter((d) => d.id === id)
+            .each((d) => graph.value.removeNode(d))
+    }
+    graphHasNodes.value = graph.value.nodes.length > 0
+}
+
+function deleteLink(ids: string[] | string) {
+    const idArray = Array.isArray(ids) ? ids : [ids]
+    for (const id of idArray) {
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('path')
+            .filter((d) => d.id === id)
+            .each((d) => graph.value.removeLink(d))
+    }
+}
+//endregion
+
+function initFromLocalStorage() {
+    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
+
+    //checks if the user already visited the site
+    if (localStorage.wasHere) {
+        wasHere.value = stringToBoolean(localStorage.wasHere)
+    }
+
+    //config
+    if (localStorage.showNodeLabels) {
+        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
+    }
+    if (localStorage.enableNodePhysics) {
+        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
+    }
+    if (localStorage.showLinkLabels) {
+        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
+    }
+    if (localStorage.enableFixedLinkDistance) {
+        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
+    }
+    if (localStorage.enableZoom) {
+        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
+    }
+}
+
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
-    zoom = createZoom((event: D3ZoomEvent<any, any>) => onZoom(event))
+    zoom = createZoom(
+        (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
+        config.zoomEnabled
+    )
     canvas = createCanvas(
-        graphHost.value,
+        graphHost.value!,
         zoom,
         (event) => onPointerMoved(event),
         (event) => onPointerUp(event),
@@ -74,7 +240,7 @@ function initData() {
             createNode(d3.pointer(event, canvas!.node())[0], d3.pointer(event, canvas!.node())[1])
         }
     )
-    initMarkers(canvas, config)
+    initMarkers(canvas, config, graph.value.getNonDefaultLinkColors())
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
@@ -83,20 +249,28 @@ function initData() {
     restart()
 }
 
-function onZoom(event: D3ZoomEvent<any, any>): void {
-    xOffset = event.transform.x
-    yOffset = event.transform.y
-    scale = event.transform.k
+function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
+    if (isEnabled) {
+        xOffset = event.transform.x
+        yOffset = event.transform.y
+        scale = event.transform.k
 
-    canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+        canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+    }
 }
 
-function createLink(source: GraphNode, target: GraphNode, label?: string): void {
-    graph.value.createLink(source.id, target.id, label)
+function createLink(source: GraphNode, target: GraphNode, label?: string, color?: string): void {
+    graph.value.createLink(source.id, target.id, label, color)
     restart()
 }
-function createNode(x?: number, y?: number, importedId?: string | number, label?: string): void {
-    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label)
+function createNode(
+    x?: number,
+    y?: number,
+    importedId?: string | number,
+    label?: string,
+    nodeColor?: string
+): void {
+    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label, nodeColor)
     graphHasNodes.value = true
     restart()
 }
@@ -183,19 +357,27 @@ function restart(alpha: number = 0.5): void {
                 linkGroup
                     .append('path')
                     .classed('link', true)
+                    .style('stroke', (d) => (d.color ? d.color : ''))
                     .attr('id', (d) => d.id)
-                    .attr('marker-end', 'url(#link-arrow)')
+                    .attr('marker-end', (d) =>
+                        d.color ? 'url(#link-arrow-' + d.color : 'url(#link-arrow)'
+                    )
                 linkGroup
                     .append('path')
                     .classed('clickbox', true)
                     .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
+                        let color = d.color
                         if (event.button !== 1) {
                             //mouse wheel
                             return
                         }
                         terminate(event)
                         graph.value.removeLink(d)
-                        restart()
+                        if (color) {
+                            if (!graph.value.hasNonDefaultLinkColor(color)) {
+                                deleteLinkMarkerColored(canvas!, color)
+                            }
+                        }
                     })
                 linkGroup
                     .append('text')
@@ -214,12 +396,30 @@ function restart(alpha: number = 0.5): void {
             (update) => {
                 update
                     .selectChild('path')
-                    .attr('marker-start', (d) =>
-                        d.pathType?.includes('REVERSE') ? 'url(#link-arrow-reverse)' : null
-                    )
-                    .attr('marker-end', (d) =>
-                        d.pathType?.includes('REVERSE') ? null : 'url(#link-arrow)'
-                    )
+                    .attr('marker-start', function (d) {
+                        if (d.pathType?.includes('REVERSE')) {
+                            let markerName = 'url(#link-arrow-reverse'
+                            if (d.color) {
+                                markerName += '-' + escapeColor(d.color)
+                            }
+                            markerName += ')'
+                            return markerName
+                        } else {
+                            return null
+                        }
+                    })
+                    .attr('marker-end', function (d) {
+                        if (!d.pathType?.includes('REVERSE')) {
+                            let markerName = 'url(#link-arrow'
+                            if (d.color) {
+                                markerName += '-' + escapeColor(d.color)
+                            }
+                            markerName += ')'
+                            return markerName
+                        } else {
+                            return null
+                        }
+                    })
 
                 update
                     .selectChild('text')
@@ -275,7 +475,9 @@ function restart(alpha: number = 0.5): void {
                 nodeGroup
                     .append('circle')
                     .classed('node', true)
+                    .attr('id', (d) => d.id)
                     .attr('r', config.nodeRadius)
+                    .style('fill', (d) => (d.color ? d.color : ''))
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
@@ -289,7 +491,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('class', (d: GraphNode) =>
                         d.label ? 'node-label' : 'node-label-placeholder'
                     )
-                    .text((d: GraphNode) => (d.label !== undefined ? d.label : 'add label'))
+                    .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
                         onNodeLabelClicked(event, d)
@@ -337,7 +539,7 @@ function onPointerUp(event: PointerEvent): void {
 function onPointerMoved(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
-        const pointer = d3.pointers(event, graphHost.value.node())[0]
+        const pointer = d3.pointers(event, graphHost.value!.node())[0]
         const point: [number, number] = [
             (pointer[0] - xOffset) / scale,
             (pointer[1] - yOffset) / scale
@@ -418,13 +620,23 @@ function handleInputForLabel(
     input.focus()
 }
 function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
-    let rect = textPathElement.getBoundingClientRect()
-    let x = (rect.x - xOffset) / scale
-    let y = (rect.y - yOffset) / scale
+    let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
+    let rectTextPath = textPathElement.getBoundingClientRect()
+    let x = (rectTextPath.x - rectSvg.x - xOffset) / scale
+    let y = (rectTextPath.y - rectSvg.y - yOffset) / scale
     return [x, y]
 }
 
-function toggleForces(isEnabled: boolean): void {
+function onUpdateGraphSettings(newSettings: Settings): void {
+    toggleNodeLabels(newSettings.showNodeLabels)
+    toggleNodePhysics(newSettings.nodePhysicsEnabled)
+
+    toggleLinkLabels(newSettings.showLinkLabels)
+    toggleFixedLinkDistance(newSettings.fixedLinkDistanceEnabled)
+
+    toggleZoom(newSettings.zoomEnabled)
+}
+function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
     setNodeChargeAndAttraction(simulation, isEnabled, width, height)
 }
@@ -432,6 +644,17 @@ function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
     setFixedLinkDistance(simulation, graph.value, config, isEnabled)
 }
+function toggleLinkLabels(isEnabled: boolean) {
+    config.showLinkLabels = isEnabled
+}
+function toggleNodeLabels(isEnabled: boolean) {
+    config.showNodeLabels = isEnabled
+}
+function toggleZoom(isEnabled: boolean) {
+    config.zoomEnabled = isEnabled
+    resetView()
+}
+
 function resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
     draggableLinkSourceNode = undefined
@@ -441,8 +664,11 @@ function resetDraggableLink(): void {
 function onHandleGraphImport(importContent: string) {
     let [nodes, links] = parseTGF(importContent)
     resetGraph()
+    parsedToGraph(nodes, links)
+}
+function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
-        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label)
+        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label, parsedNode.color)
     }
     const findNodeByImportedId = (importedId: number | string) =>
         graph.value.nodes.find((node) => node.idImported === importedId)
@@ -451,13 +677,49 @@ function onHandleGraphImport(importContent: string) {
         let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
-            createLink(srcNode, targetNode, parsedLink.label)
+            createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
+            if (parsedLink.color) {
+                createLinkMarkerColored(canvas!, config, parsedLink.color)
+            }
+        }
+    }
+}
+/***
+ Checks the links that will change color and deletes colored link markers that are then not needed anymore
+ @params idArrayOfLinkColorToChanged - links that will change color
+ */
+function deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
+    for (let id of idsOfLinkColorToChange) {
+        const currentColorOfLink = graph.value.links
+            .filter((link) => link.id === id)
+            .map((link) => link.color)
+            .shift()
+
+        if (currentColorOfLink) {
+            //the color of the link we are about to change doesn't exist on another link -> marker can be deleted
+            if (!graph.value.hasNonDefaultLinkColor(currentColorOfLink, id)) {
+                deleteLinkMarkerColored(canvas!, currentColorOfLink)
+            }
+            //the link color we are about to change exists in other links
+            else {
+                //check if this other links will also have a color change (then the marker for this color can be deleted)
+                const linkIdsWithColorToChange = graph.value.getLinkIdsWithNonDefaultLinkColors(
+                    currentColorOfLink,
+                    id
+                )
+                let canBeDeleted = linkIdsWithColorToChange.every((linkId) =>
+                    idsOfLinkColorToChange.includes(linkId)
+                )
+                if (canBeDeleted) {
+                    deleteLinkMarkerColored(canvas!, currentColorOfLink)
+                }
+            }
         }
     }
 }
 function resetView(): void {
     simulation.stop()
-    graphHost.value.selectChildren().remove()
+    graphHost.value!.selectChildren().remove()
     zoom = undefined
     xOffset = 0
     yOffset = 0
@@ -468,6 +730,7 @@ function resetView(): void {
     nodeSelection = undefined
     simulation = undefined
     resetDraggableLink()
+    initFromLocalStorage()
     initData()
 }
 
@@ -479,7 +742,7 @@ function resetGraph(): void {
 </script>
 
 <template>
-    <div class="graph-host" />
+    <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
@@ -529,19 +792,14 @@ function resetGraph(): void {
             </template>
         </v-tooltip>
         <import-export
-            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels)"
+            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false, false)"
             @file-imported="onHandleGraphImport"
         />
         <graph-help />
         <graph-settings
-            :node-labels-enabled="config.showNodeLabels"
-            :link-labels-enabled="config.showLinkLabels"
-            :physics-enabled="config.nodePhysicsEnabled"
-            :fixed-link-distance-enabled="config.fixedLinkDistanceEnabled"
-            @toggle-node-physics="toggleForces"
-            @toggle-node-labels="(isEnabled: any) => (config.showNodeLabels = isEnabled)"
-            @toggle-link-labels="(isEnabled: any) => (config.showLinkLabels = isEnabled)"
-            @toggle-fixed-link-distance="toggleFixedLinkDistance"
+            :config="config"
+            :is-welcome="!wasHere"
+            @update-graph-settings="onUpdateGraphSettings"
         />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
@@ -558,14 +816,8 @@ function resetGraph(): void {
     background-color: lightgrey;
 }
 
-.create-node-button {
-    position: absolute;
-    right: 1rem;
-    bottom: 1rem;
-}
-
 .link {
-    stroke: cadetblue;
+    stroke: #004c97;
     stroke-width: 4px;
     fill: none;
 
@@ -574,7 +826,7 @@ function resetGraph(): void {
     }
 
     &.draggable {
-        stroke: lightblue;
+        stroke: #007dae;
         stroke-dasharray: 8px 2px;
         pointer-events: none;
     }
@@ -588,10 +840,10 @@ function resetGraph(): void {
 }
 
 .arrow {
-    fill: cadetblue;
+    fill: #004c97;
 
     &.draggable {
-        fill: lightblue;
+        fill: #007dae;
     }
 }
 
@@ -631,12 +883,12 @@ function resetGraph(): void {
 }
 
 .node {
-    fill: lightsalmon;
+    fill: #eb9850;
     stroke: none;
     cursor: pointer;
 
     &:hover {
-        stroke: cadetblue;
+        stroke: #006597;
         stroke-dasharray: (8, 3);
         stroke-width: 2;
         filter: grayscale(30%);

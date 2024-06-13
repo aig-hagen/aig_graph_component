@@ -1,5 +1,5 @@
-import { type D3Link, GraphLink } from '@/model/graphLink'
-import { type D3Node, GraphNode } from '@/model/graphNode'
+import { type D3Link, GraphLink } from '@/model/graph-link'
+import { type D3Node, GraphNode } from '@/model/graph-node'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -17,7 +17,8 @@ export default class Graph {
         x?: number,
         y?: number,
         importedId?: string | number,
-        label?: string
+        label?: string,
+        color?: string
     ): D3Node {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -26,13 +27,19 @@ export default class Graph {
             y,
             undefined,
             undefined,
-            label
+            label,
+            color
         )
         this.nodes.push(node)
         return node
     }
 
-    public createLink(sourceId: number, targetId: number, label?: string): D3Link | undefined {
+    public createLink(
+        sourceId: number,
+        targetId: number,
+        label?: string,
+        color?: string
+    ): D3Link | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
         )
@@ -50,7 +57,7 @@ export default class Graph {
             return undefined
         }
 
-        const link = new GraphLink(source, target, undefined, label)
+        const link = new GraphLink(source, target, undefined, label, color)
         this.links.push(link)
         return link
     }
@@ -85,8 +92,51 @@ export default class Graph {
         return link
     }
 
-    // formats the graph in Trivial Graph Format
-    public toTGF(includeNodeLabels: boolean, includeLinkLabels: boolean): String {
+    /**
+     * Checks if a link in a given (not default) color exists.
+     * @param color - Color to check on.
+     * @param excludedLinkId - You can optionally exclude one or more links via their ID from this check
+     * @returns True if non-default colored links exist, false otherwise.
+     */
+    public hasNonDefaultLinkColor(color: string, excludedLinkId: string = ''): boolean {
+        return this.links.some((link) => link.color === color && link.id !== excludedLinkId)
+    }
+
+    /**
+     * Get the existing non-default colors of links.
+     * @returns An array of strings representing non-default colors, empty if none exist.
+     */
+    public getNonDefaultLinkColors(): string[] {
+        return this.links
+            .map((link) => link.color)
+            .filter((color) => color !== undefined && color !== '') as string[]
+    }
+
+    /**
+     * Get the link ids of links with provided color.
+     * @param color - Color to check on.
+     * @param excludedLinkId - You can optionally exclude a link from this check via its ID
+     * @returns An array of link IDs that have the provided color (without the excludedLinkId)
+     */
+    public getLinkIdsWithNonDefaultLinkColors(color: string, excludedLinkId: string = '') {
+        return this.links
+            .filter((link) => link.color === color && link.id !== excludedLinkId)
+            .map((link) => link.id)
+    }
+
+    /** Formats the Graph in Trivial Graph Format.
+     * @param includeNodeLabels if node labels should be included
+     * @param includeLinkLabels if link labels should be included
+     * @param includeNodeColor TGF normally has no color option, this is just used for internal purposes
+     * @param includeLinkColor TGF normally has no color option, this is just used for internal purposes
+     * @returns The graph in TGF format
+     */
+    public toTGF(
+        includeNodeLabels: boolean = true,
+        includeLinkLabels: boolean = true,
+        includeNodeColor: boolean = false,
+        includeLinkColor: boolean = false
+    ): string {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return 'Graph is empty'
         }
@@ -94,26 +144,33 @@ export default class Graph {
         let nodeLines: string
         let linkLines: string
 
-        if (includeNodeLabels) {
-            nodeLines = this.nodes
-                .map((node) => `${node.id} ${node.label !== undefined ? `${node.label}` : ''}`)
-                .join('\n')
-        } else {
-            nodeLines = this.nodes.map((node) => `${node.id}`).join('\n')
-        }
+        nodeLines = this.nodes
+            .map((node) => {
+                let line = `${node.id}`
 
-        if (includeLinkLabels) {
-            linkLines = this.links
-                .map(
-                    (link) =>
-                        `${link.source.id} ${link.target.id} ${
-                            link.label !== undefined ? `${link.label}` : ''
-                        }`
-                )
-                .join('\n')
-        } else {
-            linkLines = this.links.map((link) => `${link.source.id} ${link.target.id}`).join('\n')
-        }
+                if (includeNodeLabels && node.label !== undefined) {
+                    line += ` ${node.label}`
+                }
+                if (includeNodeColor && node.color !== undefined) {
+                    line += ` /COLOR:/${node.color}`
+                }
+                return line
+            })
+            .join('\n')
+
+        linkLines = this.links
+            .map((link) => {
+                let line = `${link.source.id} ${link.target.id}`
+
+                if (includeLinkLabels && link.label !== undefined) {
+                    line += ` ${link.label}`
+                }
+                if (includeLinkColor && link.color !== undefined) {
+                    line += ` /COLOR:/${link.color}`
+                }
+                return line
+            })
+            .join('\n')
 
         return `${nodeLines}${linkLines ? '\n#\n' : ''}${linkLines}`
     }

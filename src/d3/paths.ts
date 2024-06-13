@@ -1,6 +1,6 @@
 import Matrix from 'ml-matrix'
 import type { GraphConfiguration } from '@/model/config'
-import { GraphNode } from '@/model/graphNode'
+import { GraphNode } from '@/model/graph-node'
 
 /**
  * Creates the path of a straight line between the edges of two nodes.
