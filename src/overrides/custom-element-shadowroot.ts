@@ -1,8 +1,11 @@
 // @ts-nocheck
-/* This overrides the defineCustomElement function of vue
-source:
-https://github.com/vuejs/core/issues/4314#issuecomment-1021393430
-expansion for plugins (like vuetify) as seen here:
+/* This is not used anymore in the graph component but remains here a while for reference or if someone needs this functionality.
+
+___________________________________________________
+Since there currently is no way of using vue custom elements without the shadow-dom
+this override can be used (https://github.com/vuejs/core/issues/4314#issuecomment-1021393430).
+
+If it is needed in the future, one could also add an expansion for plugins (like vuetify) as seen here:
 https://stackoverflow.com/questions/69808113/how-to-use-vue-router-and-vuex-inside-custom-element-from-root/69820280#69820280
 https://stackoverflow.com/questions/76933641/how-can-add-libraries-like-vuetify-inside-of-a-web-component-created-by-vue-3 */
 
@@ -48,7 +51,6 @@ export interface DefineCustomElementConfig {
      * @default true
      */
     shadowRoot?: boolean
-    plugins?: any
 }
 
 // defineCustomElement provides the same type inference as defineComponent
