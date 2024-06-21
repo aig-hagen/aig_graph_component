@@ -742,6 +742,13 @@ function resetGraph(): void {
 </script>
 
 <template>
+    <!-- we need this for vuetify to work properly in the custom element version-->
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
+    />
+
     <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
@@ -804,8 +811,6 @@ function resetGraph(): void {
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
-
-<!--<style scoped>-->
 
 <style lang="scss">
 .graph-host {
