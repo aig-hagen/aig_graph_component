@@ -10,6 +10,7 @@ export type Settings = {
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
     zoomEnabled: boolean
+    persistEnabled: boolean
 }
 
 interface Props {
@@ -34,28 +35,36 @@ const nodeLabelColor = ref('black')
 
 const linkColor = ref('')
 
-const emit = defineEmits(['update-graph-settings'])
+const isPersist = ref(props.config.persistSettingsLocalStorage)
 
-function saveInLocalStorage() {
-    localStorage.showNodeLabels = toggleNodeLabels.value
-    localStorage.enableNodePhysics = toggleNodePhysics.value
+const emit = defineEmits(['update-settings'])
 
-    localStorage.showLinkLabels = toggleLinkLabels.value
-    localStorage.enableFixedLinkDistance = toggleFixedLinkDistance.value
+function handleLocalStorage() {
+    if (isPersist.value) {
+        localStorage.showNodeLabels = toggleNodeLabels.value
+        localStorage.enableNodePhysics = toggleNodePhysics.value
 
-    localStorage.enableZoom = toggleZoom.value
+        localStorage.showLinkLabels = toggleLinkLabels.value
+        localStorage.enableFixedLinkDistance = toggleFixedLinkDistance.value
 
+        localStorage.enableZoom = toggleZoom.value
+
+        localStorage.persistSettings = isPersist.value
+    } else {
+        localStorage.clear()
+    }
     localStorage.wasHere = true
 }
 
 function onSave() {
-    saveInLocalStorage()
-    emit('update-graph-settings', {
+    handleLocalStorage()
+    emit('update-settings', {
         showNodeLabels: toggleNodeLabels.value,
         nodePhysicsEnabled: toggleNodePhysics.value,
         showLinkLabels: toggleLinkLabels.value,
         fixedLinkDistanceEnabled: toggleFixedLinkDistance.value,
-        zoomEnabled: toggleZoom.value
+        zoomEnabled: toggleZoom.value,
+        persistEnabled: isPersist.value
     })
 
     dialog.value = false
@@ -92,9 +101,6 @@ function onSave() {
                 >
                     You can proceed with the default settings or change them if you wish.
                 </v-card-subtitle>
-                <v-card-subtitle class="px-6 pb-1"
-                    >The settings are saved in your browsers local storage.</v-card-subtitle
-                >
                 <v-card-text>
                     <v-row>
                         <v-col cols="5">
@@ -244,6 +250,11 @@ function onSave() {
                     </v-row>
                 </v-card-text>
                 <v-card-actions>
+                    <v-checkbox
+                        label="Persist settings in Local Storage"
+                        color="secondary"
+                        v-model="isPersist"
+                    ></v-checkbox>
                     <v-spacer />
                     <v-btn color="secondary" variant="text" @click="onSave">Save</v-btn>
                 </v-card-actions>

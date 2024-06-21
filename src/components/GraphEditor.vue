@@ -222,6 +222,10 @@ function initFromLocalStorage() {
     if (localStorage.enableZoom) {
         config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
     }
+
+    if (localStorage.persistSettings) {
+        config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
+    }
 }
 
 function initData() {
@@ -627,7 +631,7 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-function onUpdateGraphSettings(newSettings: Settings): void {
+function onUpdateSettings(newSettings: Settings): void {
     toggleNodeLabels(newSettings.showNodeLabels)
     toggleNodePhysics(newSettings.nodePhysicsEnabled)
 
@@ -635,6 +639,8 @@ function onUpdateGraphSettings(newSettings: Settings): void {
     toggleFixedLinkDistance(newSettings.fixedLinkDistanceEnabled)
 
     toggleZoom(newSettings.zoomEnabled)
+
+    config.persistSettingsLocalStorage = newSettings.persistEnabled
 }
 function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
@@ -806,7 +812,7 @@ function resetGraph(): void {
         <graph-settings
             :config="config"
             :is-welcome="!wasHere"
-            @update-graph-settings="onUpdateGraphSettings"
+            @update-settings="onUpdateSettings"
         />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
