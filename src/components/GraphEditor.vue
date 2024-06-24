@@ -30,6 +30,7 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 import { escapeColor } from '@/model/color'
+import { triggerLabelEdited, triggerLinkClicked, triggerNodeClicked } from '@/model/custom-events'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -370,6 +371,7 @@ function restart(alpha: number = 0.5): void {
                     .append('path')
                     .classed('clickbox', true)
                     .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
+                        triggerLinkClicked(d, event.button, graphHost.value)
                         let color = d.color
                         if (event.button !== 1) {
                             //mouse wheel
@@ -515,6 +517,9 @@ function restart(alpha: number = 0.5): void {
     simulation.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
+    triggerNodeClicked(node, event.button, graphHost.value)
+
+    //check if left mouse button was clicked
     if (event.button !== 0) {
         return
     }
@@ -589,6 +594,7 @@ function handleInputForLabel(
 
     input.onkeyup = function (e) {
         if (e.key === 'Enter') {
+            triggerLabelEdited(element, input.value, graphHost.value)
             pressedEnter = true
             input.blur()
         } else if (e.key === 'Escape') {
