@@ -251,7 +251,7 @@ function onSave() {
                 </v-card-text>
                 <v-card-actions>
                     <v-checkbox
-                        label="Persist settings in Local Storage"
+                        label="Set as Default"
                         color="secondary"
                         v-model="isPersist"
                     ></v-checkbox>
