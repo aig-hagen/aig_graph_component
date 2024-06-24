@@ -1,4 +1,5 @@
 export interface GraphConfiguration {
+    persistSettingsLocalStorage: boolean
     hasToolbar: boolean
 
     nodeRadius: number
@@ -18,6 +19,7 @@ export interface GraphConfiguration {
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
+    persistSettingsLocalStorage = false
     hasToolbar = true
 
     nodeRadius = 24

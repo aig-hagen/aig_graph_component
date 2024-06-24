@@ -30,6 +30,7 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 import { escapeColor } from '@/model/color'
+import { triggerLabelEdited, triggerLinkClicked, triggerNodeClicked } from '@/model/custom-events'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -222,6 +223,10 @@ function initFromLocalStorage() {
     if (localStorage.enableZoom) {
         config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
     }
+
+    if (localStorage.persistSettings) {
+        config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
+    }
 }
 
 function initData() {
@@ -366,6 +371,7 @@ function restart(alpha: number = 0.5): void {
                     .append('path')
                     .classed('clickbox', true)
                     .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
+                        triggerLinkClicked(d, event.button, graphHost.value)
                         let color = d.color
                         if (event.button !== 1) {
                             //mouse wheel
@@ -511,6 +517,9 @@ function restart(alpha: number = 0.5): void {
     simulation.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
+    triggerNodeClicked(node, event.button, graphHost.value)
+
+    //check if left mouse button was clicked
     if (event.button !== 0) {
         return
     }
@@ -585,6 +594,7 @@ function handleInputForLabel(
 
     input.onkeyup = function (e) {
         if (e.key === 'Enter') {
+            triggerLabelEdited(element, input.value, graphHost.value)
             pressedEnter = true
             input.blur()
         } else if (e.key === 'Escape') {
@@ -627,7 +637,7 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-function onUpdateGraphSettings(newSettings: Settings): void {
+function onUpdateSettings(newSettings: Settings): void {
     toggleNodeLabels(newSettings.showNodeLabels)
     toggleNodePhysics(newSettings.nodePhysicsEnabled)
 
@@ -635,6 +645,8 @@ function onUpdateGraphSettings(newSettings: Settings): void {
     toggleFixedLinkDistance(newSettings.fixedLinkDistanceEnabled)
 
     toggleZoom(newSettings.zoomEnabled)
+
+    config.persistSettingsLocalStorage = newSettings.persistEnabled
 }
 function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
@@ -742,6 +754,13 @@ function resetGraph(): void {
 </script>
 
 <template>
+    <!-- we need this for vuetify to work properly in the custom element version-->
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
+    />
+
     <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
@@ -799,13 +818,11 @@ function resetGraph(): void {
         <graph-settings
             :config="config"
             :is-welcome="!wasHere"
-            @update-graph-settings="onUpdateGraphSettings"
+            @update-settings="onUpdateSettings"
         />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
 </template>
-
-<!--<style scoped>-->
 
 <style lang="scss">
 .graph-host {

@@ -6,7 +6,7 @@
 
 The graph component is available as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
-Refer to the [index.ce.html](application-example-ce/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
+Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
 
 For a quick start, simply run the referenced index file.
 
