@@ -7,8 +7,8 @@ import vuetify from '@/plugins/vuetify'
 customElements.define(
     'graph-editor',
     // GUI Version
-    // defineCustomElementWrapped(GraphEditor, { plugins: [vuetify] })
+    defineCustomElementWrapped(GraphEditor, { plugins: [vuetify] })
     // CLI Version
-    defineCustomElement(GraphEditor)
+    // defineCustomElement(GraphEditor)
 )
 //if for defineCustomElement you need to switch shadow root on and off, you can use the override located in overrides/custom-element-shadowroot.ts
