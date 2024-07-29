@@ -14,7 +14,6 @@ import { GraphConfigDefault } from '@/model/config'
 import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
-import { terminate } from '@/d3/event'
 import {
     parseTGF,
     parseTextGraph,
@@ -30,7 +29,16 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 import { escapeColor } from '@/model/color'
-import { triggerLabelEdited, triggerLinkClicked, triggerNodeClicked } from '@/model/custom-events'
+import {
+    terminate,
+    triggerLabelEdited,
+    triggerLinkClicked,
+    triggerLinkCreated,
+    triggerLinkDeleted,
+    triggerNodeClicked,
+    triggerNodeCreated,
+    triggerNodeDeleted
+} from '@/d3/event'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -183,7 +191,16 @@ function deleteNode(ids: number[] | number) {
         nodeSelection!
             .selectAll<SVGCircleElement, GraphNode>('circle')
             .filter((d) => d.id === id)
-            .each((d) => graph.value.removeNode(d))
+            .each(function (d) {
+                let r = graph.value.removeNode(d)
+                if (r !== undefined) {
+                    let [removedNode, removedLinks] = r
+                    triggerNodeDeleted(removedNode, graphHost.value)
+                    removedLinks.forEach((link) => {
+                        triggerLinkDeleted(link, graphHost.value)
+                    })
+                }
+            })
     }
     graphHasNodes.value = graph.value.nodes.length > 0
 }
@@ -194,7 +211,12 @@ function deleteLink(ids: string[] | string) {
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('path')
             .filter((d) => d.id === id)
-            .each((d) => graph.value.removeLink(d))
+            .each(function (d) {
+                let removedLink = graph.value.removeLink(d)
+                if (removedLink !== undefined) {
+                    triggerLinkDeleted(removedLink, graphHost.value)
+                }
+            })
     }
 }
 //endregion
@@ -265,7 +287,10 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
 }
 
 function createLink(source: GraphNode, target: GraphNode, label?: string, color?: string): void {
-    graph.value.createLink(source.id, target.id, label, color)
+    let newLink = graph.value.createLink(source.id, target.id, label, color)
+    if (newLink !== undefined) {
+        triggerLinkCreated(newLink, graphHost.value)
+    }
     restart()
 }
 function createNode(
@@ -275,7 +300,14 @@ function createNode(
     label?: string,
     nodeColor?: string
 ): void {
-    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label, nodeColor)
+    let newNode = graph.value.createNode(
+        x ?? width / 2,
+        y ?? height / 2,
+        importedId,
+        label,
+        nodeColor
+    )
+    triggerNodeCreated(newNode, graphHost.value)
     graphHasNodes.value = true
     restart()
 }
@@ -378,7 +410,10 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.value.removeLink(d)
+                        let removedLink = graph.value.removeLink(d)
+                        if (removedLink !== undefined) {
+                            triggerLinkDeleted(removedLink, graphHost.value)
+                        }
                         if (color) {
                             if (!graph.value.hasNonDefaultLinkColor(color)) {
                                 deleteLinkMarkerColored(canvas!, color)
@@ -473,7 +508,14 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.value.removeNode(d)
+                        let r = graph.value.removeNode(d)
+                        if (r !== undefined) {
+                            let [removedNode, removedLinks] = r
+                            triggerNodeDeleted(removedNode, graphHost.value)
+                            removedLinks.forEach((link) => {
+                                triggerLinkDeleted(link, graphHost.value)
+                            })
+                        }
                         graphHasNodes.value = graph.value.nodes.length > 0
                         resetDraggableLink()
                         restart()
@@ -747,6 +789,8 @@ function resetView(): void {
 }
 
 function resetGraph(): void {
+    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
+    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()

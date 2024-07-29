@@ -1,16 +1,21 @@
 # Graph-Component
+https://graphtool.aig.fernuni-hagen.de
+
 *TODO (งツ)ว: write a quick intro what you can do with this component*
 
-The graph component is available as a **custom element**,
+## Usage
+The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)**
+and also as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
 Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
 
 For a quick start, simply run the referenced index file.
 
 You can use the GUI to build your graph or programmatically interact with it via the browser console or with a script.
+During interaction with the graph different events are fired to which you can react.
 ### GUI
 *TODO (งツ)ว*
-### API
+### Programmatically
 #### Preparation
 To be able to call the following functions, we need to get the graph-editors instance.
 ```javascript
@@ -126,7 +131,6 @@ instance.setLinkColor("RGB(250,70,99)")
 instance.setLinkColor("HSL(212,92%,45%,0.5)")
 ```
 
-
 #### Miscellaneous
 We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
 ```javascript
@@ -146,6 +150,59 @@ You can also toggle if the nodes and links should have labels.
 ```javascript
 instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
+```
+
+#### Custom Events
+Various events are triggered by different interactions with the graph.
+
+##### Create and Delete
+Event Names: 
+- `nodecreated`
+- `nodedeleted`
+- `linkcreated`
+- `linkdeleted`
+
+Additional information can be accessed through `detail.node` or `detail.link`.
+This includes `id` and `label` for both, with nodes also providing position details via `x` and `y`.
+- `detail.node`
+    - `id`
+    - `label`
+    - `x`
+    - `y`
+- `detail.link`
+  - `id`
+  - `label`
+
+##### Click
+Event Names:
+- `nodeclicked`
+- `linkclicked`
+
+In addition to the details provided for creation and deletion events,
+the click events also include `detail.button`, indicating the button used for the click.
+Note that this event does not trigger for deletion clicks.
+
+
+
+##### Labels
+Event Name: `labeledited`
+
+For label editing events, additional information available includes the ID of the parent of the edited label 
+via `detail.parent.id`, and the newly added label via `detail.label`.
+
+
+##### Listening for events
+Events are fired from the graph host. This is where we attach the event listener.
+
+```javascript
+// get the graph host
+const graphHost = document.getElementById('ge1').shadowRoot.querySelector('.graph-host')
+// add event listener for right click on node
+graphHost.addEventListener('nodeclicked', function(e){
+    if(e.detail.button === 2){
+        instance.setNodeColor('#8FBC8F', e.detail.node.id)
+    }
+})
 ```
 
 ## Development
@@ -168,6 +225,9 @@ _The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set 
 npm run build
 ```
 _The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set to `true`._
+
+Depending on whether you want to build the **Custom Element** with the *CLI* functionality
+or without it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
 
 For more commands refer to the scripts section in [package.json](./package.json).
 
