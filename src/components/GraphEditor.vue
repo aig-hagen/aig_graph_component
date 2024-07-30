@@ -529,6 +529,7 @@ function restart(alpha: number = 0.5): void {
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
+                        triggerNodeClicked(d, event.button, graphHost.value)
                         onPointerDown(event, d)
                     })
                     .on('pointerup', (event: PointerEvent) => {
@@ -559,8 +560,6 @@ function restart(alpha: number = 0.5): void {
     simulation.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
-    triggerNodeClicked(node, event.button, graphHost.value)
-
     //check if left mouse button was clicked
     if (event.button !== 0) {
         return

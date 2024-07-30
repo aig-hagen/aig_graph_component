@@ -180,7 +180,7 @@ Event Names:
 
 In addition to the details provided for creation and deletion events,
 the click events also include `detail.button`, indicating the button used for the click.
-Note that this event does not trigger for deletion clicks.
+
 
 
 
@@ -191,7 +191,7 @@ For label editing events, additional information available includes the ID of th
 via `detail.parent.id`, and the newly added label via `detail.label`.
 
 
-##### Listening for events
+##### Listening for Events
 Events are fired from the graph host. This is where we attach the event listener.
 
 ```javascript
@@ -200,6 +200,7 @@ const graphHost = document.getElementById('ge1').shadowRoot.querySelector('.grap
 // add event listener for right click on node
 graphHost.addEventListener('nodeclicked', function(e){
     if(e.detail.button === 2){
+        //change the color on right click
         instance.setNodeColor('#8FBC8F', e.detail.node.id)
     }
 })
