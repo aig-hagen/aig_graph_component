@@ -115,6 +115,7 @@ defineExpose({
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
+    toggleGraphEditingInGUI,
     resetView
 })
 
@@ -219,6 +220,12 @@ function deleteLink(ids: string[] | string) {
             })
     }
 }
+/***
+
+ */
+function toggleGraphEditingInGUI(isEnabled: boolean) {
+    config.isGraphEditableInGUI = isEnabled
+}
 //endregion
 
 function initFromLocalStorage() {
@@ -261,10 +268,15 @@ function initData() {
     canvas = createCanvas(
         graphHost.value!,
         zoom,
-        (event) => onPointerMoved(event),
-        (event) => onPointerUp(event),
+        (event) => (config.isGraphEditableInGUI ? onPointerMoved(event) : null),
+        (event) => (config.isGraphEditableInGUI ? onPointerUp(event) : null),
         (event) => {
-            createNode(d3.pointer(event, canvas!.node())[0], d3.pointer(event, canvas!.node())[1])
+            if (config.isGraphEditableInGUI) {
+                createNode(
+                    d3.pointer(event, canvas!.node())[0],
+                    d3.pointer(event, canvas!.node())[1]
+                )
+            }
         }
     )
     initMarkers(canvas, config, graph.value.getNonDefaultLinkColors())
@@ -410,13 +422,15 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        let removedLink = graph.value.removeLink(d)
-                        if (removedLink !== undefined) {
-                            triggerLinkDeleted(removedLink, graphHost.value)
-                        }
-                        if (color) {
-                            if (!graph.value.hasNonDefaultLinkColor(color)) {
-                                deleteLinkMarkerColored(canvas!, color)
+                        if (config.isGraphEditableInGUI) {
+                            let removedLink = graph.value.removeLink(d)
+                            if (removedLink !== undefined) {
+                                triggerLinkDeleted(removedLink, graphHost.value)
+                            }
+                            if (color) {
+                                if (!graph.value.hasNonDefaultLinkColor(color)) {
+                                    deleteLinkMarkerColored(canvas!, color)
+                                }
                             }
                         }
                     })
@@ -430,7 +444,9 @@ function restart(alpha: number = 0.5): void {
                     .attr('startOffset', '50%')
                     .text((d: GraphLink) => (d.label ? d.label : 'add label'))
                     .on('click', (event: MouseEvent, d: GraphLink) => {
-                        onLinkLabelClicked(event, d)
+                        if (config.isGraphEditableInGUI) {
+                            onLinkLabelClicked(event, d)
+                        }
                     })
                 return linkGroup
             },
@@ -508,17 +524,19 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        let r = graph.value.removeNode(d)
-                        if (r !== undefined) {
-                            let [removedNode, removedLinks] = r
-                            triggerNodeDeleted(removedNode, graphHost.value)
-                            removedLinks.forEach((link) => {
-                                triggerLinkDeleted(link, graphHost.value)
-                            })
+                        if (config.isGraphEditableInGUI) {
+                            let r = graph.value.removeNode(d)
+                            if (r !== undefined) {
+                                let [removedNode, removedLinks] = r
+                                triggerNodeDeleted(removedNode, graphHost.value)
+                                removedLinks.forEach((link) => {
+                                    triggerLinkDeleted(link, graphHost.value)
+                                })
+                            }
+                            graphHasNodes.value = graph.value.nodes.length > 0
+                            resetDraggableLink()
+                            restart()
                         }
-                        graphHasNodes.value = graph.value.nodes.length > 0
-                        resetDraggableLink()
-                        restart()
                     })
                 nodeGroup
                     .append('circle')
@@ -530,10 +548,14 @@ function restart(alpha: number = 0.5): void {
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
-                        onPointerDown(event, d)
+                        if (config.isGraphEditableInGUI) {
+                            onPointerDown(event, d)
+                        }
                     })
                     .on('pointerup', (event: PointerEvent) => {
-                        onPointerUp(event)
+                        if (config.isGraphEditableInGUI) {
+                            onPointerUp(event)
+                        }
                     })
                 nodeGroup
                     .append('text')
@@ -543,7 +565,9 @@ function restart(alpha: number = 0.5): void {
                     .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
-                        onNodeLabelClicked(event, d)
+                        if (config.isGraphEditableInGUI) {
+                            onNodeLabelClicked(event, d)
+                        }
                     })
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
@@ -809,6 +833,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.isGraphEditableInGUI"
                     aria-label="Create Node"
                     class="mx-1"
                     color="grey"
@@ -825,6 +850,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Delete Graph">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.isGraphEditableInGUI"
                     aria-label="Delete Graph"
                     class="mx-1"
                     color="grey"
@@ -841,6 +867,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Reset View">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.zoomEnabled"
                     aria-label="Reset View"
                     class="mx-1"
                     color="grey"

@@ -132,6 +132,14 @@ instance.setLinkColor("HSL(212,92%,45%,0.5)")
 ```
 
 #### Miscellaneous
+If we want to embed the component and only display the graph without 
+allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via CLI remain available)*,
+we can use the following: 
+
+```javascript
+instance.toggleGraphEditingInGUI(false)
+```
+
 We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
 ```javascript
 instance.toggleZoom(false)
