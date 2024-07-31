@@ -41,11 +41,11 @@
 
         let graphAsTgf = "0 A\n 1 B\n#\n 0 1 A to B"
 
-        let graphAsObjectWithColor = {
+        let graphAsObjectWithPositionAndColor = {
             nodes: [
-                {id: 0, label: "A"},
-                {id: 1, label: "B", color: "lavenderblush"},
-                {id: 2, label: "C"}
+                {id: 0, label: "A", x: 24, y: 24},
+                {id: 1, label: "B", color: "lavenderblush", x: 222, y: 142},
+                {id: 2, label: "C", x: 111, y: 242}
             ],
             links: [
                 {sourceId: 0, targetId: 1, label: "A to B"},
@@ -86,7 +86,7 @@
         inst2.resetView()
 
         // set a graph and disable its editing via GUI
-        inst1.setGraph(graphAsObjectWithColor);
+        inst1.setGraph(graphAsObjectWithPositionAndColor);
         inst1.toggleGraphEditingInGUI(false);
 
         //This function can be used, to get the graph editor instance by its id.

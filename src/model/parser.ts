@@ -1,32 +1,41 @@
 export type parsedNode = {
     idImported: string | number
-    label: string | undefined
-    color: string | undefined
+    x?: number
+    y?: number
+    label?: string
+    color?: string
 }
 
 export type parsedLink = {
     sourceIdImported: string | number
     targetIdImported: string | number
-    label: string | undefined
-    color: string | undefined
-}
-
-export type textNode = {
-    id: number
     label?: string
     color?: string
 }
-export type textLink = {
+
+export type jsonNode = {
+    id: number
+    x?: number
+    y?: number
+    label?: string
+    color?: string
+}
+export type jsonLink = {
     sourceId: number
     targetId: number
     label?: string
     color?: string
 }
-export type textGraph = {
-    nodes: textNode[]
-    links: textLink[]
+export type jsonGraph = {
+    nodes: jsonNode[]
+    links: jsonLink[]
 }
 
+/**
+ * Parses Trivial Graph Format with IDs and labels for nodes and links.
+ * Additional (non-typical TGF) color option available.
+ * @param file - Trivial Graph Format String to parse
+ * */
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const input: string[] = file.replace(/\r\n/g, '\n').split('\n')
 
@@ -87,13 +96,23 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     return [nodes, links]
 }
 
-export function parseTextGraph(textGraph: textGraph): [parsedNode[], parsedLink[]] {
+/**
+ * Parses json like graph format
+ * @param jsonGraph - json like graph object to parse
+ * */
+export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
-    for (let node of textGraph.nodes) {
-        nodes.push({ idImported: node.id, label: node.label, color: node.color })
+    for (let node of jsonGraph.nodes) {
+        nodes.push({
+            idImported: node.id,
+            x: node.x,
+            y: node.y,
+            label: node.label,
+            color: node.color
+        })
     }
     const links: parsedLink[] = []
-    for (let link of textGraph.links) {
+    for (let link of jsonGraph.links) {
         links.push({
             sourceIdImported: link.sourceId,
             targetIdImported: link.targetId,

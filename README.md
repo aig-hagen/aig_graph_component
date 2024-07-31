@@ -31,24 +31,26 @@ _Note that when you run the app in development mode, this does not work after a 
 
 #### Manually write a Graph
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
-
 ```javascript
+// graph as object with optional label, color and x- and y- position
 let graphAsObject = {
-    nodes: [
-        {id: 0, label: "A"},
-        {id: 1, label: "B", color: "lavenderblush"},
-        {id: 2, label: "C"}
-    ],
-    links: [
-        {sourceId: 0, targetId: 1, label: "A to B"},
-        {sourceId: 2, targetId: 2, label: "C to C"}
-    ]
+  nodes: [
+    {id: 0, label: "A", x: 24, y: 24},
+    {id: 1, label: "B", color: "lavenderblush", x: 222, y: 142},
+    {id: 2, label: "C"}
+  ],
+  links: [
+    {sourceId: 0, targetId: 1, label: "A to B"},
+    {sourceId: 2, targetId: 2, label: "C to C"}
+  ]
 }
 ```
 ```javascript
+//graph as tgf with optional label and color
 let graphAsTgf = "0 A\n 1 B /COLOR:/lavenderblush\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
 ```
-*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.*
+*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
+Positioning is only available with the object notation.*
 
 
 #### Display a Graph in the Component

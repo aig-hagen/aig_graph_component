@@ -16,8 +16,8 @@ import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
 import {
     parseTGF,
-    parseTextGraph,
-    type textGraph,
+    parseJSONGraph,
+    type jsonGraph,
     type parsedNode,
     type parsedLink
 } from '@/model/parser'
@@ -124,11 +124,11 @@ function getGraph() {
     return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
 }
 
-function setGraph(graphToSet: string | textGraph | undefined) {
+function setGraph(graphToSet: string | jsonGraph | undefined) {
     if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
         onHandleGraphImport(graphToSet)
     } else if (typeof graphToSet === 'object') {
-        const [nodes, links] = parseTextGraph(graphToSet)
+        const [nodes, links] = parseJSONGraph(graphToSet)
         resetGraph()
         parsedToGraph(nodes, links)
     } else {
@@ -220,9 +220,7 @@ function deleteLink(ids: string[] | string) {
             })
     }
 }
-/***
 
- */
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
@@ -745,7 +743,13 @@ function onHandleGraphImport(importContent: string) {
 }
 function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
-        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label, parsedNode.color)
+        createNode(
+            parsedNode.x,
+            parsedNode.y,
+            parsedNode.idImported,
+            parsedNode.label,
+            parsedNode.color
+        )
     }
     const findNodeByImportedId = (importedId: number | string) =>
         graph.value.nodes.find((node) => node.idImported === importedId)
