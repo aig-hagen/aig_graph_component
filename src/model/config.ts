@@ -9,6 +9,8 @@ export interface GraphConfiguration {
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
 
+    isGraphEditableInGUI: boolean
+
     zoomEnabled: boolean
 
     markerBoxSize: number
@@ -26,7 +28,9 @@ export class GraphConfigDefault implements GraphConfiguration {
     showNodeLabels = true
     nodePhysicsEnabled = false
 
-    zoomEnabled = true
+    isGraphEditableInGUI = true
+
+    zoomEnabled = false
 
     showLinkLabels = true
     fixedLinkDistanceEnabled = false

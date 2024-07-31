@@ -1,3 +1,73 @@
+import { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
+import type { GraphHost } from '@/d3/canvas'
+
+export function triggerNodeCreated(node: GraphNode, host: GraphHost) {
+    const eventNodeCreated = new CustomEvent('nodecreated', {
+        detail: {
+            node: { id: node.id, label: node.label, x: node.x, y: node.y }
+        }
+    })
+    host.node()!.dispatchEvent(eventNodeCreated)
+}
+
+export function triggerLinkCreated(link: GraphLink, host: GraphHost) {
+    const eventLinkCreated = new CustomEvent('linkcreated', {
+        detail: {
+            link: { id: link.id, label: link.label }
+        }
+    })
+    host.node()!.dispatchEvent(eventLinkCreated)
+}
+
+export function triggerNodeClicked(node: GraphNode, button: number, host: GraphHost) {
+    const eventNodeClicked = new CustomEvent('nodeclicked', {
+        detail: {
+            node: { id: node.id, label: node.label, x: node.x, y: node.y },
+            button: button
+        }
+    })
+    host.node()!.dispatchEvent(eventNodeClicked)
+}
+
+export function triggerLinkClicked(link: GraphLink, button: number, host: GraphHost) {
+    const eventLinkClicked = new CustomEvent('linkclicked', {
+        detail: {
+            link: { id: link.id, label: link.label },
+            button: button
+        }
+    })
+    host.node()!.dispatchEvent(eventLinkClicked)
+}
+
+export function triggerNodeDeleted(node: GraphNode, host: GraphHost) {
+    const eventNodeDeleted = new CustomEvent('nodedeleted', {
+        detail: {
+            node: { id: node.id, label: node.label, x: node.x, y: node.y }
+        }
+    })
+    host.node()!.dispatchEvent(eventNodeDeleted)
+}
+
+export function triggerLinkDeleted(link: GraphLink, host: GraphHost) {
+    const eventLinkDeleted = new CustomEvent('linkdeleted', {
+        detail: {
+            link: { id: link.id, label: link.label }
+        }
+    })
+    host.node()!.dispatchEvent(eventLinkDeleted)
+}
+
+export function triggerLabelEdited(parent: GraphNode | GraphLink, label: string, host: GraphHost) {
+    const eventLabelEdited = new CustomEvent('labeledited', {
+        detail: {
+            parent: { id: parent.id },
+            label: label
+        }
+    })
+    host.node()!.dispatchEvent(eventLabelEdited)
+}
+
 export function terminate(event: Event): void {
     event.preventDefault()
     event.stopPropagation()

@@ -4,16 +4,19 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-The graph component is available as a **custom element**,
+## Usage
+The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)**
+and also as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
 Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
 
 For a quick start, simply run the referenced index file.
 
 You can use the GUI to build your graph or programmatically interact with it via the browser console or with a script.
+During interaction with the graph different events are fired to which you can react.
 ### GUI
 *TODO (งツ)ว*
-### API
+### Programmatically
 #### Preparation
 To be able to call the following functions, we need to get the graph-editors instance.
 ```javascript
@@ -31,22 +34,25 @@ _Note that when you run the app in development mode, this does not work after a 
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
 
 ```javascript
+// graph as object with optional label, color and x- and y- position
 let graphAsObject = {
-    nodes: [
-        {id: 0, label: "A"},
-        {id: 1, label: "B", color: "lavenderblush"},
-        {id: 2, label: "C"}
-    ],
-    links: [
-        {sourceId: 0, targetId: 1, label: "A to B"},
-        {sourceId: 2, targetId: 2, label: "C to C"}
-    ]
+  nodes: [
+    {id: 0, label: "A", x: 24, y: 24},
+    {id: 1, label: "B", color: "lavenderblush", x: 222, y: 142},
+    {id: 2, label: "C"}
+  ],
+  links: [
+    {sourceId: 0, targetId: 1, label: "A to B"},
+    {sourceId: 2, targetId: 2, label: "C to C"}
+  ]
 }
 ```
 ```javascript
+//graph as tgf with optional label and color
 let graphAsTgf = "0 A\n 1 B /COLOR:/lavenderblush\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
 ```
-*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.*
+*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
+Positioning is only available with the object notation.*
 
 
 #### Display a Graph in the Component
@@ -129,8 +135,15 @@ instance.setLinkColor("RGB(250,70,99)")
 instance.setLinkColor("HSL(212,92%,45%,0.5)")
 ```
 
-
 #### Miscellaneous
+If we want to embed the component and only display the graph without 
+allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via CLI remain available)*,
+we can use the following: 
+
+```javascript
+instance.toggleGraphEditingInGUI(false)
+```
+
 We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
 ```javascript
 instance.toggleZoom(false)
@@ -149,6 +162,60 @@ You can also toggle if the nodes and links should have labels.
 ```javascript
 instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
+```
+
+#### Custom Events
+Various events are triggered by different interactions with the graph.
+
+##### Create and Delete
+Event Names: 
+- `nodecreated`
+- `nodedeleted`
+- `linkcreated`
+- `linkdeleted`
+
+Additional information can be accessed through `detail.node` or `detail.link`.
+This includes `id` and `label` for both, with nodes also providing position details via `x` and `y`.
+- `detail.node`
+    - `id`
+    - `label`
+    - `x`
+    - `y`
+- `detail.link`
+  - `id`
+  - `label`
+
+##### Click
+Event Names:
+- `nodeclicked`
+- `linkclicked`
+
+In addition to the details provided for creation and deletion events,
+the click events also include `detail.button`, indicating the button used for the click.
+
+
+
+
+##### Labels
+Event Name: `labeledited`
+
+For label editing events, additional information available includes the ID of the parent of the edited label 
+via `detail.parent.id`, and the newly added label via `detail.label`.
+
+
+##### Listening for Events
+Events are fired from the graph host. This is where we attach the event listener.
+
+```javascript
+// get the graph host
+const graphHost = document.getElementById('ge1').shadowRoot.querySelector('.graph-host')
+// add event listener for right click on node
+graphHost.addEventListener('nodeclicked', function(e){
+    if(e.detail.button === 2){
+        //change the color on right click
+        instance.setNodeColor('#8FBC8F', e.detail.node.id)
+    }
+})
 ```
 
 ## Development
@@ -171,6 +238,9 @@ _The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set 
 npm run build
 ```
 _The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set to `true`._
+
+Depending on whether you want to build the **Custom Element** with the *CLI* functionality
+or without it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
 
 For more commands refer to the scripts section in [package.json](./package.json).
 

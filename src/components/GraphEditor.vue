@@ -14,11 +14,10 @@ import { GraphConfigDefault } from '@/model/config'
 import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
-import { terminate } from '@/d3/event'
 import {
     parseTGF,
-    parseTextGraph,
-    type textGraph,
+    parseJSONGraph,
+    type jsonGraph,
     type parsedNode,
     type parsedLink
 } from '@/model/parser'
@@ -30,7 +29,16 @@ import ImportExport from '@/components/ImportExport.vue'
 import GraphHelp from '@/components/GraphHelp.vue'
 import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 import { escapeColor } from '@/model/color'
-import { triggerLabelEdited, triggerLinkClicked, triggerNodeClicked } from '@/model/custom-events'
+import {
+    terminate,
+    triggerLabelEdited,
+    triggerLinkClicked,
+    triggerLinkCreated,
+    triggerLinkDeleted,
+    triggerNodeClicked,
+    triggerNodeCreated,
+    triggerNodeDeleted
+} from '@/d3/event'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -107,6 +115,7 @@ defineExpose({
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
+    toggleGraphEditingInGUI,
     resetView
 })
 
@@ -115,11 +124,11 @@ function getGraph() {
     return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
 }
 
-function setGraph(graphToSet: string | textGraph | undefined) {
+function setGraph(graphToSet: string | jsonGraph | undefined) {
     if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
         onHandleGraphImport(graphToSet)
     } else if (typeof graphToSet === 'object') {
-        const [nodes, links] = parseTextGraph(graphToSet)
+        const [nodes, links] = parseJSONGraph(graphToSet)
         resetGraph()
         parsedToGraph(nodes, links)
     } else {
@@ -183,7 +192,16 @@ function deleteNode(ids: number[] | number) {
         nodeSelection!
             .selectAll<SVGCircleElement, GraphNode>('circle')
             .filter((d) => d.id === id)
-            .each((d) => graph.value.removeNode(d))
+            .each(function (d) {
+                let r = graph.value.removeNode(d)
+                if (r !== undefined) {
+                    let [removedNode, removedLinks] = r
+                    triggerNodeDeleted(removedNode, graphHost.value)
+                    removedLinks.forEach((link) => {
+                        triggerLinkDeleted(link, graphHost.value)
+                    })
+                }
+            })
     }
     graphHasNodes.value = graph.value.nodes.length > 0
 }
@@ -194,8 +212,17 @@ function deleteLink(ids: string[] | string) {
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('path')
             .filter((d) => d.id === id)
-            .each((d) => graph.value.removeLink(d))
+            .each(function (d) {
+                let removedLink = graph.value.removeLink(d)
+                if (removedLink !== undefined) {
+                    triggerLinkDeleted(removedLink, graphHost.value)
+                }
+            })
     }
+}
+
+function toggleGraphEditingInGUI(isEnabled: boolean) {
+    config.isGraphEditableInGUI = isEnabled
 }
 //endregion
 
@@ -239,10 +266,15 @@ function initData() {
     canvas = createCanvas(
         graphHost.value!,
         zoom,
-        (event) => onPointerMoved(event),
-        (event) => onPointerUp(event),
+        (event) => (config.isGraphEditableInGUI ? onPointerMoved(event) : null),
+        (event) => (config.isGraphEditableInGUI ? onPointerUp(event) : null),
         (event) => {
-            createNode(d3.pointer(event, canvas!.node())[0], d3.pointer(event, canvas!.node())[1])
+            if (config.isGraphEditableInGUI) {
+                createNode(
+                    d3.pointer(event, canvas!.node())[0],
+                    d3.pointer(event, canvas!.node())[1]
+                )
+            }
         }
     )
     initMarkers(canvas, config, graph.value.getNonDefaultLinkColors())
@@ -265,7 +297,10 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
 }
 
 function createLink(source: GraphNode, target: GraphNode, label?: string, color?: string): void {
-    graph.value.createLink(source.id, target.id, label, color)
+    let newLink = graph.value.createLink(source.id, target.id, label, color)
+    if (newLink !== undefined) {
+        triggerLinkCreated(newLink, graphHost.value)
+    }
     restart()
 }
 function createNode(
@@ -275,7 +310,14 @@ function createNode(
     label?: string,
     nodeColor?: string
 ): void {
-    graph.value.createNode(x ?? width / 2, y ?? height / 2, importedId, label, nodeColor)
+    let newNode = graph.value.createNode(
+        x ?? width / 2,
+        y ?? height / 2,
+        importedId,
+        label,
+        nodeColor
+    )
+    triggerNodeCreated(newNode, graphHost.value)
     graphHasNodes.value = true
     restart()
 }
@@ -378,10 +420,15 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.value.removeLink(d)
-                        if (color) {
-                            if (!graph.value.hasNonDefaultLinkColor(color)) {
-                                deleteLinkMarkerColored(canvas!, color)
+                        if (config.isGraphEditableInGUI) {
+                            let removedLink = graph.value.removeLink(d)
+                            if (removedLink !== undefined) {
+                                triggerLinkDeleted(removedLink, graphHost.value)
+                            }
+                            if (color) {
+                                if (!graph.value.hasNonDefaultLinkColor(color)) {
+                                    deleteLinkMarkerColored(canvas!, color)
+                                }
                             }
                         }
                     })
@@ -395,7 +442,9 @@ function restart(alpha: number = 0.5): void {
                     .attr('startOffset', '50%')
                     .text((d: GraphLink) => (d.label ? d.label : 'add label'))
                     .on('click', (event: MouseEvent, d: GraphLink) => {
-                        onLinkLabelClicked(event, d)
+                        if (config.isGraphEditableInGUI) {
+                            onLinkLabelClicked(event, d)
+                        }
                     })
                 return linkGroup
             },
@@ -473,10 +522,19 @@ function restart(alpha: number = 0.5): void {
                             return
                         }
                         terminate(event)
-                        graph.value.removeNode(d)
-                        graphHasNodes.value = graph.value.nodes.length > 0
-                        resetDraggableLink()
-                        restart()
+                        if (config.isGraphEditableInGUI) {
+                            let r = graph.value.removeNode(d)
+                            if (r !== undefined) {
+                                let [removedNode, removedLinks] = r
+                                triggerNodeDeleted(removedNode, graphHost.value)
+                                removedLinks.forEach((link) => {
+                                    triggerLinkDeleted(link, graphHost.value)
+                                })
+                            }
+                            graphHasNodes.value = graph.value.nodes.length > 0
+                            resetDraggableLink()
+                            restart()
+                        }
                     })
                 nodeGroup
                     .append('circle')
@@ -487,10 +545,15 @@ function restart(alpha: number = 0.5): void {
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
-                        onPointerDown(event, d)
+                        triggerNodeClicked(d, event.button, graphHost.value)
+                        if (config.isGraphEditableInGUI) {
+                            onPointerDown(event, d)
+                        }
                     })
                     .on('pointerup', (event: PointerEvent) => {
-                        onPointerUp(event)
+                        if (config.isGraphEditableInGUI) {
+                            onPointerUp(event)
+                        }
                     })
                 nodeGroup
                     .append('text')
@@ -500,7 +563,9 @@ function restart(alpha: number = 0.5): void {
                     .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
-                        onNodeLabelClicked(event, d)
+                        if (config.isGraphEditableInGUI) {
+                            onNodeLabelClicked(event, d)
+                        }
                     })
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
@@ -517,8 +582,6 @@ function restart(alpha: number = 0.5): void {
     simulation.alpha(alpha).restart()
 }
 function onPointerDown(event: PointerEvent, node: GraphNode): void {
-    triggerNodeClicked(node, event.button, graphHost.value)
-
     //check if left mouse button was clicked
     if (event.button !== 0) {
         return
@@ -680,7 +743,13 @@ function onHandleGraphImport(importContent: string) {
 }
 function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
-        createNode(undefined, undefined, parsedNode.idImported, parsedNode.label, parsedNode.color)
+        createNode(
+            parsedNode.x,
+            parsedNode.y,
+            parsedNode.idImported,
+            parsedNode.label,
+            parsedNode.color
+        )
     }
     const findNodeByImportedId = (importedId: number | string) =>
         graph.value.nodes.find((node) => node.idImported === importedId)
@@ -747,6 +816,8 @@ function resetView(): void {
 }
 
 function resetGraph(): void {
+    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
+    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
@@ -766,6 +837,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.isGraphEditableInGUI"
                     aria-label="Create Node"
                     class="mx-1"
                     color="grey"
@@ -782,6 +854,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Delete Graph">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.isGraphEditableInGUI"
                     aria-label="Delete Graph"
                     class="mx-1"
                     color="grey"
@@ -798,6 +871,7 @@ function resetGraph(): void {
         <v-tooltip location="bottom" :open-delay="750" text="Reset View">
             <template #activator="{ props }">
                 <v-btn
+                    v-if="config.zoomEnabled"
                     aria-label="Reset View"
                     class="mx-1"
                     color="grey"
