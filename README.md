@@ -1,7 +1,12 @@
 # Graph-Component
 
-*TODO (งツ)ว: write a quick intro what you can do with this component*
-
+> A simple tool that lets you quickly and interactively **create**, **modify** and **display graphs**.
+> 
+> The focus lies on smaller graphs and manual creation.
+> Available as a standalone editor or as a component to integrate into your own project.
+>
+> https://graphtool.aig.fernuni-hagen.de/
+> 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Usage
