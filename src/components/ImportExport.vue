@@ -13,11 +13,16 @@ const tab = ref(0)
 const fileInput = ref<File[]>()
 const copySuccessful = ref(false)
 
+const hasError = ref(false)
+const errorTitle = ref('')
+const errorMsg = ref('')
+
 const isSubmittable = computed(
     () =>
         (tab.value === 0 &&
             fileInput?.value &&
-            fileInput?.value[0]?.name.toLowerCase().endsWith('.tgf')) ||
+            (fileInput?.value[0]?.name.toLowerCase().endsWith('.tgf') ||
+                fileInput?.value[0]?.name.toLowerCase().endsWith('.json'))) ||
         (tab.value === 1 && props.graphAsTgf !== 'Graph is empty')
 )
 
@@ -25,22 +30,36 @@ const fileInputRules = [
     (value: any) => !!value[0] || 'File is required',
     (value: any) =>
         !value ||
-        /\.(tgf|TGF)$/.test(value[0]?.name) ||
-        'Invalid file format. Please select a .tgf file.'
+        /\.(tgf|TGF|json|JSON)$/.test(value[0]?.name) ||
+        'Invalid file format. Please select a .tgf or .json file.'
 ]
 
 function readFile() {
     if (fileInput?.value) {
         const reader = new FileReader()
         for (let file of fileInput.value) {
+            const fileExtension = file.name.split('.').pop()?.toLowerCase()
             reader.readAsText(file)
 
             reader.onload = (e) => {
-                emit('file-imported', e.target?.result)
-                onClose()
+                if (fileExtension === 'tgf') {
+                    emit('file-imported', e.target?.result)
+                } else if (fileExtension === 'json') {
+                    try {
+                        emit('file-imported', JSON.parse(<string>e.target?.result))
+                    } catch (error) {
+                        showError('Error parsing JSON', error)
+                        console.error('Error parsing JSON:' + error)
+                    }
+                }
+
+                if (!hasError.value) {
+                    onClose()
+                }
             }
 
             reader.onerror = (e) => {
+                showError(`Error reading the imported file`, e.target?.error)
                 console.error(
                     //@ts-ignore
                     `Error reading the file ${fileInput!.name}: ${e.target?.error}`
@@ -56,16 +75,29 @@ function onOk() {
     } else if (tab.value === 1) {
         navigator.clipboard.writeText(props.graphAsTgf.toString()).then(
             () => (copySuccessful.value = true),
-            (error) => console.error('Copy unsuccessful: ', error)
+            (error) => {
+                showError(`Copy unsuccessful`, error)
+                console.error('Copy unsuccessful: ', error)
+            }
         )
     }
 }
 
 function onClose() {
+    hasError.value = false
+    errorTitle.value = ''
+    errorMsg.value = ''
     dialog.value = false
     tab.value = 0
     fileInput.value = undefined
     copySuccessful.value = false
+}
+
+function showError(title: string, message: any) {
+    hasError.value = true
+    errorTitle.value = title
+    errorMsg.value = message.toString()
+    window.setInterval(() => (hasError.value = false), 5000)
 }
 </script>
 
@@ -102,25 +134,27 @@ function onClose() {
                         <h3 class="heading">Select File</h3>
                         <v-file-input
                             v-model="fileInput"
-                            accept=".tgf"
+                            accept=".tgf, .json"
                             density="compact"
-                            label="Trivial Graph Format File"
+                            label="Graph Format File"
                             :rules="fileInputRules"
                             type="file"
                             variant="solo"
                         >
                         </v-file-input>
                         <v-card-text>
-                            The import is limited to files in trivial graph format. Importing will
-                            <b>replace</b> your current graph.
+                            <p>
+                                Files in trivial graph format or specific JSON format are supported.
+                            </p>
+                            <p>Importing will <strong>replace</strong> your current graph.</p>
                         </v-card-text>
                     </v-window-item>
                     <v-window-item>
                         <h3 class="heading">Preview</h3>
                         <pre>{{ props.graphAsTgf }}</pre>
                         <v-card-text
-                            >This export action will <b>copy</b> the graph in trivial graph format
-                            to your clipboard.</v-card-text
+                            >This export action will <strong>copy</strong> the graph in trivial
+                            graph format to your clipboard.</v-card-text
                         >
                     </v-window-item>
                 </v-window>
@@ -134,7 +168,19 @@ function onClose() {
                 <v-btn color="secondary" variant="text" @click="onClose()">Close</v-btn>
             </v-card-actions>
         </v-card>
-        <v-snackbar v-model="copySuccessful" :timeout="1500">Copied successful.</v-snackbar>
+        <v-snackbar v-model="hasError" :timeout="3000" color="error" variant="tonal">
+            <v-row align="center">
+                <v-icon icon="$error" class="ml-2"></v-icon>
+                <v-col>
+                    <h4>{{ errorTitle }}</h4>
+                    <p>{{ errorMsg }}</p>
+                </v-col>
+            </v-row>
+        </v-snackbar>
+        <v-snackbar v-model="copySuccessful" :timeout="1500">
+            <v-icon color="secondary" icon="$success"></v-icon>
+            Copied successful.</v-snackbar
+        >
     </v-dialog>
 </template>
 

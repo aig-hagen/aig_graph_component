@@ -101,7 +101,7 @@ let xOffset = 0
 let yOffset = 0
 let scale = 1
 
-//exposing for the browser api
+//exposing for cli functionality
 defineExpose({
     getGraph,
     setGraph,
@@ -125,12 +125,11 @@ function getGraph() {
 }
 
 function setGraph(graphToSet: string | jsonGraph | undefined) {
-    if (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty') {
+    if (
+        typeof graphToSet === 'object' ||
+        (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty')
+    ) {
         onHandleGraphImport(graphToSet)
-    } else if (typeof graphToSet === 'object') {
-        const [nodes, links] = parseJSONGraph(graphToSet)
-        resetGraph()
-        parsedToGraph(nodes, links)
     } else {
         resetGraph()
     }
@@ -736,8 +735,17 @@ function resetDraggableLink(): void {
     draggableLinkTargetNode = undefined
     draggableLinkEnd = undefined
 }
-function onHandleGraphImport(importContent: string) {
-    let [nodes, links] = parseTGF(importContent)
+function onHandleGraphImport(importContent: string | jsonGraph) {
+    let nodes, links
+    if (typeof importContent === 'string') {
+        ;[nodes, links] = parseTGF(importContent)
+    } else if (typeof importContent === 'object') {
+        ;[nodes, links] = parseJSONGraph(importContent)
+    } else {
+        console.error('Illegal graph import type.')
+        return
+    }
+
     resetGraph()
     parsedToGraph(nodes, links)
 }
