@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 
 interface Props {
     graphAsTgf: String
+    graphAsJson: String
 }
 const props = defineProps<Props>()
 
@@ -11,8 +12,9 @@ const emit = defineEmits(['file-imported'])
 const dialog = ref(false)
 const tab = ref(0)
 const fileInput = ref<File[]>()
-const copySuccessful = ref(false)
+const exportFormat = ref('JSON')
 
+const copySuccessful = ref(false)
 const hasError = ref(false)
 const errorTitle = ref('')
 const errorMsg = ref('')
@@ -50,6 +52,7 @@ function readFile() {
                     } catch (error) {
                         showError('Error parsing JSON', error)
                         console.error('Error parsing JSON:' + error)
+                        //TODO improve error handling, since it doesn't work correctly in CE Version
                     }
                 }
 
@@ -73,13 +76,19 @@ function onOk() {
     if (tab.value === 0) {
         readFile()
     } else if (tab.value === 1) {
-        navigator.clipboard.writeText(props.graphAsTgf.toString()).then(
-            () => (copySuccessful.value = true),
-            (error) => {
-                showError(`Copy unsuccessful`, error)
-                console.error('Copy unsuccessful: ', error)
-            }
-        )
+        navigator.clipboard
+            .writeText(
+                exportFormat.value === 'TGF'
+                    ? props.graphAsTgf.toString()
+                    : props.graphAsJson.toString()
+            )
+            .then(
+                () => (copySuccessful.value = true),
+                (error) => {
+                    showError(`Copy unsuccessful`, error)
+                    console.error('Copy unsuccessful: ', error)
+                }
+            )
     }
 }
 
@@ -144,17 +153,24 @@ function showError(title: string, message: any) {
                         </v-file-input>
                         <v-card-text>
                             <p>
-                                Files in trivial graph format or specific JSON format are supported.
+                                Files in a specific JSON format or trivial graph format are
+                                supported.
                             </p>
                             <p>Importing will <strong>replace</strong> your current graph.</p>
                         </v-card-text>
                     </v-window-item>
                     <v-window-item>
+                        <h3 class="heading">Select Format</h3>
+                        <v-radio-group inline v-model="exportFormat">
+                            <v-radio label="JSON" value="JSON"></v-radio>
+                            <v-radio label="TGF" value="TGF"></v-radio>
+                        </v-radio-group>
                         <h3 class="heading">Preview</h3>
-                        <pre>{{ props.graphAsTgf }}</pre>
+                        <pre v-show="exportFormat === 'JSON'">{{ props.graphAsJson }}</pre>
+                        <pre v-show="exportFormat === 'TGF'">{{ props.graphAsTgf }}</pre>
                         <v-card-text
-                            >This export action will <strong>copy</strong> the graph in trivial
-                            graph format to your clipboard.</v-card-text
+                            >This export action will <strong>copy</strong> the graph as JSON or in
+                            trivial graph format to your clipboard.</v-card-text
                         >
                     </v-window-item>
                 </v-window>

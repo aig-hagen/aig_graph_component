@@ -120,14 +120,20 @@ defineExpose({
 })
 
 //region functions that are solely used as exposed ones
-function getGraph() {
-    return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
+function getGraph(format = 'JSON') {
+    if (format === 'JSON' || 'json') {
+        return graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
+    } else if (format === 'TGF' || 'tgf')
+        return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
+    else {
+        console.error('Invalid format while using getGraph(). Please choose "JSON" or "TGF".')
+    }
 }
 
 function setGraph(graphToSet: string | jsonGraph | undefined) {
     if (
-        typeof graphToSet === 'object' ||
-        (typeof graphToSet === 'string' && graphToSet !== 'Graph is empty')
+        graphToSet !== 'Graph is empty' &&
+        (typeof graphToSet === 'object' || typeof graphToSet === 'string')
     ) {
         onHandleGraphImport(graphToSet)
     } else {
@@ -894,6 +900,9 @@ function resetGraph(): void {
         </v-tooltip>
         <import-export
             :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false, false)"
+            :graph-as-json="
+                graph.toJSON(config.showNodeLabels, config.showLinkLabels, true, true, true)
+            "
             @file-imported="onHandleGraphImport"
         />
         <graph-help />

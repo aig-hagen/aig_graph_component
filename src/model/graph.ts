@@ -1,5 +1,6 @@
 import { type D3Link, GraphLink } from '@/model/graph-link'
 import { type D3Node, GraphNode } from '@/model/graph-node'
+import type { jsonLink } from '@/model/parser'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -124,7 +125,7 @@ export default class Graph {
             .map((link) => link.id)
     }
 
-    /** Formats the Graph in Trivial Graph Format.
+    /** Formats the graph in trivial graph format.
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
      * @param includeNodeColor TGF normally has no color option, this is just used for internal purposes
@@ -173,5 +174,72 @@ export default class Graph {
             .join('\n')
 
         return `${nodeLines}${linkLines ? '\n#\n' : ''}${linkLines}`
+    }
+
+    /** Formats the graph in a json like graph format.
+     * @param includeNodeLabels if node labels should be included
+     * @param includeLinkLabels if link labels should be included
+     * @param includeNodeColor if node color should be included
+     * @param includeLinkColor if link color should be included
+     * @param includeNodePosition if position should be included
+     * @returns The graph in JSON format*/
+    public toJSON(
+        includeNodeLabels: boolean = true,
+        includeLinkLabels: boolean = true,
+        includeNodeColor: boolean = true,
+        includeLinkColor: boolean = true,
+        includeNodePosition: boolean = true
+    ): string {
+        if (this.nodes.length === 0 && this.links.length === 0) {
+            return 'Graph is empty'
+        }
+
+        let nodesStructure = this.nodes
+            .map((node) => {
+                let include = ['id']
+
+                if (includeNodeLabels && node.label !== undefined) {
+                    include.push('label')
+                }
+                if (includeNodeColor && node.color !== undefined) {
+                    include.push('color')
+                }
+                if (includeNodePosition && node.x !== undefined) {
+                    include.push('x')
+                    include.push('y')
+                }
+
+                return JSON.stringify(node, include)
+            })
+            .join(',\n\t\t')
+
+        let linkStructure = this.links
+            .map((link) => {
+                let include = ['sourceId', 'targetId']
+
+                if (includeLinkLabels && link.label !== undefined) {
+                    include.push('label')
+                }
+                if (includeLinkColor && link.color !== undefined) {
+                    include.push('color')
+                }
+
+                let linkWithSplitId = this.convertD3ToJSONLink(link)
+                return JSON.stringify(linkWithSplitId, include)
+            })
+            .join(',\n\t\t')
+
+        return `{\n\t"nodes":[\n\t\t${nodesStructure}\n\t],\n\t"links":[\n\t\t${linkStructure}\n\t]\n}`
+    }
+
+    private convertD3ToJSONLink(link: D3Link): jsonLink {
+        let parts = link.id.split('-')
+
+        return {
+            sourceId: Number(parts[0]),
+            targetId: Number(parts[1]),
+            label: link.label,
+            color: link.color
+        }
     }
 }
