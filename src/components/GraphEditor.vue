@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { D3ZoomEvent } from 'd3'
 import * as d3 from 'd3'
 import Graph from '@/model/graph'
 import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
@@ -11,15 +12,14 @@ import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
 import { GraphConfigDefault } from '@/model/config'
-import type { D3ZoomEvent } from 'd3'
 import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
 import {
-    parseTGF,
-    parseJSONGraph,
     type jsonGraph,
+    type parsedLink,
     type parsedNode,
-    type parsedLink
+    parseJSONGraph,
+    parseTGF
 } from '@/model/parser'
 import { GraphNode } from '@/model/graph-node'
 import type { GraphLink } from '@/model/graph-link'
@@ -82,6 +82,10 @@ onUnmounted(() => {
 
 const wasHere = ref(false)
 
+const hasError = ref(false)
+const errorTitle = ref('')
+const errorMsg = ref('')
+
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
 const config = reactive(new GraphConfigDefault())
@@ -120,29 +124,34 @@ defineExpose({
 })
 
 //region functions that are solely used as exposed ones
-function getGraph(format = 'JSON') {
-    if (format === 'JSON' || 'json') {
-        return graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
-    } else if (format === 'TGF' || 'tgf')
+function getGraph(format: string = 'json') {
+    if (format.toLowerCase() === 'json') {
+        return JSON.parse(
+            graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
+        )
+    } else if (format.toLowerCase() === 'tgf') {
         return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
-    else {
+    } else {
         console.error('Invalid format while using getGraph(). Please choose "JSON" or "TGF".')
     }
 }
 
 function setGraph(graphToSet: string | jsonGraph | undefined) {
-    if (
-        graphToSet !== 'Graph is empty' &&
-        (typeof graphToSet === 'object' || typeof graphToSet === 'string')
-    ) {
+    if (typeof graphToSet === 'object' || typeof graphToSet === 'string') {
         onHandleGraphImport(graphToSet)
     } else {
         resetGraph()
     }
 }
 
-function printGraph() {
-    console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+function printGraph(format: string = 'json') {
+    if (format.toLowerCase() === 'json') {
+        console.log(
+            graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
+        )
+    } else {
+        console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+    }
 }
 
 function setNodeColor(color: string, ids: string[] | number[] | string | number | undefined) {
@@ -743,12 +752,17 @@ function resetDraggableLink(): void {
 }
 function onHandleGraphImport(importContent: string | jsonGraph) {
     let nodes, links
-    if (typeof importContent === 'string') {
-        ;[nodes, links] = parseTGF(importContent)
-    } else if (typeof importContent === 'object') {
-        ;[nodes, links] = parseJSONGraph(importContent)
-    } else {
-        console.error('Illegal graph import type.')
+    try {
+        if (typeof importContent === 'string') {
+            ;[nodes, links] = parseTGF(importContent)
+        } else if (typeof importContent === 'object') {
+            ;[nodes, links] = parseJSONGraph(importContent)
+        } else {
+            showError('Invalid graph import type:', 'Must either be TGF or JSON.')
+            return
+        }
+    } catch (e) {
+        showError('Error during parsing:', 'Invalid data format:' + '\n' + e)
         return
     }
 
@@ -836,6 +850,14 @@ function resetGraph(): void {
     graphHasNodes.value = false
     resetView()
 }
+
+function showError(title: string, message: any) {
+    console.error(title + '\n' + message)
+    hasError.value = true
+    errorTitle.value = title
+    errorMsg.value = message.toString()
+    window.setInterval(() => (hasError.value = false), 6000)
+}
 </script>
 
 <template>
@@ -913,6 +935,15 @@ function resetGraph(): void {
         />
     </div>
     <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
+    <v-snackbar v-model="hasError" color="error" variant="tonal">
+        <v-row align="center">
+            <v-icon icon="$error" class="ml-2"></v-icon>
+            <v-col>
+                <h4>{{ errorTitle }}</h4>
+                <p>{{ errorMsg }}</p>
+            </v-col>
+        </v-row>
+    </v-snackbar>
 </template>
 
 <style lang="scss">

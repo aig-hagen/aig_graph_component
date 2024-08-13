@@ -25,7 +25,7 @@ const isSubmittable = computed(
             fileInput?.value &&
             (fileInput?.value[0]?.name.toLowerCase().endsWith('.tgf') ||
                 fileInput?.value[0]?.name.toLowerCase().endsWith('.json'))) ||
-        (tab.value === 1 && props.graphAsTgf !== 'Graph is empty')
+        (tab.value === 1 && props.graphAsTgf !== '')
 )
 
 const fileInputRules = [
@@ -38,36 +38,24 @@ const fileInputRules = [
 
 function readFile() {
     if (fileInput?.value) {
-        const reader = new FileReader()
         for (let file of fileInput.value) {
             const fileExtension = file.name.split('.').pop()?.toLowerCase()
-            reader.readAsText(file)
 
-            reader.onload = (e) => {
-                if (fileExtension === 'tgf') {
-                    emit('file-imported', e.target?.result)
-                } else if (fileExtension === 'json') {
-                    try {
-                        emit('file-imported', JSON.parse(<string>e.target?.result))
-                    } catch (error) {
-                        showError('Error parsing JSON', error)
-                        console.error('Error parsing JSON:' + error)
-                        //TODO improve error handling, since it doesn't work correctly in CE Version
+            file.text()
+                .then((fileContent) => {
+                    if (fileExtension === 'tgf') {
+                        emit('file-imported', fileContent)
+                    } else if (fileExtension === 'json') {
+                        emit('file-imported', JSON.parse(fileContent))
+                    } else {
+                        //should not be reached
+                        showError('No valid file extension.', '')
                     }
-                }
-
-                if (!hasError.value) {
                     onClose()
-                }
-            }
-
-            reader.onerror = (e) => {
-                showError(`Error reading the imported file`, e.target?.error)
-                console.error(
-                    //@ts-ignore
-                    `Error reading the file ${fileInput!.name}: ${e.target?.error}`
-                )
-            }
+                })
+                .catch((error) => {
+                    showError(`Error reading the imported file ${file.name}`, error)
+                })
         }
     }
 }
@@ -85,8 +73,7 @@ function onOk() {
             .then(
                 () => (copySuccessful.value = true),
                 (error) => {
-                    showError(`Copy unsuccessful`, error)
-                    console.error('Copy unsuccessful: ', error)
+                    showError('Copy unsuccessful', error)
                 }
             )
     }
@@ -103,6 +90,7 @@ function onClose() {
 }
 
 function showError(title: string, message: any) {
+    console.error(title + '\n' + message)
     hasError.value = true
     errorTitle.value = title
     errorMsg.value = message.toString()
@@ -184,7 +172,7 @@ function showError(title: string, message: any) {
                 <v-btn color="secondary" variant="text" @click="onClose()">Close</v-btn>
             </v-card-actions>
         </v-card>
-        <v-snackbar v-model="hasError" :timeout="3000" color="error" variant="tonal">
+        <v-snackbar v-model="hasError" color="error" variant="tonal">
             <v-row align="center">
                 <v-icon icon="$error" class="ml-2"></v-icon>
                 <v-col>

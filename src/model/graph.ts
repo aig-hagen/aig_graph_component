@@ -139,7 +139,7 @@ export default class Graph {
         includeLinkColor: boolean = false
     ): string {
         if (this.nodes.length === 0 && this.links.length === 0) {
-            return 'Graph is empty'
+            return ''
         }
 
         let nodeLines: string
@@ -190,10 +190,6 @@ export default class Graph {
         includeLinkColor: boolean = true,
         includeNodePosition: boolean = true
     ): string {
-        if (this.nodes.length === 0 && this.links.length === 0) {
-            return 'Graph is empty'
-        }
-
         let nodesStructure = this.nodes
             .map((node) => {
                 let include = ['id']

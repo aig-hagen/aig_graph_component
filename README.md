@@ -73,17 +73,20 @@ instance.setGraph()
 ```
 
 #### Getting a Graph
-Gets the graph that is currently displayed in the graph component instance.
+Gets the graph that is currently displayed in the graph component instance. 
+We can choose between TGF or JSON like format (default) by passing ```"TGF"``` or ```"JSON"``` to it.
 ```javascript
 let graphFromInstance = instance.getGraph()
 ```
 
 #### Print a Graph
 If we want to print the currently displayed graph we call `printGraph()` on the instance.
+We can choose between TGF or JSON like format (default) by passing ```"TGF"``` or ```"JSON"``` to it.
+
 For a graph assigned to a variable we use a simple `console.log()`.
 
 ```javascript
-// log the currently displayed graph in TGF format on the console
+// log the currently displayed graph in JSON like format on the console
 instance.printGraph()
 
 // log a graph assigned to a variable to the console
