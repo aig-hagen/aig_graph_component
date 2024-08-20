@@ -426,13 +426,8 @@ function restart(alpha: number = 0.5): void {
                 linkGroup
                     .append('path')
                     .classed('clickbox', true)
-                    .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
-                        triggerLinkClicked(d, event.button, graphHost.value)
-                        let color = d.color
-                        if (event.button !== 1) {
-                            //mouse wheel
-                            return
-                        }
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a link, should not create a new node
                         terminate(event)
                         if (config.isGraphEditableInGUI) {
                             let removedLink = graph.value.removeLink(d)
@@ -459,6 +454,10 @@ function restart(alpha: number = 0.5): void {
                         if (config.isGraphEditableInGUI) {
                             onLinkLabelClicked(event, d)
                         }
+                    })
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a label, should not create a new node
+                        terminate(event)
                     })
                 return linkGroup
             },
@@ -530,11 +529,8 @@ function restart(alpha: number = 0.5): void {
                 const nodeGroup = enter
                     .append('g')
                     .call(drag!)
-                    .on('pointerdown', (event: MouseEvent, d: GraphNode) => {
-                        if (event.button !== 1) {
-                            //mouse wheel
-                            return
-                        }
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a node, should not create a new one
                         terminate(event)
                         if (config.isGraphEditableInGUI) {
                             let r = graph.value.removeNode(d)
@@ -580,6 +576,10 @@ function restart(alpha: number = 0.5): void {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
                         }
+                    })
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a label, should not create a new node
+                        terminate(event)
                     })
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
@@ -666,6 +666,11 @@ function handleInputForLabel(
     input.setAttribute('class', 'label-input')
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
+
+    input.ondblclick = function (e) {
+        //double-click on the input should not create a new node
+        terminate(e)
+    }
 
     let pressedEnter = false
 
