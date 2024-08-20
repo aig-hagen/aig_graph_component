@@ -15,27 +15,27 @@ const controls: Control[] = [
     },
     {
         action: 'Move node',
-        desktop: 'Right-click & drag',
-        mobile: 'Long tap & drag'
+        desktop: 'Left-click on node & drag',
+        mobile: ''
     },
     {
         action: 'Create link',
-        desktop: 'Left-click on node & drag',
-        mobile: 'Touch & drag'
+        desktop: 'Right-click on node & drag',
+        mobile: 'Long-tap & drag'
     },
     {
         action: 'Create/Update label',
         desktop: 'Left-click on label',
-        mobile: 'Touch'
+        mobile: 'Tap on label'
     },
     {
         action: 'Delete node/link',
-        desktop: 'Middle-click',
-        mobile: 'Multi-touch'
-    }, // still needs testing on mobile
+        desktop: 'Right-click & hold',
+        mobile: ''
+    },
     {
         action: 'Pan',
-        desktop: 'Left-click & drag',
+        desktop: 'Left-click on canvas & drag',
         mobile: 'Multi-touch'
     },
     {
