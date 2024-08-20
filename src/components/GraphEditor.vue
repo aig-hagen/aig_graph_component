@@ -432,11 +432,15 @@ function restart(alpha: number = 0.5): void {
                         //a double click on a link, should not create a new node
                         terminate(event)
                     })
+                    .on('pointerout', (event: PointerEvent) => onPointerUpOrOutLink(event))
                     .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
                         triggerLinkClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
                             onPointerDownDeleteLink(event, d)
                         }
+                    })
+                    .on('pointerup', (event: PointerEvent) => {
+                        onPointerUpOrOutLink(event)
                     })
                 linkGroup
                     .append('text')
@@ -705,6 +709,14 @@ function onPointerEnterNode(node: GraphNode) {
 function onPointerOutNode() {
     draggableLinkTargetNode = undefined
     clearTimeout(longRightClickTimerNode)
+}
+
+/**
+ * Clears the timeout for long right click on link.
+ */
+function onPointerUpOrOutLink(event: PointerEvent) {
+    terminate(event)
+    clearTimeout(longRightClickTimerLink)
 }
 
 /**
