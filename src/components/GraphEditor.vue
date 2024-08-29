@@ -410,6 +410,7 @@ function updateDraggableLinkPath(): void {
     }
 }
 function restart(alpha: number = 0.5): void {
+    window.MathJax.typeset()
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
         .join(
@@ -570,9 +571,17 @@ function restart(alpha: number = 0.5): void {
                         }
                     })
                 nodeGroup
-                    .append('text')
-                    .attr('class', (d: GraphNode) =>
-                        d.label ? 'node-label' : 'node-label-placeholder'
+                    .append('foreignObject')
+                    .classed('node-label-container', true)
+                    .attr('xmlns', 'http://www.w3.org/2000/svg')
+                    .attr('width', 1)
+                    .attr('height', 1)
+                    .attr('y', -0.5 * config.nodeRadius)
+                    .html(
+                        (d: GraphNode) =>
+                            `<div class=${d.label ? 'node-label' : 'node-label-placeholder'}>
+                                ${d.label ? d.label : 'add label'}
+                            </div>`
                     )
                     .text((d: GraphNode) => (d.label ? d.label : 'add label'))
                     .attr('dy', '0.33em')
@@ -586,7 +595,10 @@ function restart(alpha: number = 0.5): void {
                 return nodeGroup
             },
             (update) => {
-                update.selectChild('text').classed('hidden', !config.showNodeLabels)
+                update
+                    .selectChild('foreignObject')
+                    .selectChild('text')
+                    .classed('hidden', !config.showNodeLabels)
 
                 return update
             }
@@ -947,6 +959,10 @@ function showError(title: string, message: any) {
 </template>
 
 <style lang="scss">
+.node-label-container {
+    overflow: visible;
+}
+
 .graph-host {
     position: absolute;
     width: 100%;
@@ -1035,11 +1051,12 @@ function showError(title: string, message: any) {
 }
 
 .node-label {
-    fill: black;
-    stroke: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-size: 1rem;
     opacity: 1;
-    text-anchor: middle;
+    text-align: center;
     pointer-events: all;
     cursor: text;
 
@@ -1050,10 +1067,12 @@ function showError(title: string, message: any) {
     }
 }
 .node-label-placeholder {
-    fill: dimgrey;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     font-style: oblique;
-    stroke: none;
     font-size: 0.85rem;
+    text-align: center;
     opacity: 1;
     text-anchor: middle;
     pointer-events: all;
