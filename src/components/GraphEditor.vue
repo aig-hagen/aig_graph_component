@@ -410,7 +410,6 @@ function updateDraggableLinkPath(): void {
     }
 }
 function restart(alpha: number = 0.5): void {
-    window.MathJax.typeset()
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
         .join(
@@ -583,8 +582,6 @@ function restart(alpha: number = 0.5): void {
                                 ${d.label ? d.label : 'add label'}
                             </div>`
                     )
-                    .text((d: GraphNode) => (d.label ? d.label : 'add label'))
-                    .attr('dy', '0.33em')
                     .on('click', (event: MouseEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
@@ -597,13 +594,12 @@ function restart(alpha: number = 0.5): void {
             (update) => {
                 update
                     .selectChild('foreignObject')
-                    .selectChild('text')
+                    .selectChild('div')
                     .classed('hidden', !config.showNodeLabels)
-
                 return update
             }
         )
-
+    window.MathJax.typeset()
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
 }
@@ -657,7 +653,8 @@ function onPointerMoved(event: PointerEvent): void {
     }
 }
 function onNodeLabelClicked(event: MouseEvent, node: GraphNode): void {
-    const textElement = event?.target as SVGTextElement
+    const eventParent = event?.target as Element
+    const textElement = eventParent.closest('div') as HTMLDivElement
 
     handleInputForLabel(node, textElement, [node.x!, node.y!])
 }
@@ -669,7 +666,7 @@ function onLinkLabelClicked(event: MouseEvent, link: GraphLink): void {
 }
 function handleInputForLabel(
     element: GraphNode | GraphLink,
-    textContainingElement: SVGTextElement | SVGTextPathElement,
+    textContainingElement: SVGTextPathElement | HTMLDivElement,
     position: [number, number]
 ) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
