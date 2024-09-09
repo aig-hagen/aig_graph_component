@@ -470,7 +470,6 @@ function restart(alpha: number = 0.5): void {
                     .html(
                         (d: GraphLink) =>
                             `<div class=${d.label ? 'link-label' : 'link-label-placeholder'}>
-                                ${d.label ? d.label : ''}
                             </div>`
                     )
                     .on('click', (event: MouseEvent, d: GraphLink) => {
@@ -587,7 +586,7 @@ function restart(alpha: number = 0.5): void {
                         }
                     })
 
-                //  setting position for mathjax label
+                // setting position for mathjax label
                 update
                     .selectChild('text')
                     .selectChild('textPath')

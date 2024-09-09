@@ -10,14 +10,14 @@
         <script src='load-mathjax.js' defer></script>
     </head>
     <body style="margin: 0; padding: 0">
-    <div style='display: flex; position: relative; height: 100vh'>
-        <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
-    </div>
+        <div style='display: flex; position: relative; height: 100vh'>
+            <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
+        </div>
         <script src="graph-editor.js"></script>
-    <script>
-        function getGraphEditorById(id) {
-            return document.getElementById(id)._instance.exposed
-        }
-    </script>
+        <script>
+            function getGraphEditorById(id) {
+                return document.getElementById(id)._instance.exposed
+            }
+        </script>
     </body>
 </html>
