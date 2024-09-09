@@ -414,7 +414,7 @@ function restart(alpha: number = 0.5): void {
         .data(graph.value.links, (d: GraphLink) => d.id)
         .join(
             (enter) => {
-                const linkGroup = enter.append('g')
+                const linkGroup = enter.append('g').classed('link-container', true)
                 linkGroup
                     .append('path')
                     .classed('link', true)
@@ -460,6 +460,25 @@ function restart(alpha: number = 0.5): void {
                             onLinkLabelClicked(event, d)
                         }
                     })
+
+                linkGroup
+                    .append('foreignObject')
+                    .classed('link-label-mathjax-container', true)
+                    .attr('xmlns', 'http://www.w3.org/2000/svg')
+                    .attr('width', 1)
+                    .attr('height', 1)
+                    .html(
+                        (d: GraphLink) =>
+                            `<div class=${d.label ? 'link-label' : 'link-label-placeholder'}>
+                                ${d.label ? d.label : ''}
+                            </div>`
+                    )
+                    .on('click', (event: MouseEvent, d: GraphLink) => {
+                        if (config.isGraphEditableInGUI) {
+                            onLinkLabelClicked(event, d)
+                        }
+                    })
+
                 return linkGroup
             },
             (update) => {
@@ -490,6 +509,7 @@ function restart(alpha: number = 0.5): void {
                         }
                     })
 
+                // text positioning depending on path type
                 update
                     .selectChild('text')
                     .attr('class', (d) => {
@@ -506,7 +526,6 @@ function restart(alpha: number = 0.5): void {
                             return -10
                         }
                     })
-
                 update
                     .selectChild('text')
                     .selectChild('textPath')
@@ -517,6 +536,70 @@ function restart(alpha: number = 0.5): void {
                         } else {
                             return '50%'
                         }
+                    })
+
+                // move mathjax to link label mjx container
+                update
+                    .selectChild('text')
+                    .selectChild('textPath')
+                    .selectChild('mjx-container')
+                    .each(function () {
+                        const linkLabelMjxContainer = d3
+                            .select(
+                                (this! as HTMLElement).parentNode!.parentNode!
+                                    .parentNode as SVGGElement
+                            )
+                            .selectChild('foreignObject')
+                            .selectChild('div')
+                            .attr('class', 'link-label')
+                            .classed('hidden', !config.showLinkLabels)
+                            .node() as HTMLDivElement
+
+                        const mjxContainer = d3.select(this!).remove().node() as HTMLElement
+
+                        linkLabelMjxContainer?.appendChild(mjxContainer)
+                    })
+
+                // if there is no text after moving mathjax
+                // we need a placeholder for the textpath
+                // to still be able to retrieve the textpath position
+                update
+                    .selectChild('text')
+                    .selectChild('textPath')
+                    .each(function () {
+                        const textPathElement = this as SVGTextPathElement
+
+                        let hasTextNode = false
+                        const children = textPathElement.childNodes
+
+                        children.forEach((child) => {
+                            if (
+                                child?.nodeType === Node.TEXT_NODE &&
+                                child?.textContent?.trim() !== ''
+                            ) {
+                                hasTextNode = true
+                            }
+                        })
+                        if (!hasTextNode) {
+                            d3.select(textPathElement)
+                                .text('mjxplaceholder')
+                                .attr('class', 'link-label-placeholder mjxhidden')
+                        }
+                    })
+
+                //  setting position for mathjax label
+                update
+                    .selectChild('text')
+                    .selectChild('textPath')
+                    .each(function () {
+                        const textPathElement = this as SVGTextPathElement
+                        const [x, y] = getTextPathPosition(textPathElement)
+
+                        //@ts-ignore
+                        d3.select(textPathElement.parentNode.parentNode)
+                            .select('foreignObject')
+                            .attr('x', x)
+                            .attr('y', y)
                     })
 
                 return update
@@ -659,20 +742,29 @@ function onNodeLabelClicked(event: MouseEvent, node: GraphNode): void {
     handleInputForLabel(node, textElement, [node.x!, node.y!])
 }
 function onLinkLabelClicked(event: MouseEvent, link: GraphLink): void {
-    const textPathElement = event.target as SVGTextPathElement
-    let position = getTextPathPosition(textPathElement)
+    let eventTarget = event.target as Element
+    let textPathElement
 
+    if (eventTarget.nodeName === 'textPath') {
+        textPathElement = eventTarget as SVGTextPathElement
+    } else {
+        const linkContainer = eventTarget.closest('.link-container')
+        textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
+    }
+
+    let position = getTextPathPosition(textPathElement)
     handleInputForLabel(link, textPathElement, position)
 }
 function handleInputForLabel(
     element: GraphNode | GraphLink,
-    textContainingElement: SVGTextPathElement | HTMLDivElement,
+    textContainingElement: HTMLDivElement | SVGTextPathElement,
     position: [number, number]
 ) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
 
     const input = document.createElement('input')
     input.setAttribute('class', 'label-input')
+    input.setAttribute('id', `${elementType}-label-input-field`)
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
 
@@ -690,6 +782,14 @@ function handleInputForLabel(
     }
     input.onblur = function () {
         if (pressedEnter) {
+            //for links mjx and normal text content don't have the same textContainingElement
+            //so the mjx-container needs to be removed separately
+            if (elementType === 'link') {
+                const linkContainer = textContainingElement.closest('.link-container')
+                linkContainer!.querySelector('mjx-container')?.remove()
+                linkContainer!.querySelector('div')!.setAttribute('class', 'link-label-placeholder')
+            }
+
             if (input.value === '') {
                 textContainingElement.setAttribute('class', `${elementType}-label-placeholder`)
                 textContainingElement.textContent = 'add label'
@@ -710,9 +810,7 @@ function handleInputForLabel(
     foreignObj.setAttribute('y', `${position[1]! - 12}`)
     foreignObj.append(input)
 
-    const parentSVG = textContainingElement.closest('svg')
-    parentSVG?.querySelector('g')?.append(foreignObj)
-
+    graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
     input.focus()
 }
 function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
@@ -876,7 +974,6 @@ function showError(title: string, message: any) {
         type="text/css"
         href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
     />
-
     <div class="graph-host uninitialised" />
     <div v-if="config.hasToolbar" class="button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
@@ -956,10 +1053,6 @@ function showError(title: string, message: any) {
 </template>
 
 <style lang="scss">
-.node-label-container {
-    overflow: visible;
-}
-
 .graph-host {
     position: absolute;
     width: 100%;
@@ -1003,7 +1096,8 @@ function showError(title: string, message: any) {
 .arc-path-text,
 .line-reverse-path-text,
 .arc-reverse-path-text,
-.reflexive-path-text {
+.reflexive-path-text,
+.link-label-mathjax-container {
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
@@ -1031,6 +1125,12 @@ function showError(title: string, message: any) {
             cursor: pointer;
             pointer-events: none;
         }
+
+        &.mjxhidden {
+            visibility: hidden;
+            cursor: pointer;
+            pointer-events: none;
+        }
     }
 }
 
@@ -1047,6 +1147,10 @@ function showError(title: string, message: any) {
     }
 }
 
+.link-label-mathjax-container,
+.node-label-container {
+    overflow: visible;
+}
 .node-label {
     display: flex;
     justify-content: center;
@@ -1064,16 +1168,17 @@ function showError(title: string, message: any) {
     }
 }
 .node-label-placeholder {
+    color: dimgray;
     display: flex;
     justify-content: center;
-    align-items: center;
     font-style: oblique;
     font-size: 0.85rem;
     text-align: center;
     opacity: 1;
-    text-anchor: middle;
     pointer-events: all;
     cursor: text;
+    position: relative;
+    top: -6px;
 
     &.hidden {
         visibility: hidden;
