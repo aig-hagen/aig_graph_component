@@ -15,6 +15,7 @@
   "dependencies": {
     "d3": "^7.8.5",
     "html-parsed-element": "^0.4.1",
+    "mathjax": "^3.2.2",
     "ml-matrix": "6.7",
     "svg-path-reverse": "^1.7.0",
     "vue": "^3.4.15"
