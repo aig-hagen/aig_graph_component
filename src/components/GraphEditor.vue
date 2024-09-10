@@ -611,6 +611,7 @@ function restart(alpha: number = 0.5): void {
             (enter) => {
                 const nodeGroup = enter
                     .append('g')
+                    .classed('node-container', true)
                     .call(drag!)
                     .on('pointerdown', (event: MouseEvent, d: GraphNode) => {
                         if (event.button !== 1) {
@@ -678,6 +679,7 @@ function restart(alpha: number = 0.5): void {
                     .selectChild('foreignObject')
                     .selectChild('div')
                     .classed('hidden', !config.showNodeLabels)
+
                 return update
             }
         )
@@ -781,22 +783,18 @@ function handleInputForLabel(
     }
     input.onblur = function () {
         if (pressedEnter) {
-            //for links mjx and normal text content don't have the same textContainingElement
-            //so the mjx-container needs to be removed separately
             if (elementType === 'link') {
-                const linkContainer = textContainingElement.closest('.link-container')
-                linkContainer!.querySelector('mjx-container')?.remove()
-                linkContainer!.querySelector('div')!.setAttribute('class', 'link-label-placeholder')
+                _handleLinkMjxContainer(textContainingElement as SVGTextPathElement)
             }
 
             if (input.value === '') {
-                textContainingElement.setAttribute('class', `${elementType}-label-placeholder`)
-                textContainingElement.textContent = 'add label'
-                element.label = undefined
+                _unsetLabel(textContainingElement, element, elementType)
             } else {
-                textContainingElement.setAttribute('class', `${elementType}-label`)
-                textContainingElement.textContent = input.value.trim()
-                element.label = textContainingElement.textContent
+                _setLabel(input, textContainingElement, element, elementType)
+
+                if (elementType === 'node') {
+                    _redrawNodeContainer(textContainingElement as HTMLDivElement)
+                }
             }
         }
         foreignObj.remove()
@@ -812,6 +810,68 @@ function handleInputForLabel(
     graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
     input.focus()
 }
+
+/**
+ * Removes the link labels current mjx container.
+ *
+ * This is necessary during input of a new link label, since for link labels,
+ * mjx and normal text content don't have the same textContainingElement,
+ * so the old mjx-container needs to be removed separately.
+ * @param textContainingElement
+ */
+function _handleLinkMjxContainer(textContainingElement: SVGTextPathElement) {
+    const linkContainer = textContainingElement.closest('.link-container')
+    linkContainer!.querySelector('mjx-container')?.remove()
+    linkContainer!.querySelector('div')!.setAttribute('class', 'link-label-placeholder')
+}
+
+/**
+ * Redraw the node container.
+ *
+ * This is necessary for node labels that are larger than the node, ensuring they fully appear above the node circle.
+ * @param textContainingElement
+ */
+function _redrawNodeContainer(textContainingElement: HTMLDivElement) {
+    let nodeContainer = textContainingElement.closest('.node-container') as SVGGElement
+    const nodeContainerParent = nodeContainer!.parentElement
+    nodeContainer!.remove()
+    nodeContainerParent!.append(nodeContainer)
+}
+
+/**
+ * Unsets the label in the elements data structure, changes the respective HTML class and adds a label placeholder
+ * @param textContainingElement
+ * @param element
+ * @param elementType "node" or "link" for the html class name
+ */
+function _unsetLabel(
+    textContainingElement: HTMLDivElement | SVGTextPathElement,
+    element: GraphNode | GraphLink,
+    elementType: string
+) {
+    textContainingElement.setAttribute('class', `${elementType}-label-placeholder`)
+    textContainingElement.textContent = 'add label'
+    element.label = undefined
+}
+
+/**
+ * Sets the label in the elements data structure and respective HTML and changes the HTML class
+ * @param input
+ * @param textContainingElement
+ * @param element
+ * @param elementType "node" or "link" for the html class name
+ */
+function _setLabel(
+    input: HTMLInputElement,
+    textContainingElement: HTMLDivElement | SVGTextPathElement,
+    element: GraphNode | GraphLink,
+    elementType: string
+) {
+    textContainingElement.setAttribute('class', `${elementType}-label`)
+    textContainingElement.textContent = input.value.trim()
+    element.label = textContainingElement.textContent
+}
+
 function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
     let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
     let rectTextPath = textPathElement.getBoundingClientRect()
