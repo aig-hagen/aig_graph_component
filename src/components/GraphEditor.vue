@@ -581,7 +581,7 @@ function restart(alpha: number = 0.5): void {
                         })
                         if (!hasTextNode) {
                             d3.select(textPathElement)
-                                .text('mjxplaceholder')
+                                .text('I')
                                 .attr('class', 'link-label-placeholder mjxhidden')
                         }
                     })
