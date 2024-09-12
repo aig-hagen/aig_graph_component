@@ -42,7 +42,7 @@ import {
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
-    const hosts = document.querySelectorAll('graph-editor')
+    const hosts = document.querySelectorAll('graph-component')
 
     let graphHost = undefined
     for (let i = 0; i < hosts.length; i++) {
@@ -683,7 +683,10 @@ function restart(alpha: number = 0.5): void {
                 return update
             }
         )
-    window.MathJax.typeset()
+    //version will only be injected until MathJax is initialized
+    if (window.MathJax?.version) {
+        window.MathJax.typeset()
+    }
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
 }
