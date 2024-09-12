@@ -50,7 +50,16 @@ const graphHost = computed(() => {
         //@ts-ignore
         const hostShadow = d3.select<HTMLElement, undefined>(hostElement.shadowRoot)
 
-        const graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
+        let graphHostToInit
+        //with (open) shadow root
+        if (!hostShadow.empty()) {
+            graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
+        }
+        //without shadow root
+        else {
+            graphHostToInit = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+        }
+
         if (!graphHostToInit.empty()) {
             graphHostToInit.classed('uninitialised', false)
             graphHost = graphHostToInit
