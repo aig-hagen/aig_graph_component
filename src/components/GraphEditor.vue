@@ -511,6 +511,7 @@ function restart(alpha: number = 0.5): void {
                     .selectChild('text')
                     .selectChild('textPath')
                     .classed('hidden', !config.showLinkLabels)
+                    .classed('not-editable', !config.isGraphEditableInGUI)
                     .attr('startOffset', (d) => {
                         if (d.pathType?.includes('REVERSE')) {
                             return '46%'
@@ -586,7 +587,10 @@ function restart(alpha: number = 0.5): void {
                 return nodeGroup
             },
             (update) => {
-                update.selectChild('text').classed('hidden', !config.showNodeLabels)
+                update
+                    .selectChild('text')
+                    .classed('hidden', !config.showNodeLabels)
+                    .classed('not-editable', !config.isGraphEditableInGUI)
 
                 return update
             }
@@ -1006,6 +1010,10 @@ function showError(title: string, message: any) {
             cursor: pointer;
             pointer-events: none;
         }
+
+        &.not-editable {
+            cursor: pointer;
+        }
     }
 
     .link-label-placeholder {
@@ -1017,6 +1025,10 @@ function showError(title: string, message: any) {
             visibility: hidden;
             cursor: pointer;
             pointer-events: none;
+        }
+
+        &.not-editable {
+            cursor: pointer;
         }
     }
 }
@@ -1048,6 +1060,10 @@ function showError(title: string, message: any) {
         cursor: pointer;
         pointer-events: none;
     }
+
+    &.not-editable {
+        cursor: pointer;
+    }
 }
 .node-label-placeholder {
     fill: dimgrey;
@@ -1063,6 +1079,10 @@ function showError(title: string, message: any) {
         visibility: hidden;
         cursor: pointer;
         pointer-events: none;
+    }
+
+    &.not-editable {
+        cursor: pointer;
     }
 }
 .label-input {
