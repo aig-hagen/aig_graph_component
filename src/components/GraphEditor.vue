@@ -541,16 +541,16 @@ function restart(alpha: number = 0.5): void {
                     .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
                     .on('mouseenter', (_, d: GraphNode) => onPointerEnterNode(d))
-                    .on('mouseout', () => onPointerOutNode())
+                    .on('mouseout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
                             onPointerDownNode(event, d)
                         }
                     })
-                    .on('pointerup', (event: PointerEvent) => {
+                    .on('pointerup', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
-                            onPointerUpNode(event)
+                            onPointerUpNode(event, d)
                         }
                     })
                 nodeGroup
@@ -595,13 +595,55 @@ function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
     if (event.button === 2) {
         _onPointerDownCreateDraggableLink(node)
 
-        //on long click, remove node
         longRightClickTimerNode = setTimeout(() => {
             _onPointerDownDeleteNode(node)
         }, 1000)
-
-        // todo animation
+            draggableLinkTargetNode = undefined
+            _onPointerDownRenderDeleteAnimationNode(node)
+        }, 250)
     }
+}
+
+/**
+ * Renders a growing circumference around the specified node and
+ * triggers node deletion after the animation is complete.
+ * @param node
+ */
+function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
+    let nodeParent = document.getElementById(`${node.id}`)!.parentElement,
+        g = d3.select(nodeParent)
+
+    let startArc = [{ startAngle: 0, endAngle: 0 }]
+
+    let arcGenerator = d3
+        .arc()
+        .outerRadius(config.nodeRadius + 4)
+        .innerRadius(config.nodeRadius)
+
+    //remove previous arc
+    g.select('g.arc').remove()
+
+    let path = g.append('g').attr('class', 'arc').selectAll('path.arc').data(startArc)
+
+    path.enter()
+        .append('path')
+        .attr('class', 'arc')
+        .style('stroke', 'rgb(53,154,204))')
+        .style('stroke-width', 5)
+        .style('fill', 'black')
+        .style('opacity', 0.7)
+        .transition()
+        .duration(750)
+        .ease(d3.easeLinear)
+        .attrTween('d', function (d) {
+            let end = { startAngle: 0, endAngle: 2 * Math.PI }
+            let interpolate = d3.interpolate(d, end)
+            return function (t) {
+                //@ts-ignore
+                return arcGenerator(interpolate(t))
+            }
+        })
+        .on('end', () => _onPointerDownDeleteNode(node))
 }
 
 /**
@@ -642,19 +684,33 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
 
 //region onPointerUpNode
 /**
- * Stops the timer for a long right click and creates a link if the conditions are met.
+ * Stops the timer and animation for a long right click (node deletion)
+ * and creates a link if the conditions are met.
  * @param event
+ * @param node
  */
-function onPointerUpNode(event: PointerEvent) {
+function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = undefined): void {
     terminate(event)
-
     clearTimeout(longRightClickTimerNode)
+    if (node) {
+        _onPointerUpCancelDeleteAnimationNode(node)
+    }
     _onPointerUpCreateLink()
 }
 
 /**
- * A link will be created, if the right pointer goes up on a node
- * and source and target node are defined.
+ * Cancels the delete process and animation for the specified node.
+ * @param node
+ */
+function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
+    let nodeParent = document.getElementById(`${node.id}`)!.parentElement,
+        g = d3.select(nodeParent)
+
+    g.select('g.arc').select('path.arc').interrupt().remove()
+}
+
+/**
+ * Creates a link, from source to target node if both nodes are defined.
  */
 function _onPointerUpCreateLink(): void {
     const source = draggableLinkSourceNode
@@ -703,10 +759,13 @@ function onPointerEnterNode(node: GraphNode) {
 }
 
 /**
- * Clears the timeout for long right click on node
+ * Clears the timeout for long right click on node, cancels the delete animation
  * and unsets the target node for the draggable link.
  */
-function onPointerOutNode() {
+function onPointerOutNode(node: GraphNode | undefined) {
+    if (node) {
+        _onPointerUpCancelDeleteAnimationNode(node)
+    }
     draggableLinkTargetNode = undefined
     clearTimeout(longRightClickTimerNode)
 }
