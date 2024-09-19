@@ -432,15 +432,15 @@ function restart(alpha: number = 0.5): void {
                         //a double click on a link, should not create a new node
                         terminate(event)
                     })
-                    .on('pointerout', (event: PointerEvent) => onPointerUpOrOutLink(event))
+                    .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                     .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
                         triggerLinkClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
                             onPointerDownDeleteLink(event, d)
                         }
                     })
-                    .on('pointerup', (event: PointerEvent) => {
-                        onPointerUpOrOutLink(event)
+                    .on('pointerup', (event: PointerEvent, d: GraphLink) => {
+                        onPointerUpLink(event, d)
                     })
                 linkGroup
                     .append('text')
@@ -771,11 +771,25 @@ function onPointerOutNode(node: GraphNode | undefined) {
 }
 
 /**
- * Clears the timeout for long right click on link.
+ * Clears the timeout for long right click on link
+ * @param event
  */
-function onPointerUpOrOutLink(event: PointerEvent) {
+function onPointerOutLink(event: PointerEvent) {
     terminate(event)
     clearTimeout(longRightClickTimerLink)
+}
+
+/**
+ * Clears the timeout for long right click on link
+ * and cancels the link deletion and the respective animation.
+ */
+function onPointerUpLink(event: PointerEvent, link: GraphLink) {
+    terminate(event)
+    clearTimeout(longRightClickTimerLink)
+
+    if (event.button === 2) {
+        _onPointerUpCancelDeleteAnimationLink(link)
+    }
 }
 
 /**
@@ -785,21 +799,72 @@ function onPointerUpOrOutLink(event: PointerEvent) {
  */
 function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
     if (event.button === 2) {
+        terminate(event)
         longRightClickTimerLink = setTimeout(() => {
-            let color = link.color
-            terminate(event)
-            if (config.isGraphEditableInGUI) {
-                let removedLink = graph.value.removeLink(link)
-                if (removedLink !== undefined) {
-                    triggerLinkDeleted(removedLink, graphHost.value)
-                }
-                if (color) {
-                    if (!graph.value.hasNonDefaultLinkColor(color)) {
-                        deleteLinkMarkerColored(canvas!, color)
-                    }
-                }
+            _onPointerDownRenderDeleteAnimationLink(link)
+        }, 250)
+    }
+}
+
+/**
+ * Renders the delete animation for the link
+ * and deletes it after the animation is finished.
+ * @param link
+ */
+function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
+    let linkElement = document.getElementById(`${link.id}`)
+
+    if (linkElement instanceof SVGPathElement) {
+        let linkPath = d3.select(linkElement),
+            pathLength = linkElement.getTotalLength()
+
+        linkPath
+            .attr('stroke-dasharray', pathLength)
+            .attr('stroke-dashoffset', 0)
+            .transition()
+            .duration(750)
+            .attr('stroke-dashoffset', pathLength)
+            .on('end', () => _onPointerDownDeleteLink(link))
+    }
+}
+/**
+ * Deletes the link and removes not needed color markers.
+ * @param link
+ */
+function _onPointerDownDeleteLink(link: GraphLink): void {
+    let color = link.color
+    if (config.isGraphEditableInGUI) {
+        let removedLink = graph.value.removeLink(link)
+        if (removedLink !== undefined) {
+            triggerLinkDeleted(removedLink, graphHost.value)
+        }
+        if (color) {
+            if (!graph.value.hasNonDefaultLinkColor(color)) {
+                deleteLinkMarkerColored(canvas!, color)
             }
-        }, 1000)
+        }
+    }
+}
+
+/**
+ * Cancels the delete process and animation for the specified link.
+ * @param link
+ */
+function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
+    let linkElement = document.getElementById(`${link.id}`)
+
+    if (linkElement instanceof SVGPathElement) {
+        let linkPath = d3.select(linkElement),
+            pathLength = linkElement.getTotalLength()
+
+        linkPath
+            .attr('stroke-dasharray', pathLength)
+            .attr('stroke-dashoffset', pathLength)
+            .transition()
+            .attr('stroke-dashoffset', 0)
+            .on('end', () => {
+                linkPath.attr('stroke-dasharray', null).attr('stroke-dashoffset', null)
+            })
     }
 }
 
