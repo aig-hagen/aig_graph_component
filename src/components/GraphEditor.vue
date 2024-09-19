@@ -596,8 +596,6 @@ function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
         _onPointerDownCreateDraggableLink(node)
 
         longRightClickTimerNode = setTimeout(() => {
-            _onPointerDownDeleteNode(node)
-        }, 1000)
             draggableLinkTargetNode = undefined
             _onPointerDownRenderDeleteAnimationNode(node)
         }, 250)
@@ -610,26 +608,25 @@ function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
  * @param node
  */
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
-    let nodeParent = document.getElementById(`${node.id}`)!.parentElement,
-        g = d3.select(nodeParent)
+    let nodeElement = document.getElementById(`${node.id}`)!
+    d3.select(nodeElement).classed('on-deletion', true)
 
-    let startArc = [{ startAngle: 0, endAngle: 0 }]
-
-    let arcGenerator = d3
-        .arc()
-        .outerRadius(config.nodeRadius + 4)
-        .innerRadius(config.nodeRadius)
+    let g = d3.select(nodeElement.parentElement)
 
     //remove previous arc
     g.select('g.arc').remove()
+
+    let arcGenerator = d3
+            .arc()
+            .outerRadius(config.nodeRadius + 4)
+            .innerRadius(config.nodeRadius),
+        startArc = [{ startAngle: 0, endAngle: 0 }]
 
     let path = g.append('g').attr('class', 'arc').selectAll('path.arc').data(startArc)
 
     path.enter()
         .append('path')
         .attr('class', 'arc')
-        .style('stroke', 'rgb(53,154,204))')
-        .style('stroke-width', 5)
         .style('fill', 'black')
         .style('opacity', 0.7)
         .transition()
@@ -706,6 +703,7 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeParent = document.getElementById(`${node.id}`)!.parentElement,
         g = d3.select(nodeParent)
 
+    g.select('circle').classed('on-deletion', false)
     g.select('g.arc').select('path.arc').interrupt().remove()
 }
 
@@ -761,6 +759,7 @@ function onPointerEnterNode(node: GraphNode) {
 /**
  * Clears the timeout for long right click on node, cancels the delete animation
  * and unsets the target node for the draggable link.
+ * @param node
  */
 function onPointerOutNode(node: GraphNode | undefined) {
     if (node) {
@@ -769,6 +768,8 @@ function onPointerOutNode(node: GraphNode | undefined) {
     draggableLinkTargetNode = undefined
     clearTimeout(longRightClickTimerNode)
 }
+
+//region pointer link
 
 /**
  * Clears the timeout for long right click on link
@@ -816,14 +817,21 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
 
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
-            pathLength = linkElement.getTotalLength()
+            pathLength = linkElement.getTotalLength(),
+            textPath = linkElement.parentElement!.querySelector('text'),
+            isReverse = Array.from(textPath!.classList).some((className) =>
+                className.includes('reverse')
+            )
+
+        let initialOffset = 0,
+            finalOffset = isReverse ? pathLength : -pathLength
 
         linkPath
             .attr('stroke-dasharray', pathLength)
-            .attr('stroke-dashoffset', 0)
+            .attr('stroke-dashoffset', initialOffset)
             .transition()
             .duration(750)
-            .attr('stroke-dashoffset', pathLength)
+            .attr('stroke-dashoffset', finalOffset)
             .on('end', () => _onPointerDownDeleteLink(link))
     }
 }
@@ -867,6 +875,7 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
             })
     }
 }
+//endregion
 
 // region labels
 
@@ -1259,7 +1268,7 @@ function showError(title: string, message: any) {
     stroke: none;
     cursor: pointer;
 
-    &:hover {
+    &:not(.on-deletion):hover {
         stroke: #006597;
         stroke-dasharray: (8, 3);
         stroke-width: 2;
