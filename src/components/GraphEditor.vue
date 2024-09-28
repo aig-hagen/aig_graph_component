@@ -1181,7 +1181,14 @@ function showError(title: string, message: any) {
             @update-settings="onUpdateSettings"
         />
     </div>
-    <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
+    <div v-show="!graphHasNodes">
+        <graph-controls
+            class="info-text-background text-subtitle-1 text-grey"
+            show-controls-graph
+            :show-controls-environment="false"
+            :show-header="false"
+        ></graph-controls>
+    </div>
     <v-snackbar v-model="hasError" color="error" variant="tonal">
         <v-row align="center">
             <v-icon icon="$error" class="ml-2"></v-icon>
@@ -1334,15 +1341,13 @@ function showError(title: string, message: any) {
     user-select: none !important;
 }
 
-.info-text {
+.info-text-background {
+    width: 50%;
+    height: 50%;
     position: absolute;
-    left: 1rem;
-    right: 1rem;
-    top: 1rem;
-    bottom: 1rem;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     pointer-events: none;
 }
 </style>

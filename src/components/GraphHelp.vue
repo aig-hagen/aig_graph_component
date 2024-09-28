@@ -1,53 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-
-interface Control {
-    action: string
-    desktop: string
-    mobile: string
-}
-
-const controls: Control[] = [
-    {
-        action: 'Create node',
-        desktop: 'Double-click',
-        mobile: 'Double-tap'
-    },
-    {
-        action: 'Move node',
-        desktop: 'Left-click on node & drag',
-        mobile: ''
-    },
-    {
-        action: 'Create link',
-        desktop: 'Right-click on node & drag',
-        mobile: 'Long-tap & drag'
-    },
-    {
-        action: 'Create/Update label',
-        desktop: 'Left-click on label',
-        mobile: 'Tap on label'
-    },
-    {
-        action: 'Delete node/link',
-        desktop: 'Right-click & hold',
-        mobile: ''
-    },
-    {
-        action: 'Pan',
-        desktop: 'Left-click on canvas & drag',
-        mobile: 'Multi-touch'
-    },
-    {
-        action: 'Zoom',
-        desktop: 'Mouse wheel',
-        mobile: 'Multi-touch'
-    }
-]
+import GraphControls from '@/components/GraphControls.vue'
 
 const dialog = ref(false)
-
-const headers: any = ['Action', 'Desktop', 'Mobile']
 </script>
 
 <template>
@@ -71,22 +26,11 @@ const headers: any = ['Action', 'Desktop', 'Mobile']
         </template>
         <v-card>
             <v-card-title class="card-header">Controls</v-card-title>
-            <v-table density="comfortable" fixed-header>
-                <thead>
-                    <tr>
-                        <th class="text-left">{{ headers[0] }}</th>
-                        <th class="text-left">{{ headers[1] }}</th>
-                        <th class="text-left">{{ headers[2] }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in controls" :key="item.action">
-                        <td>{{ item.action }}</td>
-                        <td>{{ item.desktop }}</td>
-                        <td>{{ item.mobile }}</td>
-                    </tr>
-                </tbody>
-            </v-table>
+            <graph-controls
+                show-controls-environment
+                show-header
+                show-controls-graph
+            ></graph-controls>
 
             <v-card-actions>
                 <v-spacer />
