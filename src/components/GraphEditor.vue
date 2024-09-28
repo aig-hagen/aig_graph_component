@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import type { D3ZoomEvent } from 'd3'
-import * as d3 from 'd3'
-import Graph from '@/model/graph'
 import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
+//component
+import ImportExport from '@/components/ImportExport.vue'
+import GraphHelp from '@/components/GraphHelp.vue'
+import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
+import GraphControls from '@/components/GraphControls.vue'
+//d3
+import * as d3 from 'd3'
+import type { D3ZoomEvent } from 'd3'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
@@ -11,24 +16,7 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { GraphConfigDefault } from '@/model/config'
-import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
-import {
-    type jsonGraph,
-    type parsedLink,
-    type parsedNode,
-    parseJSONGraph,
-    parseTGF
-} from '@/model/parser'
-import { GraphNode } from '@/model/graph-node'
-import type { GraphLink } from '@/model/graph-link'
-//@ts-ignore
-import svgPathReverse from 'svg-path-reverse'
-import ImportExport from '@/components/ImportExport.vue'
-import GraphHelp from '@/components/GraphHelp.vue'
-import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
-import { escapeColor } from '@/model/color'
 import {
     terminate,
     triggerLabelEdited,
@@ -39,6 +27,23 @@ import {
     triggerNodeCreated,
     triggerNodeDeleted
 } from '@/d3/event'
+//model
+import Graph from '@/model/graph'
+import { PathType } from '@/model/path-type'
+import { GraphConfigDefault } from '@/model/config'
+import { escapeColor } from '@/model/color'
+import {
+    type jsonGraph,
+    type parsedLink,
+    type parsedNode,
+    parseJSONGraph,
+    parseTGF
+} from '@/model/parser'
+import { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
+//other
+//@ts-ignore
+import svgPathReverse from 'svg-path-reverse'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
