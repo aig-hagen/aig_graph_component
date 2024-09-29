@@ -613,7 +613,7 @@ function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
  * @param node
  */
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
-    let nodeElement = document.getElementById(`${node.id}`)!
+    let nodeElement = graphHost.value.node()!.querySelector(`#${CSS.escape(String(node.id))}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
     let g = d3.select(nodeElement.parentElement)
@@ -705,7 +705,9 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
  * @param node
  */
 function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
-    let nodeParent = document.getElementById(`${node.id}`)!.parentElement,
+    let nodeParent = graphHost.value
+            .node()!
+            .querySelector(`#${CSS.escape(String(node.id))}`)!.parentElement,
         g = d3.select(nodeParent)
 
     g.select('circle').classed('on-deletion', false)
@@ -818,7 +820,7 @@ function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
  * @param link
  */
 function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
-    let linkElement = document.getElementById(`${link.id}`)
+    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
 
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
@@ -864,7 +866,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
  * @param link
  */
 function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
-    let linkElement = document.getElementById(`${link.id}`)
+    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
 
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
@@ -1183,7 +1185,7 @@ function showError(title: string, message: any) {
     </div>
     <div v-show="!graphHasNodes">
         <graph-controls
-            class="info-text-background text-subtitle-1 text-grey"
+            class="info-text-background"
             show-controls-graph
             :show-controls-environment="false"
             :show-header="false"
