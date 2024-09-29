@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import type { D3ZoomEvent } from 'd3'
-import * as d3 from 'd3'
-import Graph from '@/model/graph'
 import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
+//component
+import ImportExport from '@/components/ImportExport.vue'
+import GraphHelp from '@/components/GraphHelp.vue'
+import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
+import GraphControls from '@/components/GraphControls.vue'
+//d3
+import * as d3 from 'd3'
+import type { D3ZoomEvent } from 'd3'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
@@ -11,24 +16,7 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { GraphConfigDefault } from '@/model/config'
-import { PathType } from '@/model/path-type'
 import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
-import {
-    type jsonGraph,
-    type parsedLink,
-    type parsedNode,
-    parseJSONGraph,
-    parseTGF
-} from '@/model/parser'
-import { GraphNode } from '@/model/graph-node'
-import type { GraphLink } from '@/model/graph-link'
-//@ts-ignore
-import svgPathReverse from 'svg-path-reverse'
-import ImportExport from '@/components/ImportExport.vue'
-import GraphHelp from '@/components/GraphHelp.vue'
-import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
-import { escapeColor } from '@/model/color'
 import {
     terminate,
     triggerLabelEdited,
@@ -39,6 +27,23 @@ import {
     triggerNodeCreated,
     triggerNodeDeleted
 } from '@/d3/event'
+//model
+import Graph from '@/model/graph'
+import { PathType } from '@/model/path-type'
+import { GraphConfigDefault } from '@/model/config'
+import { escapeColor } from '@/model/color'
+import {
+    type jsonGraph,
+    type parsedLink,
+    type parsedNode,
+    parseJSONGraph,
+    parseTGF
+} from '@/model/parser'
+import { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
+//other
+//@ts-ignore
+import svgPathReverse from 'svg-path-reverse'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -104,6 +109,8 @@ let draggableLinkEnd: [number, number] | undefined
 let xOffset = 0
 let yOffset = 0
 let scale = 1
+let longRightClickTimerNode: number
+let longRightClickTimerLink: number
 
 //exposing for cli functionality
 defineExpose({
@@ -280,8 +287,8 @@ function initData() {
     canvas = createCanvas(
         graphHost.value!,
         zoom,
-        (event) => (config.isGraphEditableInGUI ? onPointerMoved(event) : null),
-        (event) => (config.isGraphEditableInGUI ? onPointerUp(event) : null),
+        (event) => (config.isGraphEditableInGUI ? onPointerMovedBeginningFromNode(event) : null),
+        (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
             if (config.isGraphEditableInGUI) {
                 createNode(
@@ -426,25 +433,19 @@ function restart(alpha: number = 0.5): void {
                 linkGroup
                     .append('path')
                     .classed('clickbox', true)
-                    .on('pointerdown', (event: MouseEvent, d: GraphLink) => {
-                        triggerLinkClicked(d, event.button, graphHost.value)
-                        let color = d.color
-                        if (event.button !== 1) {
-                            //mouse wheel
-                            return
-                        }
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a link, should not create a new node
                         terminate(event)
+                    })
+                    .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
+                    .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
+                        triggerLinkClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
-                            let removedLink = graph.value.removeLink(d)
-                            if (removedLink !== undefined) {
-                                triggerLinkDeleted(removedLink, graphHost.value)
-                            }
-                            if (color) {
-                                if (!graph.value.hasNonDefaultLinkColor(color)) {
-                                    deleteLinkMarkerColored(canvas!, color)
-                                }
-                            }
+                            onPointerDownDeleteLink(event, d)
                         }
+                    })
+                    .on('pointerup', (event: PointerEvent, d: GraphLink) => {
+                        onPointerUpLink(event, d)
                     })
                 linkGroup
                     .append('text')
@@ -459,6 +460,10 @@ function restart(alpha: number = 0.5): void {
                         if (config.isGraphEditableInGUI) {
                             onLinkLabelClicked(event, d)
                         }
+                    })
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a label, should not create a new node
+                        terminate(event)
                     })
                 return linkGroup
             },
@@ -531,25 +536,9 @@ function restart(alpha: number = 0.5): void {
                 const nodeGroup = enter
                     .append('g')
                     .call(drag!)
-                    .on('pointerdown', (event: MouseEvent, d: GraphNode) => {
-                        if (event.button !== 1) {
-                            //mouse wheel
-                            return
-                        }
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a node, should not create a new one
                         terminate(event)
-                        if (config.isGraphEditableInGUI) {
-                            let r = graph.value.removeNode(d)
-                            if (r !== undefined) {
-                                let [removedNode, removedLinks] = r
-                                triggerNodeDeleted(removedNode, graphHost.value)
-                                removedLinks.forEach((link) => {
-                                    triggerLinkDeleted(link, graphHost.value)
-                                })
-                            }
-                            graphHasNodes.value = graph.value.nodes.length > 0
-                            resetDraggableLink()
-                            restart()
-                        }
                     })
                 nodeGroup
                     .append('circle')
@@ -557,17 +546,17 @@ function restart(alpha: number = 0.5): void {
                     .attr('id', (d) => d.id)
                     .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
-                    .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
-                    .on('mouseout', () => (draggableLinkTargetNode = undefined))
+                    .on('mouseenter', (_, d: GraphNode) => onPointerEnterNode(d))
+                    .on('mouseout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
-                            onPointerDown(event, d)
+                            onPointerDownNode(event, d)
                         }
                     })
-                    .on('pointerup', (event: PointerEvent) => {
+                    .on('pointerup', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
-                            onPointerUp(event)
+                            onPointerUpNode(event, d)
                         }
                     })
                 nodeGroup
@@ -581,6 +570,10 @@ function restart(alpha: number = 0.5): void {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
                         }
+                    })
+                    .on('dblclick', (event: PointerEvent) => {
+                        //a double click on a label, should not create a new node
+                        terminate(event)
                     })
                     .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('mouseout', () => (draggableLinkTargetNode = undefined))
@@ -599,12 +592,91 @@ function restart(alpha: number = 0.5): void {
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
 }
-function onPointerDown(event: PointerEvent, node: GraphNode): void {
-    //check if left mouse button was clicked
-    if (event.button !== 0) {
-        return
+
+// region onNodePointerDown
+
+/**
+ * On a short right click+drag movement a draggable link is created, on a right click+hold the node is deleted.
+ * @param event
+ * @param node
+ */
+function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
+    if (event.button === 2) {
+        _onPointerDownCreateDraggableLink(node)
+
+        longRightClickTimerNode = setTimeout(() => {
+            draggableLinkTargetNode = undefined
+            _onPointerDownRenderDeleteAnimationNode(node)
+        }, 250)
     }
-    terminate(event)
+}
+
+/**
+ * Renders a growing circumference around the specified node and
+ * triggers node deletion after the animation is complete.
+ * @param node
+ */
+function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
+    let nodeElement = graphHost.value.node()!.querySelector(`#${CSS.escape(String(node.id))}`)!
+    d3.select(nodeElement).classed('on-deletion', true)
+
+    let g = d3.select(nodeElement.parentElement)
+
+    //remove previous arc
+    g.select('g.arc').remove()
+
+    let arcGenerator = d3
+            .arc()
+            .outerRadius(config.nodeRadius + 4)
+            .innerRadius(config.nodeRadius),
+        startArc = [{ startAngle: 0, endAngle: 0 }]
+
+    let path = g.append('g').attr('class', 'arc').selectAll('path.arc').data(startArc)
+
+    path.enter()
+        .append('path')
+        .attr('class', 'arc')
+        .style('fill', 'black')
+        .style('opacity', 0.7)
+        .transition()
+        .duration(750)
+        .ease(d3.easeLinear)
+        .attrTween('d', function (d) {
+            let end = { startAngle: 0, endAngle: 2 * Math.PI }
+            let interpolate = d3.interpolate(d, end)
+            return function (t) {
+                //@ts-ignore
+                return arcGenerator(interpolate(t))
+            }
+        })
+        .on('end', () => _onPointerDownDeleteNode(node))
+}
+
+/**
+ * Deletes the given node and triggers the according events.
+ * @param node
+ */
+function _onPointerDownDeleteNode(node: GraphNode): void {
+    if (config.isGraphEditableInGUI) {
+        let r = graph.value.removeNode(node)
+        if (r !== undefined) {
+            let [removedNode, removedLinks] = r
+            triggerNodeDeleted(removedNode, graphHost.value)
+            removedLinks.forEach((link) => {
+                triggerLinkDeleted(link, graphHost.value)
+            })
+        }
+        graphHasNodes.value = graph.value.nodes.length > 0
+        resetDraggableLink()
+        restart()
+    }
+}
+
+/**
+ * Creates a draggable link beginning from the node that was clicked.
+ * @param node
+ */
+function _onPointerDownCreateDraggableLink(node: GraphNode): void {
     const coordinates: [number, number] = [node.x!, node.y!]
     draggableLinkEnd = coordinates
     draggableLinkSourceNode = node
@@ -614,19 +686,57 @@ function onPointerDown(event: PointerEvent, node: GraphNode): void {
         .attr('d', linePath(coordinates, coordinates))
     restart()
 }
+//endregion
 
-function onPointerUp(event: PointerEvent): void {
+//region onPointerUpNode
+/**
+ * Stops the timer and animation for a long right click (node deletion)
+ * and creates a link if the conditions are met.
+ * @param event
+ * @param node
+ */
+function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = undefined): void {
+    terminate(event)
+    clearTimeout(longRightClickTimerNode)
+    if (node) {
+        _onPointerUpCancelDeleteAnimationNode(node)
+    }
+    _onPointerUpCreateLink()
+}
+
+/**
+ * Cancels the delete process and animation for the specified node.
+ * @param node
+ */
+function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
+    let nodeParent = graphHost.value
+            .node()!
+            .querySelector(`#${CSS.escape(String(node.id))}`)!.parentElement,
+        g = d3.select(nodeParent)
+
+    g.select('circle').classed('on-deletion', false)
+    g.select('g.arc').select('path.arc').interrupt().remove()
+}
+
+/**
+ * Creates a link, from source to target node if both nodes are defined.
+ */
+function _onPointerUpCreateLink(): void {
     const source = draggableLinkSourceNode
     const target = draggableLinkTargetNode
     resetDraggableLink()
     if (source === undefined || target === undefined) {
         return
     }
-    terminate(event)
     createLink(source, target)
 }
+//endregion
 
-function onPointerMoved(event: PointerEvent): void {
+/**
+ * Updates the position of the draggable link.
+ * @param event
+ */
+function onPointerMovedBeginningFromNode(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
         const pointer = d3.pointers(event, graphHost.value!.node())[0]
@@ -648,6 +758,138 @@ function onPointerMoved(event: PointerEvent): void {
         updateDraggableLinkPath()
     }
 }
+
+/**
+ * Sets the entered node as a target node for the draggable link.
+ * @param node
+ */
+function onPointerEnterNode(node: GraphNode) {
+    draggableLinkTargetNode = node
+}
+
+/**
+ * Clears the timeout for long right click on node, cancels the delete animation
+ * and unsets the target node for the draggable link.
+ * @param node
+ */
+function onPointerOutNode(node: GraphNode | undefined) {
+    if (node) {
+        _onPointerUpCancelDeleteAnimationNode(node)
+    }
+    draggableLinkTargetNode = undefined
+    clearTimeout(longRightClickTimerNode)
+}
+
+//region pointer link
+
+/**
+ * Clears the timeout for long right click on link
+ * @param event
+ */
+function onPointerOutLink(event: PointerEvent) {
+    terminate(event)
+    clearTimeout(longRightClickTimerLink)
+}
+
+/**
+ * Clears the timeout for long right click on link
+ * and cancels the link deletion and the respective animation.
+ */
+function onPointerUpLink(event: PointerEvent, link: GraphLink) {
+    terminate(event)
+    clearTimeout(longRightClickTimerLink)
+
+    if (event.button === 2) {
+        _onPointerUpCancelDeleteAnimationLink(link)
+    }
+}
+
+/**
+ * Deletes the given link and triggers the according events.
+ * @param event
+ * @param link
+ */
+function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
+    if (event.button === 2) {
+        terminate(event)
+        longRightClickTimerLink = setTimeout(() => {
+            _onPointerDownRenderDeleteAnimationLink(link)
+        }, 250)
+    }
+}
+
+/**
+ * Renders the delete animation for the link
+ * and deletes it after the animation is finished.
+ * @param link
+ */
+function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
+    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
+
+    if (linkElement instanceof SVGPathElement) {
+        let linkPath = d3.select(linkElement),
+            pathLength = linkElement.getTotalLength(),
+            textPath = linkElement.parentElement!.querySelector('text'),
+            isReverse = Array.from(textPath!.classList).some((className) =>
+                className.includes('reverse')
+            )
+
+        let initialOffset = 0,
+            finalOffset = isReverse ? pathLength : -pathLength
+
+        linkPath
+            .attr('stroke-dasharray', pathLength)
+            .attr('stroke-dashoffset', initialOffset)
+            .transition()
+            .duration(750)
+            .attr('stroke-dashoffset', finalOffset)
+            .on('end', () => _onPointerDownDeleteLink(link))
+    }
+}
+/**
+ * Deletes the link and removes not needed color markers.
+ * @param link
+ */
+function _onPointerDownDeleteLink(link: GraphLink): void {
+    let color = link.color
+    if (config.isGraphEditableInGUI) {
+        let removedLink = graph.value.removeLink(link)
+        if (removedLink !== undefined) {
+            triggerLinkDeleted(removedLink, graphHost.value)
+        }
+        if (color) {
+            if (!graph.value.hasNonDefaultLinkColor(color)) {
+                deleteLinkMarkerColored(canvas!, color)
+            }
+        }
+    }
+}
+
+/**
+ * Cancels the delete process and animation for the specified link.
+ * @param link
+ */
+function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
+    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
+
+    if (linkElement instanceof SVGPathElement) {
+        let linkPath = d3.select(linkElement),
+            pathLength = linkElement.getTotalLength()
+
+        linkPath
+            .attr('stroke-dasharray', pathLength)
+            .attr('stroke-dashoffset', pathLength)
+            .transition()
+            .attr('stroke-dashoffset', 0)
+            .on('end', () => {
+                linkPath.attr('stroke-dasharray', null).attr('stroke-dashoffset', null)
+            })
+    }
+}
+//endregion
+
+// region labels
+
 function onNodeLabelClicked(event: MouseEvent, node: GraphNode): void {
     const textElement = event?.target as SVGTextElement
 
@@ -670,6 +912,11 @@ function handleInputForLabel(
     input.setAttribute('class', 'label-input')
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
+
+    input.ondblclick = function (e) {
+        //double-click on the input should not create a new node
+        terminate(e)
+    }
 
     let pressedEnter = false
 
@@ -717,6 +964,8 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     let y = (rectTextPath.y - rectSvg.y - yOffset) / scale
     return [x, y]
 }
+
+// endregion
 
 function onUpdateSettings(newSettings: Settings): void {
     toggleNodeLabels(newSettings.showNodeLabels)
@@ -797,7 +1046,7 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         }
     }
 }
-/***
+/**
  Checks the links that will change color and deletes colored link markers that are then not needed anymore
  @params idArrayOfLinkColorToChanged - links that will change color
  */
@@ -938,7 +1187,14 @@ function showError(title: string, message: any) {
             @update-settings="onUpdateSettings"
         />
     </div>
-    <div v-show="!graphHasNodes" class="info-text text-h5 text-grey">Graph is empty</div>
+    <div v-show="!graphHasNodes">
+        <graph-controls
+            class="info-text-background"
+            show-controls-graph
+            :show-controls-environment="false"
+            :show-header="false"
+        ></graph-controls>
+    </div>
     <v-snackbar v-model="hasError" color="error" variant="tonal">
         <v-row align="center">
             <v-icon icon="$error" class="ml-2"></v-icon>
@@ -1038,7 +1294,7 @@ function showError(title: string, message: any) {
     stroke: none;
     cursor: pointer;
 
-    &:hover {
+    &:not(.on-deletion):hover {
         stroke: #006597;
         stroke-dasharray: (8, 3);
         stroke-width: 2;
@@ -1107,15 +1363,13 @@ function showError(title: string, message: any) {
     user-select: none !important;
 }
 
-.info-text {
+.info-text-background {
+    width: 50%;
+    height: 50%;
     position: absolute;
-    left: 1rem;
-    right: 1rem;
-    top: 1rem;
-    bottom: 1rem;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     pointer-events: none;
 }
 </style>
