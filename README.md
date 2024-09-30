@@ -219,8 +219,8 @@ Events are fired from the graph host. This is where we attach the event listener
 const graphHost = document.getElementById('ge1').shadowRoot.querySelector('.graph-host')
 // add event listener for right click on node
 graphHost.addEventListener('nodeclicked', function(e){
-    if(e.detail.button === 2){
-        //change the color on right click
+    if(e.detail.button === 1){
+        //change the color on middle click
         instance.setNodeColor('#8FBC8F', e.detail.node.id)
     }
 })

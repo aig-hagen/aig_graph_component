@@ -1185,7 +1185,7 @@ function showError(title: string, message: any) {
     </div>
     <div v-show="!graphHasNodes">
         <graph-controls
-            class="info-text-background"
+            class="info-text-background text-subtitle-1 text-grey"
             show-controls-graph
             :show-controls-environment="false"
             :show-header="false"
