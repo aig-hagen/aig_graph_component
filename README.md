@@ -7,12 +7,14 @@
 >
 > https://graphtool.aig.fernuni-hagen.de/
 > 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
+![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
+
 
 ## Usage
 The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)**
 and also as a **custom element**,
-enabling easy embedding into an HTML-file using the `<graph-editor/>` tag. 
+enabling easy embedding into an HTML-file using the `<graph-component/>` tag. 
 Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
 
 For a quick start, simply run the referenced index file.
@@ -23,41 +25,49 @@ During interaction with the graph different events are fired to which you can re
 *TODO (งツ)ว*
 ### Programmatically
 #### Preparation
-To be able to call the following functions, we need to get the graph-editors instance.
+To be able to call the following functions, we need to get the graph-components instance.
 ```javascript
-// when it is included as a custom element in an html file (<graph-editor id='ge1'>)
-const instance = document.getElementById('ge1')._instance.exposed
+// when it is included as a custom element in an html file (<graph-component id='gc1'>)
+const instance = document.getElementById('gc1')._instance.exposed
 ```           
 
 ```javascript
 // when you run the component in development mode
 const instance = document.getElementById('app').__vue_app__._instance.exposed
 ``` 
-_Note that when you run the app in development mode, this does not work after a hot-reload. It only works correctly on the initial run or after refreshing the site._
+_Note that when you run the app in development mode, this does not work after a hot-reload. 
+It only works correctly on the initial run or after refreshing the site._
 
 #### Manually write a Graph
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
 
 ```javascript
-// graph as object with optional label, color and x- and y- position
+// graph as object with optional normal and LaTeX label, color and x- and y- position
 let graphAsObject = {
   nodes: [
-    {id: 0, label: "A", x: 24, y: 24},
-    {id: 1, label: "B", color: "lavenderblush", x: 222, y: 142},
-    {id: 2, label: "C"}
+    {id: 0, label: "$a_0$", x: 24, y: 24},
+    {id: 1, label: "b", color: "lavenderblush", x: 222, y: 142},
+    {id: 2, label: "c"}
   ],
   links: [
-    {sourceId: 0, targetId: 1, label: "A to B"},
-    {sourceId: 2, targetId: 2, label: "C to C"}
+    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$"},
+    {sourceId: 2, targetId: 2, label: "c to c"}
   ]
 }
 ```
 ```javascript
-//graph as tgf with optional label and color
-let graphAsTgf = "0 A\n 1 B /COLOR:/lavenderblush\n 2 C\n#\n 0 1 A to B\n 2 2 C to C"
+//graph as tgf with optional normal and LaTeX label and color
+graphAsTgf = "0 $a_0$\n 1 b /COLOR:/lavenderblush\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
 ```
 *In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
 Positioning is only available with the object notation.*
+
+##### Using LaTeX in Labels
+We can also use LaTeX input for labels by enclosing them in math delimiters `$$` or `\(\)`.
+
+It is recommended to use only one pair of delimiters per label. 
+If a space is required between expressions use `\\` before the space
+(_for GUI Input it is just one backslash_).
 
 
 #### Display a Graph in the Component
@@ -68,7 +78,7 @@ instance.setGraph(graphAsObject)
 instance.setGraph(graphAsTgf)
 instance.setGraph(graphFromInstance)
 
-//if you call it without arguments, it will clear the graph editor
+//if you call it without arguments, it will clear the graph component
 instance.setGraph()
 ```
 
@@ -216,7 +226,7 @@ Events are fired from the graph host. This is where we attach the event listener
 
 ```javascript
 // get the graph host
-const graphHost = document.getElementById('ge1').shadowRoot.querySelector('.graph-host')
+const graphHost = document.getElementById('gc1').shadowRoot.querySelector('.graph-host')
 // add event listener for right click on node
 graphHost.addEventListener('nodeclicked', function(e){
     if(e.detail.button === 1){

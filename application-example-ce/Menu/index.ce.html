@@ -8,14 +8,9 @@
         <title>Graph Editor</title>
     </head>
     <body style="margin: 0; padding: 0">
-    <div style='display: flex; position: relative; height: 100vh'>
-        <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
-    </div>
-        <script src="graph-editor.js"></script>
-    <script>
-        function getGraphEditorById(id) {
-            return document.getElementById(id)._instance.exposed
-        }
-    </script>
+        <div style='display: flex; position: relative; height: 100vh'>
+            <graph-component id='gc1' style='flex: 1; position: relative'></graph-component>
+        </div>
+        <script src="graph-component.js"></script>
     </body>
 </html>

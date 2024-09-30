@@ -1,5 +1,5 @@
 {
-  "name": "graph-editor",
+  "name": "graph-component",
   "version": "3.0.0",
   "private": true,
   "type": "module",

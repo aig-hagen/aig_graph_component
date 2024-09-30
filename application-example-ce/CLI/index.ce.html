@@ -6,17 +6,19 @@
         <link rel="stylesheet" href='./style.css' />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Graph Editor</title>
+        <!-- MathJax for TeX notation -->
+        <script src='load-mathjax.js' async></script>
     </head>
     <body style="margin: 0; padding: 0">
     <div style='display: flex; position: relative; height: 100vh'>
-        <graph-editor id='ge1' style='flex: 1; position: relative'></graph-editor>
-        <graph-editor id='ge2' style='flex: 1; position: relative'></graph-editor>
+        <graph-component id='gc1' style='flex: 1; position: relative'></graph-component>
+        <graph-component id='gc2' style='flex: 1; position: relative'></graph-component>
     </div>
-    <script src='./graph-editor.js'></script>
+    <script src='./graph-component.js'></script>
     <script>
         // get the graph editor instance by its id, on this you will call all available functions
-        let inst1 = getGraphEditorById('ge1')
-        let inst2 = getGraphEditorById('ge2')
+        let inst1 = getGraphComponentById('gc1')
+        let inst2 = getGraphComponentById('gc2')
 
         // print the (currently displayed) graph
         inst1.printGraph()
@@ -41,15 +43,15 @@
 
         let graphAsTgf = "0 A\n 1 B\n#\n 0 1 A to B"
 
-        let graphAsObjectWithPositionAndColor = {
+        let graphAsObjectWithPositionColorAndLatex = {
             nodes: [
-                {id: 0, label: "A", x: 24, y: 24},
-                {id: 1, label: "B", color: "lavenderblush", x: 222, y: 142},
-                {id: 2, label: "C", x: 111, y: 242}
+                {id: 0, label: "$a_1$", x: 24, y: 24},
+                {id: 1, label: "$b_1$", color: "lavenderblush", x: 222, y: 111},
+                {id: 2, label: "$c_1$", x: 442, y: 442}
             ],
             links: [
-                {sourceId: 0, targetId: 1, label: "A to B"},
-                {sourceId: 2, targetId: 2, label: "C to C"}
+                {sourceId: 0, targetId: 1, label: "$a_1\\ to\\ b_1$"},
+                {sourceId: 2, targetId: 2, label: "$c_1\\ to\\ c_1$"}
             ]
         }
 
@@ -86,11 +88,11 @@
         inst2.resetView()
 
         // set a graph and disable its editing via GUI
-        inst1.setGraph(graphAsObjectWithPositionAndColor);
+        inst1.setGraph(graphAsObjectWithPositionColorAndLatex);
         inst1.toggleGraphEditingInGUI(false);
 
         //This function can be used, to get the graph editor instance by its id.
-        function getGraphEditorById(id) {
+        function getGraphComponentById(id) {
             return document.getElementById(id)._instance.exposed
         }
     </script>
