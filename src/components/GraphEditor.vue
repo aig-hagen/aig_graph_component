@@ -1371,6 +1371,7 @@ function showError(title: string, message: any) {
         <graph-controls
             class="info-text-background text-subtitle-1 text-grey"
             show-controls-graph
+            show-latex-info
             :show-controls-environment="false"
             :show-header="false"
         ></graph-controls>

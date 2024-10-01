@@ -7,6 +7,7 @@ interface Control {
 interface Props {
     showHeader: boolean
     showControlsGraph: boolean
+    showLatexInfo: boolean
     showControlsEnvironment: boolean
 }
 
@@ -35,8 +36,10 @@ const controlsGraph: Control[] = [
     },
     {
         action: 'Create/Update label',
-        desktop: 'Left-click on label',
-        mobile: 'Tap on label'
+        desktop: props.showLatexInfo
+            ? 'Left-click on label, $$ for $\\LaTeX$'
+            : 'Left-click on label',
+        mobile: props.showLatexInfo ? 'Tap on label, $$ for $\\LaTeX$' : 'Tap on label'
     }
 ]
 

@@ -30,6 +30,7 @@ const dialog = ref(false)
                 show-controls-environment
                 show-header
                 show-controls-graph
+                show-latex-info
             ></graph-controls>
 
             <v-card-actions>
