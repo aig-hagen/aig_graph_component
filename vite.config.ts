@@ -8,7 +8,7 @@ import vuetify from 'vite-plugin-vuetify'
 export default defineConfig({
     plugins: [
         vue({
-            customElement: false //when running the build script, this has to be set to true
+            customElement: process.env.NODE_ENV === 'production'
         }),
         vuetify({ autoImport: true })
     ],

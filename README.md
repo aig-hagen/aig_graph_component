@@ -248,14 +248,12 @@ npm install
 ```sh
 npm run dev
 ```
-_The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set to `false`._
 
 #### Type-Check and Compile for Production
 
 ```sh
 npm run build
 ```
-_The `customElement` option in [vite.config.ts](./vite.config.ts) has to be set to `true`._
 
 Depending on whether you want to build the **Custom Element** with the *CLI* functionality
 or without it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).

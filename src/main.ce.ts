@@ -7,10 +7,10 @@ import { defineCustomElement as defineCustomElementToggleShadowRootOption } from
 
 customElements.define(
     'graph-component',
-    // GUI Version
+    // Menu Version without CLI functionality
     // defineCustomElementWrapped(GraphEditor, { plugins: [vuetify] })
-    // CLI Version
+    // CLI Version with ShadowRoot without LaTeX
     // defineCustomElement(GraphEditor)
-    // Without ShadowRoot for MathJax to work
+    // CLI Version with Latex without ShadowRoot for MathJax to work
     defineCustomElementToggleShadowRootOption(GraphEditor, { shadowRoot: false })
 )
