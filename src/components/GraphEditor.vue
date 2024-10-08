@@ -81,6 +81,10 @@ const graphHost = computed(() => {
     return graphHost
 })
 
+const graphHostId = computed(() => {
+    return graphHost.value.node()!.parentElement!.getAttribute('id')
+})
+
 onBeforeMount(() => {
     initFromLocalStorage()
 })
