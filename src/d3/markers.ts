@@ -30,8 +30,15 @@ export function createLinkMarkerColored(
     config: GraphConfiguration,
     color: string
 ) {
-    if (canvas.select('#link-arrow-' + escapeColor(color)).empty()) {
-        createLinkMarker(canvas, config, 'link-arrow-' + color, 'arrow ' + color, false, color)
+    if (canvas.select(`#${graphHostId}-link-arrow-` + escapeColor(color)).empty()) {
+        createLinkMarker(
+            canvas,
+            config,
+            graphHostId + '-link-arrow-' + color,
+            'arrow ' + color,
+            false,
+            color
+        )
         createLinkMarker(
             canvas,
             config,

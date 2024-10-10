@@ -255,8 +255,8 @@ npm run dev
 npm run build
 ```
 
-Depending on whether you want to build the **Custom Element** with the *CLI* functionality
-or without it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
+Depending on whether you want to build the **Custom Element** with the *CLI* functionality, with *LaTeX* support,
+or without any of it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
 
 For more commands refer to the scripts section in [package.json](./package.json).
 
