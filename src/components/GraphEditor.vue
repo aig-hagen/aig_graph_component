@@ -82,7 +82,8 @@ const graphHost = computed(() => {
 })
 
 const graphHostId = computed(() => {
-    return graphHost.value.node()!.parentElement!.getAttribute('id')
+    let id = graphHost.value.node()!.parentElement!.getAttribute('id')
+    return id ? id : 'gc'
 })
 
 onBeforeMount(() => {
@@ -217,7 +218,7 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
             .style('stroke', color)
     }
 
-    createLinkMarkerColored(canvas!, config, color)
+    createLinkMarkerColored(canvas!, graphHostId.value, config, color)
 }
 
 function deleteNode(ids: number[] | number) {
@@ -311,7 +312,7 @@ function initData() {
             }
         }
     )
-    initMarkers(canvas, config, graph.value.getNonDefaultLinkColors())
+    initMarkers(canvas, graphHostId.value, config, graph.value.getNonDefaultLinkColors())
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
@@ -439,9 +440,11 @@ function restart(alpha: number = 0.5): void {
                     .append('path')
                     .classed('link', true)
                     .style('stroke', (d) => (d.color ? d.color : ''))
-                    .attr('id', (d) => d.id)
+                    .attr('id', (d) => graphHostId.value + '-link-' + d.id)
                     .attr('marker-end', (d) =>
-                        d.color ? 'url(#link-arrow-' + d.color : 'url(#link-arrow)'
+                        d.color
+                            ? `url(#${graphHostId.value}-link-arrow-` + d.color
+                            : `url(#${graphHostId.value}-link-arrow)`
                     )
                 linkGroup
                     .append('path')
@@ -466,7 +469,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('class', (d: GraphLink) =>
                         d.label ? 'link-label' : 'link-label-placeholder'
                     )
-                    .attr('href', (d) => `#${d.id}`)
+                    .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
                     .attr('startOffset', '50%')
                     .text((d: GraphLink) => (d.label ? d.label : 'add label'))
                     .on('click', (event: MouseEvent, d: GraphLink) => {
@@ -507,7 +510,7 @@ function restart(alpha: number = 0.5): void {
                     .selectChild('path')
                     .attr('marker-start', function (d) {
                         if (d.pathType?.includes('REVERSE')) {
-                            let markerName = 'url(#link-arrow-reverse'
+                            let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
                             if (d.color) {
                                 markerName += '-' + escapeColor(d.color)
                             }
@@ -519,7 +522,7 @@ function restart(alpha: number = 0.5): void {
                     })
                     .attr('marker-end', function (d) {
                         if (!d.pathType?.includes('REVERSE')) {
-                            let markerName = 'url(#link-arrow'
+                            let markerName = `url(#${graphHostId.value}-link-arrow`
                             if (d.color) {
                                 markerName += '-' + escapeColor(d.color)
                             }
@@ -644,7 +647,7 @@ function restart(alpha: number = 0.5): void {
                 nodeGroup
                     .append('circle')
                     .classed('node', true)
-                    .attr('id', (d) => d.id)
+                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
                     .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
                     .on('mouseenter', (_, d: GraphNode) => onPointerEnterNode(d))
@@ -728,7 +731,9 @@ function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
  * @param node
  */
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
-    let nodeElement = graphHost.value.node()!.querySelector(`#${CSS.escape(String(node.id))}`)!
+    let nodeElement = graphHost.value
+        .node()!
+        .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
     let g = d3.select(nodeElement.parentElement)
@@ -792,7 +797,7 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
     draggableLinkEnd = coordinates
     draggableLinkSourceNode = node
     draggableLink!
-        .attr('marker-end', 'url(#draggable-link-arrow)')
+        .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
         .classed('hidden', false)
         .attr('d', linePath(coordinates, coordinates))
     restart()
@@ -822,7 +827,7 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
 function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeParent = graphHost.value
             .node()!
-            .querySelector(`#${CSS.escape(String(node.id))}`)!.parentElement,
+            .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!.parentElement,
         g = d3.select(nodeParent)
 
     g.select('circle').classed('on-deletion', false)
@@ -935,7 +940,9 @@ function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
  * @param link
  */
 function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
-    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
+    let linkElement = graphHost.value
+        .node()!
+        .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
 
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
@@ -970,7 +977,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
         }
         if (color) {
             if (!graph.value.hasNonDefaultLinkColor(color)) {
-                deleteLinkMarkerColored(canvas!, color)
+                deleteLinkMarkerColored(canvas!, graphHostId.value, color)
             }
         }
     }
@@ -981,7 +988,9 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
  * @param link
  */
 function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
-    let linkElement = graphHost.value.node()!.querySelector(`#${CSS.escape(link.id)}`)
+    let linkElement = graphHost.value
+        .node()!
+        .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
 
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
@@ -1226,7 +1235,7 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         if (srcNode && targetNode) {
             createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
             if (parsedLink.color) {
-                createLinkMarkerColored(canvas!, config, parsedLink.color)
+                createLinkMarkerColored(canvas!, graphHostId.value, config, parsedLink.color)
             }
         }
     }
@@ -1245,7 +1254,7 @@ function deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
         if (currentColorOfLink) {
             //the color of the link we are about to change doesn't exist on another link -> marker can be deleted
             if (!graph.value.hasNonDefaultLinkColor(currentColorOfLink, id)) {
-                deleteLinkMarkerColored(canvas!, currentColorOfLink)
+                deleteLinkMarkerColored(canvas!, graphHostId.value, currentColorOfLink)
             }
             //the link color we are about to change exists in other links
             else {
@@ -1258,7 +1267,7 @@ function deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
                     idsOfLinkColorToChange.includes(linkId)
                 )
                 if (canBeDeleted) {
-                    deleteLinkMarkerColored(canvas!, currentColorOfLink)
+                    deleteLinkMarkerColored(canvas!, graphHostId.value, currentColorOfLink)
                 }
             }
         }

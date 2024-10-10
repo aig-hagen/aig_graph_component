@@ -4,21 +4,29 @@ import { escapeColor } from '@/model/color'
 
 export function initMarkers(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
+    graphHostId: string,
     config: GraphConfiguration,
     colors?: string[]
 ): void {
-    createLinkMarker(canvas, config, 'link-arrow', 'arrow', false)
-    createLinkMarker(canvas, config, 'link-arrow-reverse', 'arrow', true)
-    createLinkMarker(canvas, config, 'draggable-link-arrow', 'arrow draggable', false)
+    createLinkMarker(canvas, config, graphHostId + '-link-arrow', 'arrow', false)
+    createLinkMarker(canvas, config, graphHostId + '-link-arrow-reverse', 'arrow', true)
+    createLinkMarker(
+        canvas,
+        config,
+        graphHostId + '-draggable-link-arrow',
+        'arrow draggable',
+        false
+    )
     if (colors) {
         for (let color of colors) {
-            createLinkMarkerColored(canvas, config, color)
+            createLinkMarkerColored(canvas, graphHostId, config, color)
         }
     }
 }
 
 export function createLinkMarkerColored(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
+    graphHostId: string,
     config: GraphConfiguration,
     color: string
 ) {
@@ -27,7 +35,7 @@ export function createLinkMarkerColored(
         createLinkMarker(
             canvas,
             config,
-            'link-arrow-reverse-' + color,
+            graphHostId + '-link-arrow-reverse-' + color,
             'arrow colored',
             true,
             color
@@ -37,17 +45,18 @@ export function createLinkMarkerColored(
 
 export function deleteLinkMarkerColored(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,
+    graphHostId: string,
     color: string
 ) {
     canvas
-        .select<SVGMarkerElement>('#link-arrow-' + escapeColor(color))
+        .select<SVGMarkerElement>(`#${graphHostId}-link-arrow-` + escapeColor(color))
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })
         .remove()
 
     canvas
-        .select<SVGMarkerElement>('#link-arrow-reverse-' + escapeColor(color))
+        .select<SVGMarkerElement>(`#${graphHostId}-link-arrow-reverse-` + escapeColor(color))
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })
