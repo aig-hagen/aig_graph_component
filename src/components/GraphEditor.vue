@@ -1044,7 +1044,7 @@ function onLinkLabelClicked(event: MouseEvent, link: GraphLink): void {
     if (eventTarget.nodeName === 'textPath') {
         textPathElement = eventTarget as SVGTextPathElement
     } else {
-        const linkContainer = eventTarget.closest('.link-container')
+        const linkContainer = eventTarget.closest('.graph-controller__link-container')
         textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
     }
 
