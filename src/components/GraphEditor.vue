@@ -88,7 +88,15 @@ const graphHost = computed(() => {
 })
 
 const graphHostId = computed(() => {
-    let id = graphHost.value.node()!.parentElement!.getAttribute('id')
+    // w/o shadow root
+    let parent = graphHost.value.node()!.parentElement
+    // with open shadow root
+    if (!parent) {
+        let hostShadow = graphHost.value.node()!.getRootNode() as ShadowRoot
+        parent = hostShadow.host! as HTMLElement
+    }
+
+    let id = parent.getAttribute('id')
     return id ? id : 'gc'
 })
 
@@ -1404,7 +1412,7 @@ function showError(title: string, message: any) {
         <graph-controls
             class="graph-controller__info-text-background text-subtitle-1 text-grey"
             show-controls-graph
-            show-latex-info
+            :show-latex-info="false"
             :show-controls-environment="false"
             :show-header="false"
         ></graph-controls>
