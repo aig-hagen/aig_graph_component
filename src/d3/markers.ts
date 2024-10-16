@@ -8,13 +8,19 @@ export function initMarkers(
     config: GraphConfiguration,
     colors?: string[]
 ): void {
-    createLinkMarker(canvas, config, graphHostId + '-link-arrow', 'arrow', false)
-    createLinkMarker(canvas, config, graphHostId + '-link-arrow-reverse', 'arrow', true)
+    createLinkMarker(canvas, config, graphHostId + '-link-arrow', 'graph-controller__arrow', false)
+    createLinkMarker(
+        canvas,
+        config,
+        graphHostId + '-link-arrow-reverse',
+        'graph-controller__arrow',
+        true
+    )
     createLinkMarker(
         canvas,
         config,
         graphHostId + '-draggable-link-arrow',
-        'arrow draggable',
+        'graph-controller__arrow draggable',
         false
     )
     if (colors) {
@@ -35,7 +41,7 @@ export function createLinkMarkerColored(
             canvas,
             config,
             graphHostId + '-link-arrow-' + color,
-            'arrow ' + color,
+            'graph-controller__arrow ' + color,
             false,
             color
         )
@@ -43,7 +49,7 @@ export function createLinkMarkerColored(
             canvas,
             config,
             graphHostId + '-link-arrow-reverse-' + color,
-            'arrow colored',
+            'graph-controller__arrow colored',
             true,
             color
         )

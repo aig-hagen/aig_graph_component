@@ -58,11 +58,15 @@ const graphHost = computed(() => {
         let graphHostToInit
         //with (open) shadow root
         if (!hostShadow.empty()) {
-            graphHostToInit = hostShadow.select<HTMLDivElement>('.graph-host.uninitialised')
+            graphHostToInit = hostShadow.select<HTMLDivElement>(
+                '.graph-controller__graph-host.uninitialised'
+            )
         }
         //without shadow root
         else {
-            graphHostToInit = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+            graphHostToInit = d3.select<HTMLDivElement, undefined>(
+                '.graph-controller__graph-host.uninitialised'
+            )
         }
 
         if (!graphHostToInit.empty()) {
@@ -74,7 +78,9 @@ const graphHost = computed(() => {
 
     // this is the case for dev mode (one component)
     if (graphHost === undefined) {
-        graphHost = d3.select<HTMLDivElement, undefined>('.graph-host.uninitialised')
+        graphHost = d3.select<HTMLDivElement, undefined>(
+            '.graph-controller__graph-host.uninitialised'
+        )
         graphHost.classed('uninitialised', false)
     }
 
@@ -203,7 +209,7 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
 
         for (const id of idArray) {
             linkSelection!
-                .selectAll<SVGPathElement, GraphLink>('.link')
+                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
                 .filter((d) => d.id === id)
                 .each((d) => (d.color = color))
                 .style('stroke', color)
@@ -213,7 +219,7 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
         deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
 
         linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('.link')
+            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
             .each((d) => (d.color = color))
             .style('stroke', color)
     }
@@ -435,10 +441,12 @@ function restart(alpha: number = 0.5): void {
         .data(graph.value.links, (d: GraphLink) => d.id)
         .join(
             (enter) => {
-                const linkGroup = enter.append('g').classed('link-container', true)
+                const linkGroup = enter
+                    .append('g')
+                    .classed('graph-controller__link-container', true)
                 linkGroup
                     .append('path')
-                    .classed('link', true)
+                    .classed('graph-controller__link', true)
                     .style('stroke', (d) => (d.color ? d.color : ''))
                     .attr('id', (d) => graphHostId.value + '-link-' + d.id)
                     .attr('marker-end', (d) =>
@@ -448,7 +456,7 @@ function restart(alpha: number = 0.5): void {
                     )
                 linkGroup
                     .append('path')
-                    .classed('clickbox', true)
+                    .classed('graph-controller__click-box', true)
                     .on('dblclick', (event: PointerEvent) => {
                         //a double click on a link, should not create a new node
                         terminate(event)
@@ -467,7 +475,9 @@ function restart(alpha: number = 0.5): void {
                     .append('text')
                     .append('textPath')
                     .attr('class', (d: GraphLink) =>
-                        d.label ? 'link-label' : 'link-label-placeholder'
+                        d.label
+                            ? 'graph-controller__link-label'
+                            : 'graph-controller__link-label-placeholder'
                     )
                     .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
                     .attr('startOffset', '50%')
@@ -484,13 +494,13 @@ function restart(alpha: number = 0.5): void {
 
                 linkGroup
                     .append('foreignObject')
-                    .classed('link-label-mathjax-container', true)
+                    .classed('graph-controller__link-label-mathjax-container', true)
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
                     .attr('width', 1)
                     .attr('height', 1)
                     .html(
                         (d: GraphLink) =>
-                            `<div class=${d.label ? 'link-label' : 'link-label-placeholder'}>
+                            `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
                             </div>`
                     )
                     .on('click', (event: MouseEvent, d: GraphLink) => {
@@ -537,7 +547,7 @@ function restart(alpha: number = 0.5): void {
                 update
                     .selectChild('text')
                     .attr('class', (d) => {
-                        return `${d.pathType?.toLowerCase()}-path-text`
+                        return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
                     })
                     .attr('dy', (d) => {
                         if (d.pathType === PathType.REFLEXIVE) {
@@ -577,7 +587,7 @@ function restart(alpha: number = 0.5): void {
                             )
                             .selectChild('foreignObject')
                             .selectChild('div')
-                            .attr('class', 'link-label')
+                            .attr('class', 'graph-controller__link-label')
                             .classed('hidden', !config.showLinkLabels)
                             .node() as HTMLDivElement
 
@@ -609,7 +619,10 @@ function restart(alpha: number = 0.5): void {
                         if (!hasTextNode) {
                             d3.select(textPathElement)
                                 .text('I')
-                                .attr('class', 'link-label-placeholder mjxhidden')
+                                .attr(
+                                    'class',
+                                    'graph-controller__link-label-placeholder mjx-hidden'
+                                )
                         }
                     })
 
@@ -638,7 +651,7 @@ function restart(alpha: number = 0.5): void {
             (enter) => {
                 const nodeGroup = enter
                     .append('g')
-                    .classed('node-container', true)
+                    .classed('graph-controller__node-container', true)
                     .call(drag!)
                     .on('dblclick', (event: PointerEvent) => {
                         //a double click on a node, should not create a new one
@@ -646,7 +659,7 @@ function restart(alpha: number = 0.5): void {
                     })
                 nodeGroup
                     .append('circle')
-                    .classed('node', true)
+                    .classed('graph-controller__node', true)
                     .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
                     .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
@@ -665,14 +678,14 @@ function restart(alpha: number = 0.5): void {
                     })
                 nodeGroup
                     .append('foreignObject')
-                    .classed('node-label-container', true)
+                    .classed('graph-controller__node-label-container', true)
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
                     .attr('width', 1)
                     .attr('height', 1)
                     .attr('y', -0.5 * config.nodeRadius)
                     .html(
                         (d: GraphNode) =>
-                            `<div class=${d.label ? 'node-label' : 'node-label-placeholder'}>
+                            `<div class=${d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'}>
                                 ${d.label ? d.label : 'add label'}
                             </div>`
                     )
@@ -1038,7 +1051,7 @@ function handleInputForLabel(
     let elementType = element instanceof GraphNode ? 'node' : 'link'
 
     const input = document.createElement('input')
-    input.setAttribute('class', 'label-input')
+    input.setAttribute('class', 'graph-controller__label-input')
     input.setAttribute('id', `${elementType}-label-input-field`)
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
@@ -1099,9 +1112,11 @@ function handleInputForLabel(
  * @param textContainingElement
  */
 function _handleLinkMjxContainer(textContainingElement: SVGTextPathElement) {
-    const linkContainer = textContainingElement.closest('.link-container')
+    const linkContainer = textContainingElement.closest('.graph-controller__link-container')
     linkContainer!.querySelector('mjx-container')?.remove()
-    linkContainer!.querySelector('div')!.setAttribute('class', 'link-label-placeholder')
+    linkContainer!
+        .querySelector('div')!
+        .setAttribute('class', 'graph-controller__link-label-placeholder')
 }
 
 /**
@@ -1111,7 +1126,9 @@ function _handleLinkMjxContainer(textContainingElement: SVGTextPathElement) {
  * @param textContainingElement
  */
 function _redrawNodeContainer(textContainingElement: HTMLDivElement) {
-    let nodeContainer = textContainingElement.closest('.node-container') as SVGGElement
+    let nodeContainer = textContainingElement.closest(
+        '.graph-controller__node-container'
+    ) as SVGGElement
     const nodeContainerParent = nodeContainer!.parentElement
     nodeContainer!.remove()
     nodeContainerParent!.append(nodeContainer)
@@ -1128,7 +1145,10 @@ function _unsetLabel(
     element: GraphNode | GraphLink,
     elementType: string
 ) {
-    textContainingElement.setAttribute('class', `${elementType}-label-placeholder`)
+    textContainingElement.setAttribute(
+        'class',
+        `graph-controller__${elementType}-label-placeholder`
+    )
     textContainingElement.textContent = 'add label'
     element.label = undefined
 }
@@ -1146,7 +1166,7 @@ function _setLabel(
     element: GraphNode | GraphLink,
     elementType: string
 ) {
-    textContainingElement.setAttribute('class', `${elementType}-label`)
+    textContainingElement.setAttribute('class', `graph-controller__${elementType}-label`)
     textContainingElement.textContent = input.value.trim()
     element.label = textContainingElement.textContent
 }
@@ -1314,8 +1334,8 @@ function showError(title: string, message: any) {
         type="text/css"
         href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
     />
-    <div class="graph-host uninitialised" />
-    <div v-if="config.hasToolbar" class="button-container">
+    <div class="graph-controller__graph-host uninitialised" />
+    <div v-if="config.hasToolbar" class="graph-controller__button-container">
         <v-tooltip location="bottom" :open-delay="750" text="Create Node">
             <template #activator="{ props }">
                 <v-btn
@@ -1382,7 +1402,7 @@ function showError(title: string, message: any) {
     </div>
     <div v-show="!graphHasNodes">
         <graph-controls
-            class="info-text-background text-subtitle-1 text-grey"
+            class="graph-controller__info-text-background text-subtitle-1 text-grey"
             show-controls-graph
             show-latex-info
             :show-controls-environment="false"
@@ -1401,7 +1421,7 @@ function showError(title: string, message: any) {
 </template>
 
 <style lang="scss">
-.graph-host {
+.graph-controller__graph-host {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -1409,7 +1429,7 @@ function showError(title: string, message: any) {
     background-color: lightgrey;
 }
 
-.link {
+.graph-controller__link {
     stroke: #004c97;
     stroke-width: 4px;
     fill: none;
@@ -1425,14 +1445,14 @@ function showError(title: string, message: any) {
     }
 }
 
-.clickbox {
+.graph-controller__click-box {
     stroke: rgba($color: #000, $alpha: 0);
     stroke-width: 16px;
     fill: none;
     cursor: pointer;
 }
 
-.arrow {
+.graph-controller__arrow {
     fill: #004c97;
 
     &.draggable {
@@ -1440,18 +1460,18 @@ function showError(title: string, message: any) {
     }
 }
 
-.line-path-text,
-.arc-path-text,
-.line-reverse-path-text,
-.arc-reverse-path-text,
-.reflexive-path-text,
-.link-label-mathjax-container {
+.graph-controller__line-path-text,
+.graph-controller__arc-path-text,
+.graph-controller__line-reverse-path-text,
+.graph-controller__arc-reverse-path-text,
+.graph-controller__reflexive-path-text,
+.graph-controller__link-label-mathjax-container {
     text-anchor: middle;
     pointer-events: all;
     cursor: text;
     opacity: 1;
     stroke: none;
-    .link-label {
+    .graph-controller__link-label {
         fill: black;
         stroke: none;
         font-size: 1rem;
@@ -1467,7 +1487,7 @@ function showError(title: string, message: any) {
         }
     }
 
-    .link-label-placeholder {
+    .graph-controller__link-label-placeholder {
         fill: dimgrey;
         font-style: oblique;
         font-size: 0.85rem;
@@ -1482,7 +1502,7 @@ function showError(title: string, message: any) {
             cursor: pointer;
         }
 
-        &.mjxhidden {
+        &.mjx-hidden {
             visibility: hidden;
             cursor: pointer;
             pointer-events: none;
@@ -1490,7 +1510,7 @@ function showError(title: string, message: any) {
     }
 }
 
-.node {
+.graph-controller__node {
     fill: #eb9850;
     stroke: none;
     cursor: pointer;
@@ -1503,11 +1523,11 @@ function showError(title: string, message: any) {
     }
 }
 
-.link-label-mathjax-container,
-.node-label-container {
+.graph-controller__link-label-mathjax-container,
+.graph-controller__node-label-container {
     overflow: visible;
 }
-.node-label {
+.graph-controller__node-label {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1527,7 +1547,7 @@ function showError(title: string, message: any) {
         cursor: pointer;
     }
 }
-.node-label-placeholder {
+.graph-controller__node-label-placeholder {
     color: dimgray;
     display: flex;
     justify-content: center;
@@ -1549,10 +1569,10 @@ function showError(title: string, message: any) {
         cursor: pointer;
     }
 }
-.label-input {
+.graph-controller__label-input {
     background-color: rgba(255, 255, 255, 0.9);
 }
-.button-container {
+.graph-controller__button-container {
     position: absolute;
     top: 1rem;
     left: 1rem;
@@ -1571,7 +1591,7 @@ function showError(title: string, message: any) {
     user-select: none !important;
 }
 
-.info-text-background {
+.graph-controller__info-text-background {
     width: 50%;
     height: 50%;
     position: absolute;
