@@ -22025,7 +22025,7 @@ const sd = /* @__PURE__ */ tE(nE), rE = /* @__PURE__ */ Ae("link", {
     }
     function Re(P, z) {
       let W = P.target, q;
-      W.nodeName === "textPath" ? q = W : q = W.closest(".link-container").querySelector("textPath");
+      W.nodeName === "textPath" ? q = W : q = W.closest(".graph-controller__link-container").querySelector("textPath");
       let G = go(q);
       Ye(z, q, G);
     }
@@ -22227,7 +22227,7 @@ const sd = /* @__PURE__ */ tE(nE), rE = /* @__PURE__ */ Ae("link", {
         y(qv, {
           class: "graph-controller__info-text-background text-subtitle-1 text-grey",
           "show-controls-graph": "",
-          "show-latex-info": "",
+          "show-latex-info": !1,
           "show-controls-environment": !1,
           "show-header": !1
         })

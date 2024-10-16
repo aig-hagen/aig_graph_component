@@ -22166,7 +22166,7 @@ const sd = /* @__PURE__ */ sE(aE), uE = /* @__PURE__ */ Ae("link", {
     }
     function Re(P, z) {
       let W = P.target, q;
-      W.nodeName === "textPath" ? q = W : q = W.closest(".link-container").querySelector("textPath");
+      W.nodeName === "textPath" ? q = W : q = W.closest(".graph-controller__link-container").querySelector("textPath");
       let G = go(q);
       qe(z, q, G);
     }
