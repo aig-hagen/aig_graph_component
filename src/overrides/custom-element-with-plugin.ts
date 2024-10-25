@@ -1,4 +1,8 @@
 //@ts-nocheck
+/* This is not used anymore in the graph component that gets bundled as a custom element,
+since we don't want to have vuetify anymore inside the graph components custom element.
+Nevertheless, this stays here a while for reference or if someone needs this functionality.*/
+
 /*Expansion for defineCustomElement using with plugins (like vuetify) as seen here:
 https://stackoverflow.com/questions/69808113/how-to-use-vue-router-and-vuex-inside-custom-element-from-root/69820280#69820280
 https://stackoverflow.com/questions/76933641/how-can-add-libraries-like-vuetify-inside-of-a-web-component-created-by-vue-3*/

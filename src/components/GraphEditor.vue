@@ -166,7 +166,7 @@ function setGraph(graphToSet: string | jsonGraph | undefined) {
     if (typeof graphToSet === 'object' || typeof graphToSet === 'string') {
         _onHandleGraphImport(graphToSet)
     } else {
-        resetGraph()
+        _resetGraph()
     }
 }
 
@@ -290,11 +290,6 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
  */
 function initFromLocalStorage() {
     const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
-
-    //checks if the user already visited the site
-    if (localStorage.wasHere) {
-        wasHere.value = stringToBoolean(localStorage.wasHere)
-    }
 
     //config
     if (localStorage.showNodeLabels) {
@@ -653,7 +648,7 @@ function restart(alpha: number = 0.5): void {
                     .selectChild('textPath')
                     .each(function () {
                         const textPathElement = this as SVGTextPathElement
-                        const [x, y] = getTextPathPosition(textPathElement)
+                        const [x, y] = _getTextPathPosition(textPathElement)
 
                         //@ts-ignore
                         d3.select(textPathElement.parentNode.parentNode)
@@ -817,7 +812,7 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
             })
         }
         graphHasNodes.value = graph.value.nodes.length > 0
-        resetDraggableLink()
+        _resetDraggableLink()
         restart()
     }
 }
@@ -874,7 +869,7 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
 function _onPointerUpCreateLink(): void {
     const source = draggableLinkSourceNode
     const target = draggableLinkTargetNode
-    resetDraggableLink()
+    _resetDraggableLink()
     if (source === undefined || target === undefined) {
         return
     }
@@ -1061,7 +1056,7 @@ function onLinkLabelClicked(event: MouseEvent, link: GraphLink): void {
         textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
     }
 
-    let position = getTextPathPosition(textPathElement)
+    let position = _getTextPathPosition(textPathElement)
     handleInputForLabel(link, textPathElement, position)
 }
 function handleInputForLabel(
@@ -1192,7 +1187,7 @@ function _setLabel(
     element.label = textContainingElement.textContent
 }
 
-function getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
+function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
     let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
     let rectTextPath = textPathElement.getBoundingClientRect()
     let x = (rectTextPath.x - rectSvg.x - xOffset) / scale
@@ -1200,7 +1195,7 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-function resetDraggableLink(): void {
+function _resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
     draggableLinkSourceNode = undefined
     draggableLinkTargetNode = undefined
@@ -1308,12 +1303,12 @@ function resetView(): void {
     linkSelection = undefined
     nodeSelection = undefined
     simulation = undefined
-    resetDraggableLink()
+    _resetDraggableLink()
     initFromLocalStorage()
     initData()
 }
 
-function resetGraph(): void {
+function _resetGraph(): void {
     graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
     graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
     graph.value = new Graph()
