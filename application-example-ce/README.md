@@ -5,7 +5,7 @@ demonstrates the integration of it.
 
 ## What you need
 In your html you need to:
-  * uses the `<graph-component>` tag
+  * use the `<graph-component>` tag
   * reference the `graph-editor.js` script for the graph component functionality
   * reference the `load-mathjax.js` script for LaTeX integration
   * link to `style.css`

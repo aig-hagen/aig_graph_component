@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
 //component
-import ImportExport from '@/components/ImportExport.vue'
-import GraphHelp from '@/components/GraphHelp.vue'
-import GraphSettings, { type Settings } from '@/components/GraphSettings.vue'
 import GraphControls from '@/components/GraphControls.vue'
 //d3
 import * as d3 from 'd3'
@@ -113,12 +110,6 @@ onUnmounted(() => {
     window.removeEventListener('resize', resetView)
 })
 
-const wasHere = ref(false)
-
-const hasError = ref(false)
-const errorTitle = ref('')
-const errorMsg = ref('')
-
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
 const config = reactive(new GraphConfigDefault())
@@ -173,7 +164,7 @@ function getGraph(format: string = 'json') {
 
 function setGraph(graphToSet: string | jsonGraph | undefined) {
     if (typeof graphToSet === 'object' || typeof graphToSet === 'string') {
-        onHandleGraphImport(graphToSet)
+        _onHandleGraphImport(graphToSet)
     } else {
         resetGraph()
     }
@@ -213,7 +204,7 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
     if (ids) {
         const idArray = Array.isArray(ids) ? ids : [ids]
 
-        deleteNotNeededColorMarker(idArray)
+        _deleteNotNeededColorMarker(idArray)
 
         for (const id of idArray) {
             linkSelection!
@@ -224,7 +215,7 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
         }
     } else {
         //if no ids are provided, the color is set for all currently existing links
-        deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
+        _deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
 
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
@@ -270,11 +261,33 @@ function deleteLink(ids: string[] | string) {
     }
 }
 
+function toggleNodePhysics(isEnabled: boolean): void {
+    config.nodePhysicsEnabled = isEnabled
+    setNodeChargeAndAttraction(simulation, isEnabled, width, height)
+}
+function toggleFixedLinkDistance(isEnabled: boolean): void {
+    config.fixedLinkDistanceEnabled = isEnabled
+    setFixedLinkDistance(simulation, graph.value, config, isEnabled)
+}
+function toggleLinkLabels(isEnabled: boolean) {
+    config.showLinkLabels = isEnabled
+}
+function toggleNodeLabels(isEnabled: boolean) {
+    config.showNodeLabels = isEnabled
+}
+function toggleZoom(isEnabled: boolean) {
+    config.zoomEnabled = isEnabled
+    resetView()
+}
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
+
 //endregion
 
+/**
+ * Inits the graph configuration with the settings from the local storage.
+ */
 function initFromLocalStorage() {
     const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
 
@@ -1187,45 +1200,21 @@ function getTextPathPosition(textPathElement: SVGTextPathElement): [number, numb
     return [x, y]
 }
 
-// endregion
-
-function onUpdateSettings(newSettings: Settings): void {
-    toggleNodeLabels(newSettings.showNodeLabels)
-    toggleNodePhysics(newSettings.nodePhysicsEnabled)
-
-    toggleLinkLabels(newSettings.showLinkLabels)
-    toggleFixedLinkDistance(newSettings.fixedLinkDistanceEnabled)
-
-    toggleZoom(newSettings.zoomEnabled)
-
-    config.persistSettingsLocalStorage = newSettings.persistEnabled
-}
-function toggleNodePhysics(isEnabled: boolean): void {
-    config.nodePhysicsEnabled = isEnabled
-    setNodeChargeAndAttraction(simulation, isEnabled, width, height)
-}
-function toggleFixedLinkDistance(isEnabled: boolean): void {
-    config.fixedLinkDistanceEnabled = isEnabled
-    setFixedLinkDistance(simulation, graph.value, config, isEnabled)
-}
-function toggleLinkLabels(isEnabled: boolean) {
-    config.showLinkLabels = isEnabled
-}
-function toggleNodeLabels(isEnabled: boolean) {
-    config.showNodeLabels = isEnabled
-}
-function toggleZoom(isEnabled: boolean) {
-    config.zoomEnabled = isEnabled
-    resetView()
-}
-
 function resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
     draggableLinkSourceNode = undefined
     draggableLinkTargetNode = undefined
     draggableLinkEnd = undefined
 }
-function onHandleGraphImport(importContent: string | jsonGraph) {
+
+// endregion
+
+/**
+ * Handles the graph import: Parses the provided content (TGF or JSON)
+ * and displays it in the graph component.
+ *
+ * @param importContent - The graph data to import, either as a TGF string or a JSON object.*/
+function _onHandleGraphImport(importContent: string | jsonGraph) {
     let nodes, links
     try {
         if (typeof importContent === 'string') {
@@ -1241,10 +1230,16 @@ function onHandleGraphImport(importContent: string | jsonGraph) {
         return
     }
 
-    resetGraph()
-    parsedToGraph(nodes, links)
+    _resetGraph()
+    _parsedToGraph(nodes, links)
 }
-function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
+
+/**
+ * Renders the parsed nodes and links within the graph component.
+ * @param nodes - parsed nodes
+ * @param links - parsed links
+ */
+function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(
             parsedNode.x,
@@ -1272,7 +1267,7 @@ function parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
  Checks the links that will change color and deletes colored link markers that are then not needed anymore
  @params idArrayOfLinkColorToChanged - links that will change color
  */
-function deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
+function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
     for (let id of idsOfLinkColorToChange) {
         const currentColorOfLink = graph.value.links
             .filter((link) => link.id === id)
@@ -1328,10 +1323,6 @@ function resetGraph(): void {
 
 function showError(title: string, message: any) {
     console.error(title + '\n' + message)
-    hasError.value = true
-    errorTitle.value = title
-    errorMsg.value = message.toString()
-    window.setInterval(() => (hasError.value = false), 6000)
 }
 </script>
 
@@ -1343,71 +1334,6 @@ function showError(title: string, message: any) {
         href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
     />
     <div class="graph-controller__graph-host uninitialised" />
-    <div v-if="config.hasToolbar" class="graph-controller__button-container">
-        <v-tooltip location="bottom" :open-delay="750" text="Create Node">
-            <template #activator="{ props }">
-                <v-btn
-                    v-if="config.isGraphEditableInGUI"
-                    aria-label="Create Node"
-                    class="mx-1"
-                    color="grey"
-                    density="comfortable"
-                    elevation="6"
-                    icon="$addNode"
-                    v-bind="props"
-                    variant="plain"
-                    @click="createNode()"
-                >
-                </v-btn>
-            </template>
-        </v-tooltip>
-        <v-tooltip location="bottom" :open-delay="750" text="Delete Graph">
-            <template #activator="{ props }">
-                <v-btn
-                    v-if="config.isGraphEditableInGUI"
-                    aria-label="Delete Graph"
-                    class="mx-1"
-                    color="grey"
-                    density="comfortable"
-                    elevation="6"
-                    icon="$deleteGraph"
-                    v-bind="props"
-                    variant="plain"
-                    @click="resetGraph()"
-                >
-                </v-btn>
-            </template>
-        </v-tooltip>
-        <v-tooltip location="bottom" :open-delay="750" text="Reset View">
-            <template #activator="{ props }">
-                <v-btn
-                    v-if="config.zoomEnabled"
-                    aria-label="Reset View"
-                    class="mx-1"
-                    color="grey"
-                    density="comfortable"
-                    elevation="6"
-                    icon="$resetView"
-                    v-bind="props"
-                    variant="plain"
-                    @click="resetView()"
-                ></v-btn>
-            </template>
-        </v-tooltip>
-        <import-export
-            :graph-as-tgf="graph.toTGF(config.showNodeLabels, config.showLinkLabels, false, false)"
-            :graph-as-json="
-                graph.toJSON(config.showNodeLabels, config.showLinkLabels, true, true, true)
-            "
-            @file-imported="onHandleGraphImport"
-        />
-        <graph-help />
-        <graph-settings
-            :config="config"
-            :is-welcome="!wasHere"
-            @update-settings="onUpdateSettings"
-        />
-    </div>
     <div v-show="!graphHasNodes">
         <graph-controls
             class="graph-controller__info-text-background text-subtitle-1 text-grey"
@@ -1417,15 +1343,6 @@ function showError(title: string, message: any) {
             :show-header="false"
         ></graph-controls>
     </div>
-    <v-snackbar v-model="hasError" color="error" variant="tonal">
-        <v-row align="center">
-            <v-icon icon="$error" class="ml-2"></v-icon>
-            <v-col>
-                <h4>{{ errorTitle }}</h4>
-                <p>{{ errorMsg }}</p>
-            </v-col>
-        </v-row>
-    </v-snackbar>
 </template>
 
 <style lang="scss">

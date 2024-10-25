@@ -1,6 +1,5 @@
 // @ts-nocheck
-/* This is not used anymore in the graph component but remains here a while for reference or if someone needs this functionality.
-
+/* We use this to remove shadow dom in the custom element for MathJaX to work.
 ___________________________________________________
 Since there currently is no way of using vue custom elements without the shadow-dom
 this override can be used (https://github.com/vuejs/core/issues/4314#issuecomment-1021393430).

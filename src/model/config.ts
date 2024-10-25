@@ -22,7 +22,7 @@ export interface GraphConfiguration {
 
 export class GraphConfigDefault implements GraphConfiguration {
     persistSettingsLocalStorage = false
-    hasToolbar = true
+    hasToolbar = false
 
     nodeRadius = 24
     showNodeLabels = true
