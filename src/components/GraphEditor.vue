@@ -1322,20 +1322,14 @@ function showError(title: string, message: any) {
 </script>
 
 <template>
-    <!-- we need this for vuetify to work properly in the custom element version-->
-    <link
-        rel="stylesheet"
-        type="text/css"
-        href="https://cdn.jsdelivr.net/npm/vuetify@3/dist/vuetify.min.css"
-    />
     <div class="graph-controller__graph-host uninitialised" />
     <div v-show="!graphHasNodes">
         <graph-controls
-            class="graph-controller__info-text-background text-subtitle-1 text-grey"
+            class="graph-controller__info-text-background"
             show-controls-graph
-            :show-latex-info="false"
+            :show-latex-info="true"
             :show-controls-environment="false"
-            :show-header="false"
+            :show-header="true"
         ></graph-controls>
     </div>
 </template>
@@ -1393,8 +1387,9 @@ function showError(title: string, message: any) {
     stroke: none;
     .graph-controller__link-label {
         fill: black;
-        stroke: none;
+        font-family: sans-serif;
         font-size: 1rem;
+        stroke: none;
 
         &.hidden {
             visibility: hidden;
@@ -1409,8 +1404,9 @@ function showError(title: string, message: any) {
 
     .graph-controller__link-label-placeholder {
         fill: dimgrey;
-        font-style: oblique;
+        font-family: sans-serif;
         font-size: 0.85rem;
+        font-style: oblique;
 
         &.hidden {
             visibility: hidden;
@@ -1448,6 +1444,7 @@ function showError(title: string, message: any) {
     overflow: visible;
 }
 .graph-controller__node-label {
+    font-family: sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1468,7 +1465,8 @@ function showError(title: string, message: any) {
     }
 }
 .graph-controller__node-label-placeholder {
-    color: dimgray;
+    color: dimgrey;
+    font-family: sans-serif;
     display: flex;
     justify-content: center;
     font-style: oblique;
@@ -1512,6 +1510,8 @@ function showError(title: string, message: any) {
 }
 
 .graph-controller__info-text-background {
+    color: lightgrey;
+    font-family: sans-serif;
     width: 50%;
     height: 50%;
     position: absolute;

@@ -56,16 +56,16 @@ const controlsEnvironment: Control[] = [
     }
 ]
 
-const headers: any = ['Action', 'Desktop', 'Mobile']
+const headers: any = ['Action', 'Desktop', 'Touch']
 </script>
 
 <template>
-    <v-table density="comfortable" fixed-header>
+    <table>
         <thead v-show="props.showHeader">
             <tr>
-                <th class="text-left">{{ headers[0] }}</th>
-                <th class="text-left">{{ headers[1] }}</th>
-                <th class="text-left">{{ headers[2] }}</th>
+                <th>{{ headers[0] }}</th>
+                <th>{{ headers[1] }}</th>
+                <th>{{ headers[2] }}</th>
             </tr>
         </thead>
         <tbody>
@@ -84,7 +84,7 @@ const headers: any = ['Action', 'Desktop', 'Mobile']
                 <td>{{ item.mobile }}</td>
             </tr>
         </tbody>
-    </v-table>
+    </table>
 </template>
 
 <style scoped lang="scss"></style>
