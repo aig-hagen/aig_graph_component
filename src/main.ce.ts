@@ -1,6 +1,6 @@
 //@ts-nocheck
 import { defineCustomElement } from 'vue'
-import GraphEditor from '@/components/GraphEditor.vue'
+import GraphEditor from '@/components/GraphComponent.vue'
 import { defineCustomElement as defineCustomElementToggleShadowRootOption } from '@/overrides/custom-element-remove-shadowroot'
 
 customElements.define(

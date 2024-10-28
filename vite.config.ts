@@ -7,7 +7,8 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
     plugins: [
         vue({
-            customElement: process.env.NODE_ENV === 'production'
+            // custom element mode -> inlines the styles
+            // customElement: process.env.NODE_ENV === 'production'
         })
     ],
     resolve: {

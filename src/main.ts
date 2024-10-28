@@ -1,4 +1,4 @@
 import { createApp } from 'vue'
-import GraphEditor from '@/components/GraphEditor.vue'
+import GraphComponent from '@/components/GraphComponent.vue'
 
-createApp(GraphEditor).mount('#app')
+createApp(GraphComponent).mount('#app')

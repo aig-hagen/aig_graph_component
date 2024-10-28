@@ -254,9 +254,12 @@ npm run dev
 ```sh
 npm run build
 ```
-
-Depending on whether you want to build the **Custom Element** with the *CLI* functionality, with *LaTeX* support,
-or without any of it (and therefore with a menu bar on top) you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
-
 For more commands refer to the scripts section in [package.json](./package.json).
+
+
+Depending on whether you want to build the **Custom Element** with *LaTeX* support
+or without it, you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
+To choose between inline style or an external style.css file *(current default)*,
+you have the option for *custom element mode* in [vite.config.ts](vite.config.ts).
+
 

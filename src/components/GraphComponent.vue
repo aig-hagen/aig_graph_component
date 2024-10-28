@@ -1490,24 +1490,6 @@ function showError(title: string, message: any) {
 .graph-controller__label-input {
     background-color: rgba(255, 255, 255, 0.9);
 }
-.graph-controller__button-container {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    margin-top: -6px;
-
-    > * {
-        margin-top: 6px;
-    }
-}
-
-*:not(input):not(.selectable) {
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-}
 
 .graph-controller__info-text-background {
     color: lightgrey;
@@ -1519,5 +1501,13 @@ function showError(title: string, message: any) {
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+}
+
+*:not(input):not(.selectable) {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
 }
 </style>
