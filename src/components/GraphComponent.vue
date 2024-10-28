@@ -41,6 +41,7 @@ import type { GraphLink } from '@/model/graph-link'
 //other
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
+import Bowser from 'bowser'
 
 const graphHost = computed(() => {
     //this is the case for production mode (one and multiple components)
@@ -109,6 +110,8 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('resize', resetView)
 })
+
+const browser = Bowser.getParser(window.navigator.userAgent)
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
@@ -698,7 +701,13 @@ function restart(alpha: number = 0.5): void {
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
                     .attr('width', 1)
                     .attr('height', 1)
-                    .attr('y', -0.5 * config.nodeRadius)
+                    .attr('y', () => {
+                        if (browser.getBrowserName(true) == 'firefox') {
+                            return -0.5 * config.nodeRadius
+                        } else {
+                            return -0.5 * config.nodeRadius + 2
+                        }
+                    })
                     .html(
                         (d: GraphNode) =>
                             `<div class=${d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'}>
