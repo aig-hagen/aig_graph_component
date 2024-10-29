@@ -1512,11 +1512,9 @@ function showError(title: string, message: any) {
     pointer-events: none;
 }
 
-*:not(input):not(.selectable) {
+[class^='graph-controller']:not(input):not(.selectable) {
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
     user-select: none !important;
 }
 </style>
