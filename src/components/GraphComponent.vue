@@ -1339,6 +1339,7 @@ function showError(title: string, message: any) {
             :show-latex-info="true"
             :show-controls-environment="false"
             :show-header="true"
+            :platform-type="browser.getPlatformType()"
         ></graph-controls>
     </div>
 </template>
