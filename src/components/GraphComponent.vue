@@ -501,7 +501,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
                     .attr('startOffset', '50%')
                     .text((d: GraphLink) => (d.label ? d.label : 'add label'))
-                    .on('click', (event: MouseEvent, d: GraphLink) => {
+                    .on('click', (event: PointerEvent, d: GraphLink) => {
                         if (config.isGraphEditableInGUI) {
                             onLinkLabelClicked(event, d)
                         }
@@ -522,7 +522,7 @@ function restart(alpha: number = 0.5): void {
                             `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
                             </div>`
                     )
-                    .on('click', (event: MouseEvent, d: GraphLink) => {
+                    .on('click', (event: PointerEvent, d: GraphLink) => {
                         if (config.isGraphEditableInGUI) {
                             onLinkLabelClicked(event, d)
                         }
@@ -682,8 +682,8 @@ function restart(alpha: number = 0.5): void {
                     .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
                     .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
-                    .on('mouseenter', (_, d: GraphNode) => onPointerEnterNode(d))
-                    .on('mouseout', (_, d: GraphNode) => onPointerOutNode(d))
+                    .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
+                    .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
                         if (config.isGraphEditableInGUI) {
@@ -714,7 +714,7 @@ function restart(alpha: number = 0.5): void {
                                 ${d.label ? d.label : 'add label'}
                             </div>`
                     )
-                    .on('click', (event: MouseEvent, d: GraphNode) => {
+                    .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
                         }
@@ -723,8 +723,8 @@ function restart(alpha: number = 0.5): void {
                         //a double click on a label, should not create a new node
                         terminate(event)
                     })
-                    .on('mouseenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
-                    .on('mouseout', () => (draggableLinkTargetNode = undefined))
+                    .on('pointerenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
+                    .on('pointerout', () => (draggableLinkTargetNode = undefined))
                 return nodeGroup
             },
             (update) => {
@@ -752,8 +752,8 @@ function restart(alpha: number = 0.5): void {
  * @param event
  * @param node
  */
-function onPointerDownNode(event: MouseEvent, node: GraphNode): void {
-    if (event.button === 2) {
+function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
+    if (event.button === 2 || event.pointerType === 'touch') {
         _onPointerDownCreateDraggableLink(node)
 
         longRightClickTimerNode = setTimeout(() => {
@@ -1048,13 +1048,13 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 
 // region labels
 
-function onNodeLabelClicked(event: MouseEvent, node: GraphNode): void {
+function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
     const eventParent = event?.target as Element
     const textElement = eventParent.closest('div') as HTMLDivElement
 
     handleInputForLabel(node, textElement, [node.x!, node.y!])
 }
-function onLinkLabelClicked(event: MouseEvent, link: GraphLink): void {
+function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
     let eventTarget = event.target as Element
     let textPathElement
 
