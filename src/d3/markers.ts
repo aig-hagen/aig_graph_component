@@ -1,6 +1,6 @@
 import * as d3 from 'd3'
 import type { GraphConfiguration } from '@/model/config'
-import { escapeColor } from '@/model/color'
+import { escapeColor } from '@/model/helper'
 
 export function initMarkers(
     canvas: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>,

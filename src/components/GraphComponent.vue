@@ -28,7 +28,7 @@ import {
 import Graph from '@/model/graph'
 import { PathType } from '@/model/path-type'
 import { GraphConfigDefault } from '@/model/config'
-import { escapeColor } from '@/model/color'
+import { escapeColor, releaseImplicitPointerCapture } from '@/model/helper'
 import {
     type jsonGraph,
     type parsedLink,
