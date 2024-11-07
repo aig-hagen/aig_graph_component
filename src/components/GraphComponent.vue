@@ -60,7 +60,7 @@ const graphHost = computed(() => {
                 '.graph-controller__graph-host.uninitialised'
             )
         }
-        //without shadow root
+        //w/o shadow root
         else {
             graphHostToInit = d3.select<HTMLDivElement, undefined>(
                 '.graph-controller__graph-host.uninitialised'
@@ -104,14 +104,19 @@ onBeforeMount(() => {
 
 onMounted(() => {
     initData()
-    window.addEventListener('resize', resetView)
+    window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
-    window.removeEventListener('resize', resetView)
+    window.removeEventListener('resize', handleResize)
 })
 
 const browser = Bowser.getParser(window.navigator.userAgent)
+const platformType = browser.getPlatformType(true)
+
+/* Set to true, when the label input fields opens and to false when it blurs
+ * -> this may not be accurate for all cases. */
+let isVirtualKeyboardProbablyOpen = false
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
@@ -754,6 +759,8 @@ function restart(alpha: number = 0.5): void {
  */
 function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
     if (event.button === 2 || event.pointerType === 'touch') {
+        releaseImplicitPointerCapture(event)
+
         _onPointerDownCreateDraggableLink(node)
 
         longRightClickTimerNode = setTimeout(() => {
@@ -894,21 +901,7 @@ function onPointerMovedBeginningFromNode(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
         const pointer = d3.pointers(event, graphHost.value!.node())[0]
-        const point: [number, number] = [
-            (pointer[0] - xOffset) / scale,
-            (pointer[1] - yOffset) / scale
-        ]
-        if (event.pointerType === 'touch') {
-            point[1] = point[1] - 4 * config.nodeRadius
-            // PointerEvents are not firing correctly for touch input.
-            // So for TouchEvents, we have to manually detect Nodes within range and set them as the current target node.
-            draggableLinkTargetNode = graph.value.nodes.find(
-                (node) =>
-                    Math.sqrt(Math.pow(node.x! - point[0], 2) + Math.pow(node.y! - point[1], 2)) <
-                    config.nodeRadius
-            )
-        }
-        draggableLinkEnd = point
+        draggableLinkEnd = [(pointer[0] - xOffset) / scale, (pointer[1] - yOffset) / scale]
         updateDraggableLinkPath()
     }
 }
@@ -953,7 +946,7 @@ function onPointerUpLink(event: PointerEvent, link: GraphLink) {
     terminate(event)
     clearTimeout(longRightClickTimerLink)
 
-    if (event.button === 2) {
+    if (event.button === 2 || event.pointerType === 'touch') {
         _onPointerUpCancelDeleteAnimationLink(link)
     }
 }
@@ -964,8 +957,9 @@ function onPointerUpLink(event: PointerEvent, link: GraphLink) {
  * @param link
  */
 function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
-    if (event.button === 2) {
-        terminate(event)
+    if (event.button === 2 || event.pointerType === 'touch') {
+        releaseImplicitPointerCapture(event)
+
         longRightClickTimerLink = setTimeout(() => {
             _onPointerDownRenderDeleteAnimationLink(link)
         }, 250)
@@ -1068,19 +1062,42 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
     let position = _getTextPathPosition(textPathElement)
     handleInputForLabel(link, textPathElement, position)
 }
+
+/**
+ * Handles the input for node and link labels.
+ *
+ * @param element
+ * @param textContainingElement
+ * @param position
+ */
 function handleInputForLabel(
     element: GraphNode | GraphLink,
     textContainingElement: HTMLDivElement | SVGTextPathElement,
     position: [number, number]
 ) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
-
+    // create input
     const input = document.createElement('input')
     input.setAttribute('class', 'graph-controller__label-input')
     input.setAttribute('id', `${elementType}-label-input-field`)
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
+    // append input to foreign object
+    const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
+    foreignObj.setAttribute('width', '100%')
+    foreignObj.setAttribute('height', '100%')
+    foreignObj.setAttribute('x', `${position[0]! - 80}`)
+    foreignObj.setAttribute('y', `${position[1]! - 12}`)
+    foreignObj.append(input)
+    // append foreign object
+    graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
+    input.focus()
 
+    if (platformType !== 'desktop') {
+        isVirtualKeyboardProbablyOpen = true
+    }
+
+    //event handler
     input.ondblclick = function (e) {
         //double-click on the input should not create a new node
         terminate(e)
@@ -1115,17 +1132,11 @@ function handleInputForLabel(
             }
         }
         foreignObj.remove()
+
+        if (platformType !== 'desktop') {
+            isVirtualKeyboardProbablyOpen = false
+        }
     }
-
-    const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
-    foreignObj.setAttribute('width', '100%')
-    foreignObj.setAttribute('height', '100%')
-    foreignObj.setAttribute('x', `${position[0]! - 80}`)
-    foreignObj.setAttribute('y', `${position[1]! - 12}`)
-    foreignObj.append(input)
-
-    graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
-    input.focus()
 }
 
 /**
@@ -1317,6 +1328,16 @@ function resetView(): void {
     initData()
 }
 
+/**
+ * Handles window resize, except when triggered by the appearance of the on-screen keyboard on touch devices,
+ * though detection of whether the keyboard is truly open may not be 100% accurate.
+ */
+function handleResize() {
+    if (!isVirtualKeyboardProbablyOpen) {
+        resetView()
+    }
+}
+
 function _resetGraph(): void {
     graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
     graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
@@ -1339,7 +1360,7 @@ function showError(title: string, message: any) {
             :show-latex-info="true"
             :show-controls-environment="false"
             :show-header="true"
-            :platform-type="browser.getPlatformType()"
+            :platform-type="platformType"
         ></graph-controls>
     </div>
 </template>
