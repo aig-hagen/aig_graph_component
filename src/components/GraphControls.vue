@@ -23,12 +23,12 @@ const controlsGraph: Control[] = [
     {
         action: 'Create link',
         desktop: 'Right-click on node + hold + drag towards target',
-        touch: 'Long-tap + drag'
+        touch: 'Hold + drag'
     },
     {
         action: 'Delete node/link',
-        desktop: 'Right-click + hold on node/link',
-        touch: 'Long-tap'
+        desktop: 'Right-click + hold',
+        touch: 'Touch + hold'
     },
     {
         action: 'Move node',
