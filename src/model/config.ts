@@ -24,7 +24,7 @@ export class GraphConfigDefault implements GraphConfiguration {
     persistSettingsLocalStorage = false
     hasToolbar = false
 
-    nodeRadius = 24
+    private _nodeRadius = 24
     showNodeLabels = true
     nodePhysicsEnabled = false
 
@@ -36,13 +36,29 @@ export class GraphConfigDefault implements GraphConfiguration {
     fixedLinkDistanceEnabled = false
 
     markerBoxSize = 4
+    private _markerPadding = this._nodeRadius + 2 * this.markerBoxSize
 
-    markerPadding = this.nodeRadius + 2 * this.markerBoxSize
-    markerRef = this.markerBoxSize / 2
-    arrowPoints: [number, number][] = [
-        [0, 0],
-        [0, this.markerBoxSize],
-        [this.markerBoxSize, this.markerBoxSize / 2]
-    ]
-    markerPath = [0, 0, this.markerBoxSize, this.markerBoxSize].join(',')
+    public get nodeRadius() {
+        return this._nodeRadius
+    }
+    public set nodeRadius(radius: number) {
+        this._nodeRadius = radius
+        this._markerPadding = this._nodeRadius + 2 * this.markerBoxSize
+    }
+    public get markerPadding() {
+        return this._markerPadding
+    }
+    public get markerRef() {
+        return this.markerBoxSize / 2
+    }
+    public get arrowPoints(): [number, number][] {
+        return [
+            [0, 0],
+            [0, this.markerBoxSize],
+            [this.markerBoxSize, this.markerBoxSize / 2]
+        ]
+    }
+    public get markerPath() {
+        return [0, 0, this.markerBoxSize, this.markerBoxSize].join(',')
+    }
 }

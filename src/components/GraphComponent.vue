@@ -148,6 +148,7 @@ defineExpose({
     setLinkColor,
     deleteNode,
     deleteLink,
+    setNodeRadius,
     toggleNodeLabels,
     toggleLinkLabels,
     toggleZoom,
@@ -267,6 +268,11 @@ function deleteLink(ids: string[] | string) {
                 }
             })
     }
+}
+
+function setNodeRadius(radius: number) {
+    config.nodeRadius = radius
+    resetView()
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -733,6 +739,8 @@ function restart(alpha: number = 0.5): void {
                 return nodeGroup
             },
             (update) => {
+                update.selectChild('circle').attr('r', config.nodeRadius)
+
                 update
                     .selectChild('foreignObject')
                     .selectChild('div')
