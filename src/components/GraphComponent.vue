@@ -687,12 +687,6 @@ function restart(alpha: number = 0.5): void {
                         //a double click on a node, should not create a new one
                         terminate(event)
                     })
-                nodeGroup
-                    .append('circle')
-                    .classed('graph-controller__node', true)
-                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('r', config.nodeRadius)
-                    .style('fill', (d) => (d.color ? d.color : ''))
                     .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
@@ -707,23 +701,25 @@ function restart(alpha: number = 0.5): void {
                         }
                     })
                 nodeGroup
+                    .append('circle')
+                    .classed('graph-controller__node', true)
+                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
+                    .attr('r', config.nodeRadius)
+                    .style('fill', (d) => (d.color ? d.color : ''))
+
+                nodeGroup
                     .append('foreignObject')
                     .classed('graph-controller__node-label-container', true)
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
-                    .attr('width', 1)
-                    .attr('height', 1)
-                    .attr('y', () => {
-                        if (browser.getBrowserName(true) == 'firefox') {
-                            return -0.5 * config.nodeRadius
-                        } else {
-                            return -0.5 * config.nodeRadius + 2
-                        }
-                    })
+                    .attr('width', 2 * config.nodeRadius)
+                    .attr('height', 2 * config.nodeRadius)
+                    .attr('x', -config.nodeRadius)
+                    .attr('y', -config.nodeRadius)
                     .html(
                         (d: GraphNode) =>
                             `<div class=${d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'}>
                                 ${d.label ? d.label : 'add label'}
-                            </div>`
+                         </div>`
                     )
                     .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
@@ -1094,7 +1090,7 @@ function handleInputForLabel(
     const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
     foreignObj.setAttribute('width', '100%')
     foreignObj.setAttribute('height', '100%')
-    foreignObj.setAttribute('x', `${position[0]! - 80}`)
+    foreignObj.setAttribute('x', `${position[0]! - 90}`)
     foreignObj.setAttribute('y', `${position[1]! - 12}`)
     foreignObj.append(input)
     // append foreign object
@@ -1491,7 +1487,9 @@ function showError(title: string, message: any) {
     opacity: 1;
     text-align: center;
     pointer-events: all;
-    cursor: text;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
 
     &.hidden {
         visibility: hidden;
@@ -1508,13 +1506,15 @@ function showError(title: string, message: any) {
     font-family: sans-serif;
     display: flex;
     justify-content: center;
+    align-items: center;
     font-style: oblique;
     font-size: 0.85rem;
     opacity: 1;
+    text-align: center;
     pointer-events: all;
-    cursor: text;
-    position: relative;
-    top: -6px;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
 
     &.hidden {
         visibility: hidden;
