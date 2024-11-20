@@ -271,8 +271,12 @@ function deleteLink(ids: string[] | string) {
 }
 
 function setNodeRadius(radius: number) {
-    config.nodeRadius = radius
-    resetView()
+    if (radius > 0) {
+        config.nodeRadius = radius
+        resetView()
+    } else {
+        console.error('The radius should be greater than zero.')
+    }
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -732,6 +736,7 @@ function restart(alpha: number = 0.5): void {
                     })
                     .on('pointerenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
                     .on('pointerout', () => (draggableLinkTargetNode = undefined))
+
                 return nodeGroup
             },
             (update) => {

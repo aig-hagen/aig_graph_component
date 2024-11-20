@@ -153,6 +153,14 @@ instance.setLinkColor("RGB(250,70,99)")
 instance.setLinkColor("HSL(212,92%,45%,0.5)")
 ```
 
+#### Changing Size
+We may want to change the size of the displayed elements.
+For nodes this can be done by changing their radius:
+```javascript
+instance.setNodeRadius(42)
+```
+
+
 #### Miscellaneous
 If we want to embed the component and only display the graph without 
 allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via CLI remain available)*,
