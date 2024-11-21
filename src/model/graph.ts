@@ -19,8 +19,11 @@ export default class Graph {
         y?: number,
         importedId?: string | number,
         label?: string,
-        color?: string
-    ): D3Node {
+        color?: string,
+        isDraggableViaGUI?: boolean,
+        isDeletableViaGUI?: boolean,
+        isLabelEditableViaGUI?: boolean
+    ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
             importedId,
@@ -29,7 +32,10 @@ export default class Graph {
             undefined,
             undefined,
             label,
-            color
+            color,
+            isDraggableViaGUI,
+            isDeletableViaGUI,
+            isLabelEditableViaGUI
         )
         this.nodes.push(node)
         return node
@@ -39,8 +45,10 @@ export default class Graph {
         sourceId: number,
         targetId: number,
         label?: string,
-        color?: string
-    ): D3Link | undefined {
+        color?: string,
+        isDeletableViaGUI?: boolean,
+        isLabelEditableViaGUI?: boolean
+    ): GraphLink | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
         )
@@ -58,7 +66,15 @@ export default class Graph {
             return undefined
         }
 
-        const link = new GraphLink(source, target, undefined, label, color)
+        const link = new GraphLink(
+            source,
+            target,
+            undefined,
+            label,
+            color,
+            isDeletableViaGUI,
+            isLabelEditableViaGUI
+        )
         this.links.push(link)
         return link
     }
@@ -182,16 +198,20 @@ export default class Graph {
      * @param includeNodeColor if node color should be included
      * @param includeLinkColor if link color should be included
      * @param includeNodePosition if position should be included
+     * @param includeNodeEditability if editability of node via GUI should be included
+     * @param includeLinkEditability if editability of link via GUI should be included
      * @returns The graph in JSON format*/
     public toJSON(
         includeNodeLabels: boolean = true,
         includeLinkLabels: boolean = true,
         includeNodeColor: boolean = true,
         includeLinkColor: boolean = true,
-        includeNodePosition: boolean = true
+        includeNodePosition: boolean = true,
+        includeNodeEditability: boolean = true,
+        includeLinkEditability: boolean = true
     ): string {
         let nodesStructure = this.nodes
-            .map((node) => {
+            .map((node: GraphNode) => {
                 let include = ['id']
 
                 if (includeNodeLabels && node.label !== undefined) {
@@ -200,9 +220,19 @@ export default class Graph {
                 if (includeNodeColor && node.color !== undefined) {
                     include.push('color')
                 }
-                if (includeNodePosition && node.x !== undefined) {
+                if (includeNodePosition && node.x !== undefined && node.y !== undefined) {
                     include.push('x')
                     include.push('y')
+                }
+                if (
+                    includeNodeEditability &&
+                    node.isDraggableViaGUI !== undefined &&
+                    node.isDeletableViaGUI !== undefined &&
+                    node.isLabelEditableViaGUI !== undefined
+                ) {
+                    include.push('isDraggableViaGUI')
+                    include.push('isDeletableViaGUI')
+                    include.push('isLabelEditableViaGUI')
                 }
 
                 return JSON.stringify(node, include)
@@ -210,7 +240,7 @@ export default class Graph {
             .join(',\n\t\t')
 
         let linkStructure = this.links
-            .map((link) => {
+            .map((link: GraphLink) => {
                 let include = ['sourceId', 'targetId']
 
                 if (includeLinkLabels && link.label !== undefined) {
@@ -218,6 +248,15 @@ export default class Graph {
                 }
                 if (includeLinkColor && link.color !== undefined) {
                     include.push('color')
+                }
+                if (
+                    includeLinkEditability &&
+                    link.isDeletableViaGUI !== undefined &&
+                    link.isLabelEditableViaGUI !== undefined
+                ) {
+                    include.push('isDraggableViaGUI')
+                    include.push('isDeletableViaGUI')
+                    include.push('isLabelEditableViaGUI')
                 }
 
                 let linkWithSplitId = this.convertD3ToJSONLink(link)

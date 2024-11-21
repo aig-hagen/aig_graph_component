@@ -4,6 +4,9 @@ export type parsedNode = {
     y?: number
     label?: string
     color?: string
+    draggable?: boolean
+    deletable?: boolean
+    labelEditable?: boolean
 }
 
 export type parsedLink = {
@@ -11,6 +14,8 @@ export type parsedLink = {
     targetIdImported: string | number
     label?: string
     color?: string
+    deletable?: boolean
+    labelEditable?: boolean
 }
 
 export type jsonNode = {
@@ -19,12 +24,17 @@ export type jsonNode = {
     y?: number
     label?: string
     color?: string
+    draggable?: boolean
+    deletable?: boolean
+    labelEditable?: boolean
 }
 export type jsonLink = {
     sourceId: number
     targetId: number
     label?: string
     color?: string
+    deletable?: boolean
+    labelEditable?: boolean
 }
 export type jsonGraph = {
     nodes: jsonNode[]
@@ -108,7 +118,10 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             x: node.x,
             y: node.y,
             label: node.label,
-            color: node.color
+            color: node.color,
+            draggable: node.draggable,
+            deletable: node.deletable,
+            labelEditable: node.labelEditable
         })
     }
     const links: parsedLink[] = []
@@ -117,7 +130,9 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             sourceIdImported: link.sourceId,
             targetIdImported: link.targetId,
             label: link.label,
-            color: link.color
+            color: link.color,
+            deletable: link.deletable,
+            labelEditable: link.labelEditable
         })
     }
     return [nodes, links]
