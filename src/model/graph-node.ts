@@ -11,7 +11,13 @@ export interface D3Node extends SimulationNodeDatum {
     color?: string
 }
 
-export class GraphNode implements D3Node {
+export interface NodeGUIEditablility {
+    isDraggableViaGUI?: boolean
+    isDeletableViaGUI?: boolean
+    isLabelEditableViaGUI?: boolean
+}
+
+export class GraphNode implements D3Node, NodeGUIEditablility {
     // eslint-disable-next-line no-useless-constructor
     /**
      * @param id - The internal ID which is used for node referencing.
@@ -22,6 +28,9 @@ export class GraphNode implements D3Node {
      * @param fy
      * @param label
      * @param color - The color of the node which was set (for default color this is empty)
+     * @param isDraggableViaGUI - If the node is draggable via GUI
+     * @param isDeletableViaGUI - If the node is deletable via GUI
+     * @param isLabelEditableViaGUI - If the nodes label is editable via GUI
      */
     public constructor(
         public readonly id: number,
@@ -31,6 +40,9 @@ export class GraphNode implements D3Node {
         public fx?: number,
         public fy?: number,
         public label?: string,
-        public color?: string
+        public color?: string,
+        public isDraggableViaGUI?: boolean,
+        public isDeletableViaGUI?: boolean,
+        public isLabelEditableViaGUI?: boolean
     ) {}
 }
