@@ -36,8 +36,8 @@ import {
     parseJSONGraph,
     parseTGF
 } from '@/model/parser'
-import { GraphNode } from '@/model/graph-node'
-import type { GraphLink } from '@/model/graph-link'
+import { GraphNode, type NodeGUIEditability } from '@/model/graph-node'
+import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
 //other
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
@@ -149,6 +149,7 @@ defineExpose({
     deleteNode,
     deleteLink,
     setNodeRadius,
+    setNodeEditability,
     toggleNodeLabels,
     toggleLinkLabels,
     toggleZoom,
@@ -275,8 +276,54 @@ function setNodeRadius(radius: number) {
         config.nodeRadius = radius
         resetView()
     } else {
-        console.error('The radius should be greater than zero.')
+        showError('Invalid Radius', 'The radius should be greater than zero.')
     }
+}
+
+function setNodeEditability(
+    editability: NodeGUIEditability,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (ids !== undefined) {
+        const idStringArray = Array.isArray(ids) ? ids : [ids]
+        const idArray = idStringArray.map(Number)
+        for (const id of idArray) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    d.draggable = editability.draggable ?? d.draggable
+                    d.deletable = editability.deletable ?? d.deletable
+                    d.labelEditable = editability.labelEditable ?? d.labelEditable
+                })
+        }
+    } else {
+        //if no ids are provided, the editability is set for all currently existing nodes
+        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+            d.draggable = editability.draggable ?? d.draggable
+            d.deletable = editability.deletable ?? d.deletable
+            d.labelEditable = editability.labelEditable ?? d.labelEditable
+        })
+    }
+
+    const allowedKeys: (keyof NodeGUIEditability)[] = ['draggable', 'deletable', 'labelEditable']
+    _validityCheckOptions(allowedKeys, Object.keys(editability))
+}
+
+function _validityCheckOptions(
+    allowedKeys: (keyof NodeGUIEditability | keyof LinkGUIEditability)[], //we actually just check if the type is keyof GUIEditability
+    givenKeys: string[]
+) {
+    givenKeys.forEach((givenKey) => {
+        if (
+            !allowedKeys.includes(givenKey as keyof LinkGUIEditability | keyof NodeGUIEditability)
+        ) {
+            showError(
+                `Node editability option not valid: ${givenKey}`,
+                `Use the following: ${allowedKeys.join(', ')}.`
+            )
+        }
+    })
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -772,10 +819,12 @@ function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
 
         _onPointerDownCreateDraggableLink(node)
 
-        longRightClickTimerNode = setTimeout(() => {
-            draggableLinkTargetNode = undefined
-            _onPointerDownRenderDeleteAnimationNode(node)
-        }, 250)
+        if (node.deletable) {
+            longRightClickTimerNode = setTimeout(() => {
+                draggableLinkTargetNode = undefined
+                _onPointerDownRenderDeleteAnimationNode(node)
+            }, 250)
+        }
     }
 }
 
@@ -1051,11 +1100,18 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 
 // region labels
 
+/**
+ * Handles the input for the nodes label, if it is editable.
+ * @param event
+ * @param node
+ */
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
-    const eventParent = event?.target as Element
-    const textElement = eventParent.closest('div') as HTMLDivElement
+    if (node.labelEditable) {
+        const eventParent = event?.target as Element
+        const textElement = eventParent.closest('div') as HTMLDivElement
 
-    handleInputForLabel(node, textElement, [node.x!, node.y!])
+        handleInputForLabel(node, textElement, [node.x!, node.y!])
+    }
 }
 function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
     let eventTarget = event.target as Element

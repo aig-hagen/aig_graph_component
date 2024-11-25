@@ -1,22 +1,20 @@
+import type { NodeGUIEditability } from '@/model/graph-node'
+import type { LinkGUIEditability } from '@/model/graph-link'
+
 export type parsedNode = {
     idImported: string | number
     x?: number
     y?: number
     label?: string
     color?: string
-    draggable?: boolean
-    deletable?: boolean
-    labelEditable?: boolean
-}
+} & NodeGUIEditability
 
 export type parsedLink = {
     sourceIdImported: string | number
     targetIdImported: string | number
     label?: string
     color?: string
-    deletable?: boolean
-    labelEditable?: boolean
-}
+} & LinkGUIEditability
 
 export type jsonNode = {
     id: number
@@ -24,18 +22,13 @@ export type jsonNode = {
     y?: number
     label?: string
     color?: string
-    draggable?: boolean
-    deletable?: boolean
-    labelEditable?: boolean
-}
+} & NodeGUIEditability
 export type jsonLink = {
     sourceId: number
     targetId: number
     label?: string
     color?: string
-    deletable?: boolean
-    labelEditable?: boolean
-}
+} & LinkGUIEditability
 export type jsonGraph = {
     nodes: jsonNode[]
     links: jsonLink[]

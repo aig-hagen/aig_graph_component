@@ -20,9 +20,10 @@ export default class Graph {
         importedId?: string | number,
         label?: string,
         color?: string,
-        isDraggableViaGUI?: boolean,
-        isDeletableViaGUI?: boolean,
-        isLabelEditableViaGUI?: boolean
+        //TODO soon there will probably also be global editability config settings, which will replace the default values
+        isDraggableViaGUI: boolean = true,
+        isDeletableViaGUI: boolean = true,
+        isLabelEditableViaGUI: boolean = true
     ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -226,9 +227,9 @@ export default class Graph {
                 }
                 if (
                     includeNodeEditability &&
-                    node.isDraggableViaGUI !== undefined &&
-                    node.isDeletableViaGUI !== undefined &&
-                    node.isLabelEditableViaGUI !== undefined
+                    node.draggable !== undefined &&
+                    node.deletable !== undefined &&
+                    node.labelEditable !== undefined
                 ) {
                     include.push('isDraggableViaGUI')
                     include.push('isDeletableViaGUI')
@@ -251,8 +252,8 @@ export default class Graph {
                 }
                 if (
                     includeLinkEditability &&
-                    link.isDeletableViaGUI !== undefined &&
-                    link.isLabelEditableViaGUI !== undefined
+                    link.deletable !== undefined &&
+                    link.labelEditable !== undefined
                 ) {
                     include.push('isDraggableViaGUI')
                     include.push('isDeletableViaGUI')
