@@ -42,8 +42,9 @@ export default class Graph {
         targetId: number,
         label?: string,
         color?: string,
-        isDeletableViaGUI?: boolean,
-        isLabelEditableViaGUI?: boolean
+        //TODO soon there will probably also be global editability config settings, which will replace the default values
+        isDeletableViaGUI: boolean = true,
+        isLabelEditableViaGUI: boolean = true
     ): GraphLink | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId

@@ -156,6 +156,7 @@ defineExpose({
     deleteLink,
     setNodeRadius,
     setNodeEditability,
+    setLinkEditability,
     toggleNodeLabels,
     toggleLinkLabels,
     toggleZoom,
@@ -345,20 +346,28 @@ function _setFixedNodePosition(node: GraphNode, fixedPosition: FixedAxis | boole
     }
 }
 
-function _validityCheckOptions(
-    allowedKeys: (keyof NodeGUIEditability | keyof LinkGUIEditability)[], //we actually just check if the type is keyof GUIEditability
-    givenKeys: string[]
-) {
-    givenKeys.forEach((givenKey) => {
-        if (
-            !allowedKeys.includes(givenKey as keyof LinkGUIEditability | keyof NodeGUIEditability)
-        ) {
-            showError(
-                `Node editability option not valid: ${givenKey}`,
-                `Use the following: ${allowedKeys.join(', ')}.`
-            )
+function setLinkEditability(editability: LinkGUIEditability, ids: string[] | string | undefined) {
+    if (ids) {
+        const idArray = Array.isArray(ids) ? ids : [ids]
+        for (const id of idArray) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    d.deletable = editability.deletable ?? d.deletable
+                    d.labelEditable = editability.labelEditable ?? d.labelEditable
+                })
         }
-    })
+    } else {
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
+            .each(function (d) {
+                d.deletable = editability.deletable ?? d.deletable
+                d.labelEditable = editability.labelEditable ?? d.labelEditable
+            })
+    }
+
+    checkForNotValidKeys(['deletable', 'labelEditable'], Object.keys(editability), true)
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -463,13 +472,18 @@ function createLink(source: GraphNode, target: GraphNode, label?: string, color?
 function createNode(
     x?: number,
     y?: number,
+    fx?: number,
+    fy?: number,
     importedId?: string | number,
     label?: string,
     nodeColor?: string
+    //TODO soon there will probably also be global editability config settings, which will replace the default values
 ): void {
     let newNode = graph.value.createNode(
         x ?? width / 2,
         y ?? height / 2,
+        fx,
+        fy,
         importedId,
         label,
         nodeColor
@@ -1045,7 +1059,7 @@ function onPointerUpLink(event: PointerEvent, link: GraphLink) {
 }
 
 /**
- * Deletes the given link and triggers the according events.
+ * If the link is deletable, deletes the given link after showing the delete animation and triggers the according events.
  * @param event
  * @param link
  */
@@ -1053,9 +1067,11 @@ function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
     if (event.button === 2 || event.pointerType === 'touch') {
         releaseImplicitPointerCapture(event)
 
-        longRightClickTimerLink = setTimeout(() => {
-            _onPointerDownRenderDeleteAnimationLink(link)
-        }, 250)
+        if (link.deletable) {
+            longRightClickTimerLink = setTimeout(() => {
+                _onPointerDownRenderDeleteAnimationLink(link)
+            }, 250)
+        }
     }
 }
 
@@ -1148,19 +1164,27 @@ function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
         handleInputForLabel(node, textElement, [node.x!, node.y!])
     }
 }
+
+/**
+ * Handles the input for the link label, if it is editable.
+ * @param event
+ * @param link
+ */
 function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
-    let eventTarget = event.target as Element
-    let textPathElement
+    if (link.labelEditable) {
+        let eventTarget = event.target as Element
+        let textPathElement
 
-    if (eventTarget.nodeName === 'textPath') {
-        textPathElement = eventTarget as SVGTextPathElement
-    } else {
-        const linkContainer = eventTarget.closest('.graph-controller__link-container')
-        textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
+        if (eventTarget.nodeName === 'textPath') {
+            textPathElement = eventTarget as SVGTextPathElement
+        } else {
+            const linkContainer = eventTarget.closest('.graph-controller__link-container')
+            textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
+        }
+
+        let position = _getTextPathPosition(textPathElement)
+        handleInputForLabel(link, textPathElement, position)
     }
-
-    let position = _getTextPathPosition(textPathElement)
-    handleInputForLabel(link, textPathElement, position)
 }
 
 /**
