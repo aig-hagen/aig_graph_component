@@ -1047,14 +1047,16 @@ function onPointerOutLink(event: PointerEvent) {
 
 /**
  * Clears the timeout for long right click on link
- * and cancels the link deletion and the respective animation.
+ * and cancels the link deletion and the respective animation if the link is deletable.
  */
 function onPointerUpLink(event: PointerEvent, link: GraphLink) {
     terminate(event)
     clearTimeout(longRightClickTimerLink)
 
     if (event.button === 2 || event.pointerType === 'touch') {
-        _onPointerUpCancelDeleteAnimationLink(link)
+        if (link.deletable) {
+            _onPointerUpCancelDeleteAnimationLink(link)
+        }
     }
 }
 
