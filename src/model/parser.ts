@@ -5,6 +5,8 @@ export type parsedNode = {
     idImported: string | number
     x?: number
     y?: number
+    fx?: number
+    fy?: number
     label?: string
     color?: string
 } & NodeGUIEditability
@@ -20,6 +22,8 @@ export type jsonNode = {
     id: number
     x?: number
     y?: number
+    fx?: number
+    fy?: number
     label?: string
     color?: string
 } & NodeGUIEditability
@@ -110,9 +114,11 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             idImported: node.id,
             x: node.x,
             y: node.y,
+            fx: node.fx,
+            fy: node.fy,
             label: node.label,
             color: node.color,
-            draggable: node.draggable,
+            fixedPosition: node.fixedPosition,
             deletable: node.deletable,
             labelEditable: node.labelEditable
         })

@@ -28,7 +28,13 @@ import {
 import Graph from '@/model/graph'
 import { PathType } from '@/model/path-type'
 import { GraphConfigDefault } from '@/model/config'
-import { escapeColor, releaseImplicitPointerCapture } from '@/model/helper'
+import {
+    checkForAllNecessaryKeys,
+    checkForNotValidKeys,
+    escapeColor,
+    releaseImplicitPointerCapture,
+    showError
+} from '@/model/helper'
 import {
     type jsonGraph,
     type parsedLink,
@@ -36,7 +42,7 @@ import {
     parseJSONGraph,
     parseTGF
 } from '@/model/parser'
-import { GraphNode, type NodeGUIEditability } from '@/model/graph-node'
+import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
 //other
 //@ts-ignore
@@ -292,7 +298,7 @@ function setNodeEditability(
                 .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    d.draggable = editability.draggable ?? d.draggable
+                    _setFixedNodePosition(d, editability.fixedPosition)
                     d.deletable = editability.deletable ?? d.deletable
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
                 })
@@ -300,14 +306,43 @@ function setNodeEditability(
     } else {
         //if no ids are provided, the editability is set for all currently existing nodes
         nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
-            d.draggable = editability.draggable ?? d.draggable
+            _setFixedNodePosition(d, editability.fixedPosition)
             d.deletable = editability.deletable ?? d.deletable
             d.labelEditable = editability.labelEditable ?? d.labelEditable
         })
     }
 
-    const allowedKeys: (keyof NodeGUIEditability)[] = ['draggable', 'deletable', 'labelEditable']
-    _validityCheckOptions(allowedKeys, Object.keys(editability))
+    checkForNotValidKeys(
+        ['fixedPosition', 'deletable', 'labelEditable'],
+        Object.keys(editability),
+        true
+    )
+}
+
+function _setFixedNodePosition(node: GraphNode, fixedPosition: FixedAxis | boolean | undefined) {
+    if (fixedPosition !== undefined) {
+        if (typeof fixedPosition === 'boolean') {
+            if (fixedPosition) {
+                node.fixedPosition = { x: true, y: true }
+                node.fx = node.x
+                node.fy = node.y
+            } else {
+                node.fixedPosition = { x: false, y: false }
+                node.fx = undefined
+                node.fy = undefined
+            }
+        } else {
+            if (checkForAllNecessaryKeys(['x', 'y'], Object.keys(fixedPosition), true)) {
+                node.fixedPosition = fixedPosition
+                node.fx = fixedPosition.x ? node.x : undefined
+                node.fy = fixedPosition.y ? node.y : undefined
+
+                checkForNotValidKeys(['x', 'y'], Object.keys(fixedPosition), true)
+            }
+        }
+    } else {
+        showError('FixedPosition undefined', '')
+    }
 }
 
 function _validityCheckOptions(
@@ -1324,6 +1359,8 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         createNode(
             parsedNode.x,
             parsedNode.y,
+            parsedNode.fx,
+            parsedNode.fy,
             parsedNode.idImported,
             parsedNode.label,
             parsedNode.color
@@ -1409,10 +1446,6 @@ function _resetGraph(): void {
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
-}
-
-function showError(title: string, message: any) {
-    console.error(title + '\n' + message)
 }
 </script>
 

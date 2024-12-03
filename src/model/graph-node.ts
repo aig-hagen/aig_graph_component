@@ -12,9 +12,14 @@ export interface D3Node extends SimulationNodeDatum {
 }
 
 export interface NodeGUIEditability {
-    draggable?: boolean
+    fixedPosition?: FixedAxis
     deletable?: boolean
     labelEditable?: boolean
+}
+
+export type FixedAxis = {
+    x: boolean
+    y: boolean
 }
 
 export class GraphNode implements D3Node, NodeGUIEditability {
@@ -28,7 +33,7 @@ export class GraphNode implements D3Node, NodeGUIEditability {
      * @param fy
      * @param label
      * @param color - The color of the node which was set (for default color this is empty)
-     * @param draggable - If the node is draggable via GUI
+     * @param fixedPosition - A fixed node can't be dragged via GUI and isn't influenced by the simulation forces
      * @param deletable - If the node is deletable via GUI
      * @param labelEditable - If the nodes label is editable via GUI
      */
@@ -41,7 +46,7 @@ export class GraphNode implements D3Node, NodeGUIEditability {
         public fy?: number,
         public label?: string,
         public color?: string,
-        public draggable?: boolean,
+        public fixedPosition?: FixedAxis,
         public deletable?: boolean,
         public labelEditable?: boolean
     ) {}

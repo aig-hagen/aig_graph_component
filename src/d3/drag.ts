@@ -14,27 +14,40 @@ export function createDrag(
 ): Drag {
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
-        .filter((event) => event.button === 0) //left mouse click
-        .filter((_, d: GraphNode) => {
-            return d.draggable ?? true
-        })
+        .filter(
+            (event, d) =>
+                event.button === 0 && //left mouse click
+                (d.fixedPosition?.x !== true || d.fixedPosition?.y !== true)
+        )
         .on('start', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             terminate(event.sourceEvent)
             if (event.active === 0) {
                 simulation!.alphaTarget(0.5).restart()
             }
-            d.fx = d.x
-            d.fy = d.y
+            if (d.fixedPosition?.x !== true) {
+                d.fx = d.x
+            }
+            if (d.fixedPosition?.y !== true) {
+                d.fy = d.y
+            }
         })
         .on('drag', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
-            d.fx = Math.max(radius, Math.min(width - radius, event.x))
-            d.fy = Math.max(radius, Math.min(height - radius, event.y))
+            if (d.fixedPosition?.x !== true) {
+                d.fx = Math.max(radius, Math.min(width - radius, event.x))
+            }
+            if (d.fixedPosition?.y !== true) {
+                d.fy = Math.max(radius, Math.min(height - radius, event.y))
+            }
         })
         .on('end', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (event.active === 0) {
                 simulation!.alphaTarget(0)
             }
-            d.fx = undefined
-            d.fy = undefined
+            if (d.fixedPosition?.x !== true) {
+                d.fx = undefined
+            }
+            if (d.fixedPosition?.y !== true) {
+                d.fy = undefined
+            }
         })
 }

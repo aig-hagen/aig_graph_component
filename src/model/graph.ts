@@ -1,5 +1,5 @@
 import { type D3Link, GraphLink } from '@/model/graph-link'
-import { type D3Node, GraphNode } from '@/model/graph-node'
+import { type D3Node, type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
 
 export default class Graph {
@@ -7,21 +7,16 @@ export default class Graph {
     public readonly nodes: D3Node[] = []
     public readonly links: D3Link[] = []
 
-    public unlockNodes(): void {
-        this.nodes.forEach((node) => {
-            node.fx = undefined
-            node.fy = undefined
-        })
-    }
-
     public createNode(
         x?: number,
         y?: number,
+        fx?: number,
+        fy?: number,
         importedId?: string | number,
         label?: string,
         color?: string,
         //TODO soon there will probably also be global editability config settings, which will replace the default values
-        isDraggableViaGUI: boolean = true,
+        hasFixedPosition: FixedAxis = { x: false, y: false },
         isDeletableViaGUI: boolean = true,
         isLabelEditableViaGUI: boolean = true
     ): GraphNode {
@@ -30,11 +25,11 @@ export default class Graph {
             importedId,
             x,
             y,
-            undefined,
-            undefined,
+            fx,
+            fy,
             label,
             color,
-            isDraggableViaGUI,
+            hasFixedPosition,
             isDeletableViaGUI,
             isLabelEditableViaGUI
         )
@@ -225,15 +220,16 @@ export default class Graph {
                     include.push('x')
                     include.push('y')
                 }
-                if (
-                    includeNodeEditability &&
-                    node.draggable !== undefined &&
-                    node.deletable !== undefined &&
-                    node.labelEditable !== undefined
-                ) {
-                    include.push('isDraggableViaGUI')
-                    include.push('isDeletableViaGUI')
-                    include.push('isLabelEditableViaGUI')
+                if (includeNodeEditability) {
+                    if (node.fixedPosition !== undefined) {
+                        include.push('fixedPosition')
+                    }
+                    if (node.deletable !== undefined) {
+                        include.push('deletable')
+                    }
+                    if (node.labelEditable !== undefined) {
+                        include.push('labelEditable')
+                    }
                 }
 
                 return JSON.stringify(node, include)
