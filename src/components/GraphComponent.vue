@@ -302,6 +302,8 @@ function setNodeEditability(
                     _setFixedNodePosition(d, editability.fixedPosition)
                     d.deletable = editability.deletable ?? d.deletable
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
+                    d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
+                    d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
                 })
         }
     } else {
@@ -310,11 +312,13 @@ function setNodeEditability(
             _setFixedNodePosition(d, editability.fixedPosition)
             d.deletable = editability.deletable ?? d.deletable
             d.labelEditable = editability.labelEditable ?? d.labelEditable
+            d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
+            d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
         })
     }
 
     checkForNotValidKeys(
-        ['fixedPosition', 'deletable', 'labelEditable'],
+        ['fixedPosition', 'deletable', 'labelEditable', 'allowIncomingLinks', 'allowOutgoingLinks'],
         Object.keys(editability),
         true
     )
@@ -341,8 +345,6 @@ function _setFixedNodePosition(node: GraphNode, fixedPosition: FixedAxis | boole
                 checkForNotValidKeys(['x', 'y'], Object.keys(fixedPosition), true)
             }
         }
-    } else {
-        showError('FixedPosition undefined', '')
     }
 }
 
@@ -476,8 +478,13 @@ function createNode(
     fy?: number,
     importedId?: string | number,
     label?: string,
-    nodeColor?: string
+    nodeColor?: string,
     //TODO soon there will probably also be global editability config settings, which will replace the default values
+    hasFixedPosition: FixedAxis = { x: false, y: false },
+    isDeletableViaGUI: boolean = true,
+    isLabelEditableViaGUI: boolean = true,
+    allowIncomingLinks: boolean = true,
+    allowOutgoingLinks: boolean = true
 ): void {
     let newNode = graph.value.createNode(
         x ?? width / 2,
@@ -486,7 +493,12 @@ function createNode(
         fy,
         importedId,
         label,
-        nodeColor
+        nodeColor,
+        hasFixedPosition,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI,
+        allowIncomingLinks,
+        allowOutgoingLinks
     )
     triggerNodeCreated(newNode, graphHost.value)
     graphHasNodes.value = true
@@ -830,8 +842,8 @@ function restart(alpha: number = 0.5): void {
                         //a double click on a label, should not create a new node
                         terminate(event)
                     })
-                    .on('pointerenter', (_, d: GraphNode) => (draggableLinkTargetNode = d))
-                    .on('pointerout', () => (draggableLinkTargetNode = undefined))
+                    .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
+                    .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
 
                 return nodeGroup
             },
@@ -858,7 +870,8 @@ function restart(alpha: number = 0.5): void {
 // region onNodePointerDown
 
 /**
- * On a short right click+drag movement a draggable link is created, on a right click+hold the node is deleted.
+ * On a short right click+drag movement a draggable link is created (if outgoing links are allowed on the node),
+ * on a right click+hold the node is deleted (if the node is deletable).
  * @param event
  * @param node
  */
@@ -866,7 +879,9 @@ function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
     if (event.button === 2 || event.pointerType === 'touch') {
         releaseImplicitPointerCapture(event)
 
-        _onPointerDownCreateDraggableLink(node)
+        if (node.allowOutgoingLinks) {
+            _onPointerDownCreateDraggableLink(node)
+        }
 
         if (node.deletable) {
             longRightClickTimerNode = setTimeout(() => {
@@ -1014,11 +1029,13 @@ function onPointerMovedBeginningFromNode(event: PointerEvent): void {
 }
 
 /**
- * Sets the entered node as a target node for the draggable link.
+ * Sets the entered node as a target node for the draggable link if the node allows incoming links.
  * @param node
  */
 function onPointerEnterNode(node: GraphNode) {
-    draggableLinkTargetNode = node
+    if (node.allowIncomingLinks) {
+        draggableLinkTargetNode = node
+    }
 }
 
 /**

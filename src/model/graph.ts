@@ -18,7 +18,9 @@ export default class Graph {
         //TODO soon there will probably also be global editability config settings, which will replace the default values
         hasFixedPosition: FixedAxis = { x: false, y: false },
         isDeletableViaGUI: boolean = true,
-        isLabelEditableViaGUI: boolean = true
+        isLabelEditableViaGUI: boolean = true,
+        allowIncomingLinks: boolean = true,
+        allowOutgoingLinks: boolean = true
     ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -31,7 +33,9 @@ export default class Graph {
             color,
             hasFixedPosition,
             isDeletableViaGUI,
-            isLabelEditableViaGUI
+            isLabelEditableViaGUI,
+            allowIncomingLinks,
+            allowOutgoingLinks
         )
         this.nodes.push(node)
         return node

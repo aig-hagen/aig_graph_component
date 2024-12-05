@@ -15,6 +15,8 @@ export interface NodeGUIEditability {
     fixedPosition?: FixedAxis
     deletable?: boolean
     labelEditable?: boolean
+    allowIncomingLinks?: boolean
+    allowOutgoingLinks?: boolean
 }
 
 export type FixedAxis = {
@@ -36,6 +38,8 @@ export class GraphNode implements D3Node, NodeGUIEditability {
      * @param fixedPosition - A fixed node can't be dragged via GUI and isn't influenced by the simulation forces
      * @param deletable - If the node is deletable via GUI
      * @param labelEditable - If the nodes label is editable via GUI
+     * @param allowIncomingLinks - If the node can get new incoming links via GUI
+     * @param allowOutgoingLinks - If the node can get new outgoing links via GUI
      */
     public constructor(
         public readonly id: number,
@@ -48,6 +52,8 @@ export class GraphNode implements D3Node, NodeGUIEditability {
         public color?: string,
         public fixedPosition?: FixedAxis,
         public deletable?: boolean,
-        public labelEditable?: boolean
+        public labelEditable?: boolean,
+        public allowIncomingLinks?: boolean,
+        public allowOutgoingLinks?: boolean
     ) {}
 }
