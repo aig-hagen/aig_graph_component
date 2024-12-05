@@ -1087,6 +1087,8 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
         .node()!
         .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
 
+    d3.select(linkElement).classed('on-deletion', true)
+
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
             pathLength = linkElement.getTotalLength(),
@@ -1127,7 +1129,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
 }
 
 /**
- * Cancels the delete process and animation for the specified link.
+ * Cancels the delete process and animation for the specified link if it is on deletion.
  * @param link
  */
 function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
@@ -1135,19 +1137,23 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
         .node()!
         .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
 
-    if (linkElement instanceof SVGPathElement) {
-        let linkPath = d3.select(linkElement),
-            pathLength = linkElement.getTotalLength()
+    if (d3.select(linkElement).classed('on-deletion')) {
+        if (linkElement instanceof SVGPathElement) {
+            let linkPath = d3.select(linkElement),
+                pathLength = linkElement.getTotalLength()
 
-        linkPath
-            .attr('stroke-dasharray', pathLength)
-            .attr('stroke-dashoffset', pathLength)
-            .transition()
-            .attr('stroke-dashoffset', 0)
-            .on('end', () => {
-                linkPath.attr('stroke-dasharray', null).attr('stroke-dashoffset', null)
-            })
+            linkPath
+                .attr('stroke-dasharray', pathLength)
+                .attr('stroke-dashoffset', pathLength)
+                .transition()
+                .attr('stroke-dashoffset', 0)
+                .on('end', () => {
+                    linkPath.attr('stroke-dasharray', null).attr('stroke-dashoffset', null)
+                })
+        }
     }
+
+    d3.select(linkElement).classed('on-deletion', false)
 }
 //endregion
 
