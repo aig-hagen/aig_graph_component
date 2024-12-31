@@ -706,7 +706,10 @@ function restart(alpha: number = 0.5): void {
                 update
                     .selectChild('text')
                     .selectChild('textPath')
-                    .classed('hidden', !config.showLinkLabels)
+                    .classed(
+                        'hidden',
+                        (d) => !config.showLinkLabels || (!d.label && !d.labelEditable)
+                    )
                     .classed('not-editable', !config.isGraphEditableInGUI)
                     .attr('startOffset', (d) => {
                         if (d.pathType?.includes('REVERSE')) {
@@ -721,7 +724,8 @@ function restart(alpha: number = 0.5): void {
                     .selectChild('text')
                     .selectChild('textPath')
                     .selectChild('mjx-container')
-                    .each(function () {
+                    .each(function (d) {
+                        const graphLink = d as GraphLink
                         const linkLabelMjxContainer = d3
                             .select(
                                 (this! as HTMLElement).parentNode!.parentNode!
@@ -730,7 +734,11 @@ function restart(alpha: number = 0.5): void {
                             .selectChild('foreignObject')
                             .selectChild('div')
                             .attr('class', 'graph-controller__link-label')
-                            .classed('hidden', !config.showLinkLabels)
+                            .classed(
+                                'hidden',
+                                !config.showLinkLabels ||
+                                    (!graphLink.label && !graphLink.labelEditable)
+                            )
                             .node() as HTMLDivElement
 
                         const mjxContainer = d3.select(this!).remove().node() as HTMLElement
@@ -853,7 +861,10 @@ function restart(alpha: number = 0.5): void {
                 update
                     .selectChild('foreignObject')
                     .selectChild('div')
-                    .classed('hidden', !config.showNodeLabels)
+                    .classed(
+                        'hidden',
+                        (d) => !config.showNodeLabels || (!d.label && !d.labelEditable)
+                    )
                     .classed('not-editable', !config.isGraphEditableInGUI)
 
                 return update

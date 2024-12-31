@@ -4,8 +4,8 @@ import type { jsonLink } from '@/model/parser'
 
 export default class Graph {
     private nodeIdCounter: number = 0
-    public readonly nodes: D3Node[] = []
-    public readonly links: D3Link[] = []
+    public readonly nodes: GraphNode[] = []
+    public readonly links: GraphLink[] = []
 
     public createNode(
         x?: number,
