@@ -5,8 +5,6 @@ export type parsedNode = {
     idImported: string | number
     x?: number
     y?: number
-    fx?: number
-    fy?: number
     label?: string
     color?: string
 } & NodeGUIEditability
@@ -22,8 +20,6 @@ export type jsonNode = {
     id: number
     x?: number
     y?: number
-    fx?: number
-    fy?: number
     label?: string
     color?: string
 } & NodeGUIEditability
