@@ -514,8 +514,6 @@ function createLink(
 function createNode(
     x?: number,
     y?: number,
-    fx?: number,
-    fy?: number,
     importedId?: string | number,
     label?: string,
     nodeColor?: string,
@@ -529,8 +527,6 @@ function createNode(
     let newNode = graph.value.createNode(
         x ?? width / 2,
         y ?? height / 2,
-        fx,
-        fy,
         importedId,
         label,
         nodeColor,
@@ -1459,8 +1455,6 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         createNode(
             parsedNode.x,
             parsedNode.y,
-            parsedNode.fx,
-            parsedNode.fy,
             parsedNode.idImported,
             parsedNode.label,
             parsedNode.color,

@@ -25,15 +25,15 @@ export type FixedAxis = {
 }
 
 export class GraphNode implements D3Node, NodeGUIEditability {
-    // eslint-disable-next-line no-useless-constructor
+    fx?: number
+    fy?: number
+
     /**
      * @param id - The internal ID which is used for node referencing.
      * @param idImported - The external ID provided for imported nodes (solely used for the purpose of imported node creation).
-     * @param x
-     * @param y
-     * @param fx
-     * @param fy
-     * @param label
+     * @param x - The nodes x position
+     * @param y - The nodes y position
+     * @param label - The nodes label
      * @param color - The color of the node which was set (for default color this is empty)
      * @param fixedPosition - A fixed node can't be dragged via GUI and isn't influenced by the simulation forces
      * @param deletable - If the node is deletable via GUI
@@ -46,8 +46,6 @@ export class GraphNode implements D3Node, NodeGUIEditability {
         public idImported?: string | number,
         public x?: number,
         public y?: number,
-        public fx?: number,
-        public fy?: number,
         public label?: string,
         public color?: string,
         public fixedPosition?: FixedAxis,
@@ -55,5 +53,12 @@ export class GraphNode implements D3Node, NodeGUIEditability {
         public labelEditable?: boolean,
         public allowIncomingLinks?: boolean,
         public allowOutgoingLinks?: boolean
-    ) {}
+    ) {
+        if (fixedPosition?.x === true) {
+            this.fx = x
+        }
+        if (fixedPosition?.y === true) {
+            this.fy = y
+        }
+    }
 }

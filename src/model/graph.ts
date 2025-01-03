@@ -10,8 +10,6 @@ export default class Graph {
     public createNode(
         x?: number,
         y?: number,
-        fx?: number,
-        fy?: number,
         importedId?: string | number,
         label?: string,
         color?: string,
@@ -27,8 +25,6 @@ export default class Graph {
             importedId,
             x,
             y,
-            fx,
-            fy,
             label,
             color,
             fixedPosition,

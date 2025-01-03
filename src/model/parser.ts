@@ -41,6 +41,7 @@ export type jsonGraph = {
 /**
  * Parses Trivial Graph Format with IDs and labels for nodes and links.
  * Additional (non-typical TGF) color option available.
+ * Editability options are not available, if you need them you should use parseJSONGraph
  * @param file - Trivial Graph Format String to parse
  * */
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -114,8 +115,6 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             idImported: node.id,
             x: node.x,
             y: node.y,
-            fx: node.fx,
-            fy: node.fy,
             label: node.label,
             color: node.color,
             fixedPosition: node.fixedPosition,
