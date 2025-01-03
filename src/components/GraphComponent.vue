@@ -167,10 +167,23 @@ defineExpose({
 })
 
 //region functions that are solely used as exposed ones
-function getGraph(format: string = 'json') {
+function getGraph(
+    format: string = 'json',
+    includeColor: boolean = true,
+    includePosition: boolean = true,
+    includeEditability: boolean = true
+) {
     if (format.toLowerCase() === 'json') {
         return JSON.parse(
-            graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
+            graph.value.toJSON(
+                config.showLinkLabels,
+                config.showLinkLabels,
+                includeColor,
+                includeColor,
+                includePosition,
+                includeEditability,
+                includeEditability
+            )
         )
     } else if (format.toLowerCase() === 'tgf') {
         return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
@@ -187,10 +200,23 @@ function setGraph(graphToSet: string | jsonGraph | undefined) {
     }
 }
 
-function printGraph(format: string = 'json') {
+function printGraph(
+    format: string = 'json',
+    includeColor: boolean = true,
+    includePosition: boolean = true,
+    includeEditability: boolean = true
+) {
     if (format.toLowerCase() === 'json') {
         console.log(
-            graph.value.toJSON(config.showLinkLabels, config.showLinkLabels, true, true, true)
+            graph.value.toJSON(
+                config.showLinkLabels,
+                config.showLinkLabels,
+                includeColor,
+                includeColor,
+                includePosition,
+                includeEditability,
+                includeEditability
+            )
         )
     } else {
         console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
@@ -464,8 +490,22 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
     }
 }
 
-function createLink(source: GraphNode, target: GraphNode, label?: string, color?: string): void {
-    let newLink = graph.value.createLink(source.id, target.id, label, color)
+function createLink(
+    source: GraphNode,
+    target: GraphNode,
+    label?: string,
+    linkColor?: string,
+    isDeletableViaGUI: boolean = true,
+    isLabelEditableViaGUI: boolean = true
+): void {
+    let newLink = graph.value.createLink(
+        source.id,
+        target.id,
+        label,
+        linkColor,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI
+    )
     if (newLink !== undefined) {
         triggerLinkCreated(newLink, graphHost.value)
     }
@@ -1423,7 +1463,12 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
             parsedNode.fy,
             parsedNode.idImported,
             parsedNode.label,
-            parsedNode.color
+            parsedNode.color,
+            parsedNode.fixedPosition,
+            parsedNode.deletable,
+            parsedNode.labelEditable,
+            parsedNode.allowIncomingLinks,
+            parsedNode.allowOutgoingLinks
         )
     }
     const findNodeByImportedId = (importedId: number | string) =>
@@ -1433,7 +1478,14 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
-            createLink(srcNode, targetNode, parsedLink.label, parsedLink.color)
+            createLink(
+                srcNode,
+                targetNode,
+                parsedLink.label,
+                parsedLink.color,
+                parsedLink.deletable,
+                parsedLink.labelEditable
+            )
             if (parsedLink.color) {
                 createLinkMarkerColored(canvas!, graphHostId.value, config, parsedLink.color)
             }

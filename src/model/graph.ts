@@ -16,9 +16,9 @@ export default class Graph {
         label?: string,
         color?: string,
         //TODO soon there will probably also be global editability config settings, which will replace the default values
-        hasFixedPosition: FixedAxis = { x: false, y: false },
-        isDeletableViaGUI: boolean = true,
-        isLabelEditableViaGUI: boolean = true,
+        fixedPosition: FixedAxis = { x: false, y: false },
+        deletable: boolean = true,
+        labelEditable: boolean = true,
         allowIncomingLinks: boolean = true,
         allowOutgoingLinks: boolean = true
     ): GraphNode {
@@ -31,9 +31,9 @@ export default class Graph {
             fy,
             label,
             color,
-            hasFixedPosition,
-            isDeletableViaGUI,
-            isLabelEditableViaGUI,
+            fixedPosition,
+            deletable,
+            labelEditable,
             allowIncomingLinks,
             allowOutgoingLinks
         )
@@ -47,8 +47,8 @@ export default class Graph {
         label?: string,
         color?: string,
         //TODO soon there will probably also be global editability config settings, which will replace the default values
-        isDeletableViaGUI: boolean = true,
-        isLabelEditableViaGUI: boolean = true
+        deletable: boolean = true,
+        labelEditable: boolean = true
     ): GraphLink | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
@@ -73,8 +73,8 @@ export default class Graph {
             undefined,
             label,
             color,
-            isDeletableViaGUI,
-            isLabelEditableViaGUI
+            deletable,
+            labelEditable
         )
         this.links.push(link)
         return link
@@ -235,6 +235,12 @@ export default class Graph {
                     if (node.labelEditable !== undefined) {
                         include.push('labelEditable')
                     }
+                    if (node.allowIncomingLinks !== undefined) {
+                        include.push('allowIncomingLinks')
+                    }
+                    if (node.allowOutgoingLinks !== undefined) {
+                        include.push('allowOutgoingLinks')
+                    }
                 }
 
                 return JSON.stringify(node, include)
@@ -251,17 +257,16 @@ export default class Graph {
                 if (includeLinkColor && link.color !== undefined) {
                     include.push('color')
                 }
-                if (
-                    includeLinkEditability &&
-                    link.deletable !== undefined &&
-                    link.labelEditable !== undefined
-                ) {
-                    include.push('isDraggableViaGUI')
-                    include.push('isDeletableViaGUI')
-                    include.push('isLabelEditableViaGUI')
+                if (includeLinkEditability) {
+                    if (link.deletable !== undefined) {
+                        include.push('deletable')
+                    }
+                    if (link.labelEditable !== undefined) {
+                        include.push('labelEditable')
+                    }
                 }
 
-                let linkWithSplitId = this.convertD3ToJSONLink(link)
+                let linkWithSplitId = this._convertToJSONLink(link)
                 return JSON.stringify(linkWithSplitId, include)
             })
             .join(',\n\t\t')
@@ -269,14 +274,16 @@ export default class Graph {
         return `{\n\t"nodes":[\n\t\t${nodesStructure}\n\t],\n\t"links":[\n\t\t${linkStructure}\n\t]\n}`
     }
 
-    private convertD3ToJSONLink(link: D3Link): jsonLink {
+    private _convertToJSONLink(link: GraphLink): jsonLink {
         let parts = link.id.split('-')
 
         return {
             sourceId: Number(parts[0]),
             targetId: Number(parts[1]),
             label: link.label,
-            color: link.color
+            color: link.color,
+            deletable: link.deletable,
+            labelEditable: link.labelEditable
         }
     }
 }

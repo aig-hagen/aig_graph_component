@@ -120,7 +120,9 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             color: node.color,
             fixedPosition: node.fixedPosition,
             deletable: node.deletable,
-            labelEditable: node.labelEditable
+            labelEditable: node.labelEditable,
+            allowIncomingLinks: node.allowIncomingLinks,
+            allowOutgoingLinks: node.allowOutgoingLinks
         })
     }
     const links: parsedLink[] = []
