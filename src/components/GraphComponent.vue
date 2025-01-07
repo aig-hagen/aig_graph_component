@@ -33,6 +33,7 @@ import {
     checkForNotValidKeys,
     escapeColor,
     releaseImplicitPointerCapture,
+    separateNodeAndLinkIds,
     showError
 } from '@/model/helper'
 import {
@@ -155,6 +156,7 @@ defineExpose({
     deleteNode,
     deleteLink,
     setNodeRadius,
+    setDeletable,
     setNodeEditability,
     setLinkEditability,
     toggleNodeLabels,
@@ -310,6 +312,44 @@ function setNodeRadius(radius: number) {
         resetView()
     } else {
         showError('Invalid Radius', 'The radius should be greater than zero.')
+    }
+}
+
+/**
+ * Exposed function to set if nodes and links are deletable via GUI based on the provided IDs.
+ * If no IDs are provided, it is set for all nodes and links.
+ * @param isDeletable
+ * @param ids
+ */
+function setDeletable(
+    isDeletable: boolean,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    d.deletable = isDeletable
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    d.deletable = isDeletable
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            d.deletable = isDeletable
+        })
+        linkSelection!.each((d) => {
+            d.deletable = isDeletable
+        })
     }
 }
 
@@ -1674,9 +1714,13 @@ function _resetGraph(): void {
     }
 }
 
-.graph-controller__link-label-mathjax-container,
+.graph-controller__link-label-mathjax-container {
+    overflow: visible;
+    cursor: text;
+}
 .graph-controller__node-label-container {
     overflow: visible;
+    cursor: pointer;
 }
 .graph-controller__node-label {
     font-family: sans-serif;
