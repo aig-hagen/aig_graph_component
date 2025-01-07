@@ -2,6 +2,32 @@ import type { FixedAxis, NodeGUIEditability } from '@/model/graph-node'
 import type { LinkGUIEditability } from '@/model/graph-link'
 
 /**
+ * Separates an array of IDs into node and link IDs.
+ * @param ids
+ * @returns A tuple containing two array, one for the node IDs and one for the link IDs.
+ */
+export function separateNodeAndLinkIds(
+    ids: string[] | number[] | string | number
+): [nodeIds: number[], linkIds: string[]] {
+    let nodeIds: number[] = []
+    let linkIds: string[] = []
+
+    if (!Array.isArray(ids)) {
+        if (typeof ids === 'number') {
+            nodeIds = [ids]
+        } else {
+            linkIds = [ids]
+        }
+    } else {
+        let idStringArray = ids.map(String)
+        linkIds = idStringArray.filter((id) => id.includes('-'))
+        nodeIds = idStringArray.filter((id) => !id.includes('-')).map(Number)
+    }
+
+    return [nodeIds, linkIds]
+}
+
+/**
  * Adds a backslash before special characters in a color value for use in a CSS attribute selector.
  *
  * Special characters: #, ., ,, ;, :, <, >, +, ~, ^, $, |, [, ], (, ), \
