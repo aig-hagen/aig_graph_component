@@ -158,6 +158,7 @@ defineExpose({
     setNodeRadius,
     setDeletable,
     setLabelEditable,
+    setNodesLinkPermission,
     setNodeEditability,
     setLinkEditability,
     toggleNodeLabels,
@@ -318,7 +319,7 @@ function setNodeRadius(radius: number) {
 
 /**
  * Exposed function to set if nodes and links are deletable via GUI based on the provided IDs.
- * If no IDs are provided, it is set for all nodes and links.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
  * @param isDeletable
  * @param ids
  */
@@ -356,7 +357,7 @@ function setDeletable(
 
 /**
  * Exposed function to set if the labels of nodes and links are editable via GUI based on the provided IDs.
- * If no IDs are provided, it is set for all nodes and links.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
  * @param isLabelEditable
  * @param ids
  */
@@ -388,6 +389,38 @@ function setLabelEditable(
         })
         linkSelection!.each((d) => {
             d.labelEditable = isLabelEditable
+        })
+    }
+}
+
+/**
+ * Exposed function to set if specified nodes allow incoming or outgoing links edited via GUI
+ * based on the provided IDs.
+ * If no IDs are provided, it is set for all currently existing nodes.
+ * @param allowIncomingLinks
+ * @param allowOutgoingLinks
+ * @param ids
+ */
+function setNodesLinkPermission(
+    allowIncomingLinks: boolean,
+    allowOutgoingLinks: boolean,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    d.allowIncomingLinks = allowIncomingLinks
+                    d.allowOutgoingLinks = allowOutgoingLinks
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            d.allowIncomingLinks = allowIncomingLinks
+            d.allowOutgoingLinks = allowOutgoingLinks
         })
     }
 }
