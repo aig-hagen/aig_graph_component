@@ -157,6 +157,7 @@ defineExpose({
     deleteLink,
     setNodeRadius,
     setDeletable,
+    setLabelEditable,
     setNodeEditability,
     setLinkEditability,
     toggleNodeLabels,
@@ -349,6 +350,44 @@ function setDeletable(
         })
         linkSelection!.each((d) => {
             d.deletable = isDeletable
+        })
+    }
+}
+
+/**
+ * Exposed function to set if the labels of nodes and links are editable via GUI based on the provided IDs.
+ * If no IDs are provided, it is set for all nodes and links.
+ * @param isLabelEditable
+ * @param ids
+ */
+function setLabelEditable(
+    isLabelEditable: boolean,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    d.labelEditable = isLabelEditable
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    d.labelEditable = isLabelEditable
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            d.labelEditable = isLabelEditable
+        })
+        linkSelection!.each((d) => {
+            d.labelEditable = isLabelEditable
         })
     }
 }
