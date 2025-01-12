@@ -27,6 +27,7 @@ export type FixedAxis = {
 export class GraphNode implements D3Node, NodeGUIEditability {
     fx?: number
     fy?: number
+    private _fixedPosition?: FixedAxis
 
     /**
      * @param id - The internal ID which is used for node referencing.
@@ -48,17 +49,23 @@ export class GraphNode implements D3Node, NodeGUIEditability {
         public y?: number,
         public label?: string,
         public color?: string,
-        public fixedPosition?: FixedAxis,
+        fixedPosition?: FixedAxis,
         public deletable?: boolean,
         public labelEditable?: boolean,
         public allowIncomingLinks?: boolean,
         public allowOutgoingLinks?: boolean
     ) {
-        if (fixedPosition?.x === true) {
-            this.fx = x
-        }
-        if (fixedPosition?.y === true) {
-            this.fy = y
-        }
+        this.fixedPosition = fixedPosition
+    }
+
+    public set fixedPosition(pos: FixedAxis | undefined) {
+        this._fixedPosition = pos
+
+        this.fx = this.fixedPosition?.x ? this.x : undefined
+        this.fy = this.fixedPosition?.y ? this.y : undefined
+    }
+
+    public get fixedPosition(): FixedAxis | undefined {
+        return this._fixedPosition
     }
 }

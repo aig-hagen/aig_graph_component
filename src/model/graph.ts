@@ -1,5 +1,5 @@
-import { type D3Link, GraphLink } from '@/model/graph-link'
-import { type D3Node, type FixedAxis, GraphNode } from '@/model/graph-node'
+import { GraphLink } from '@/model/graph-link'
+import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
 
 export default class Graph {
@@ -76,7 +76,7 @@ export default class Graph {
         return link
     }
 
-    public removeNode(node: D3Node): [D3Node, D3Link[]] | undefined {
+    public removeNode(node: GraphNode): [GraphNode, GraphLink[]] | undefined {
         const nodeIndex = this.nodes.findIndex((n) => n.id === node.id)
         if (nodeIndex === -1) {
             return undefined
@@ -94,7 +94,7 @@ export default class Graph {
         return [node, attachedLinks]
     }
 
-    public removeLink(link: D3Link): D3Link | undefined {
+    public removeLink(link: GraphLink): GraphLink | undefined {
         const linkIndex = this.links.findIndex(
             (l) => l.source.id === link.source.id && l.target.id === link.target.id
         )

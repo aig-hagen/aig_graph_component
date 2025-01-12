@@ -1,5 +1,5 @@
 import { type SimulationLinkDatum } from 'd3'
-import { type D3Node } from '@/model/graph-node'
+import { type D3Node, GraphNode } from '@/model/graph-node'
 import { PathType } from '@/model/path-type'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {
@@ -30,8 +30,8 @@ export class GraphLink implements D3Link, LinkGUIEditability {
      * @param labelEditable - If the link label is editable via GUI
      */
     public constructor(
-        public readonly source: D3Node,
-        public readonly target: D3Node,
+        public readonly source: GraphNode,
+        public readonly target: GraphNode,
         public pathType?: PathType,
         public label?: string,
         public color?: string,
