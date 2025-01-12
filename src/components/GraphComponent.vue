@@ -29,11 +29,11 @@ import Graph from '@/model/graph'
 import { PathType } from '@/model/path-type'
 import { GraphConfigDefault } from '@/model/config'
 import {
-    checkForAllNecessaryKeys,
     checkForNotValidKeys,
     escapeColor,
     releaseImplicitPointerCapture,
     separateNodeAndLinkIds,
+    setAndValFixedNodePosition,
     showError
 } from '@/model/helper'
 import {
@@ -159,6 +159,7 @@ defineExpose({
     setDeletable,
     setLabelEditable,
     setNodesLinkPermission,
+    setNodesFixedPosition,
     setNodeEditability,
     setLinkEditability,
     toggleNodeLabels,
@@ -425,6 +426,32 @@ function setNodesLinkPermission(
     }
 }
 
+/**
+ * Exposed function to set if a node can be dragged via GUI and is influenced by the simulation forces.
+ * @param fixedPosition
+ * @param ids
+ */
+function setNodesFixedPosition(
+    fixedPosition: FixedAxis | boolean,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    setAndValFixedNodePosition(d, fixedPosition)
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            setAndValFixedNodePosition(d, fixedPosition)
+        })
+    }
+}
+
 function setNodeEditability(
     editability: NodeGUIEditability,
     ids: string[] | number[] | string | number | undefined
@@ -437,7 +464,7 @@ function setNodeEditability(
                 .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    _setFixedNodePosition(d, editability.fixedPosition)
+                    setAndValFixedNodePosition(d, editability.fixedPosition)
                     d.deletable = editability.deletable ?? d.deletable
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
                     d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
@@ -447,7 +474,7 @@ function setNodeEditability(
     } else {
         //if no ids are provided, the editability is set for all currently existing nodes
         nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
-            _setFixedNodePosition(d, editability.fixedPosition)
+            setAndValFixedNodePosition(d, editability.fixedPosition)
             d.deletable = editability.deletable ?? d.deletable
             d.labelEditable = editability.labelEditable ?? d.labelEditable
             d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
@@ -460,30 +487,6 @@ function setNodeEditability(
         Object.keys(editability),
         true
     )
-}
-
-function _setFixedNodePosition(node: GraphNode, fixedPosition: FixedAxis | boolean | undefined) {
-    if (fixedPosition !== undefined) {
-        if (typeof fixedPosition === 'boolean') {
-            if (fixedPosition) {
-                node.fixedPosition = { x: true, y: true }
-                node.fx = node.x
-                node.fy = node.y
-            } else {
-                node.fixedPosition = { x: false, y: false }
-                node.fx = undefined
-                node.fy = undefined
-            }
-        } else {
-            if (checkForAllNecessaryKeys(['x', 'y'], Object.keys(fixedPosition), true)) {
-                node.fixedPosition = fixedPosition
-                node.fx = fixedPosition.x ? node.x : undefined
-                node.fy = fixedPosition.y ? node.y : undefined
-
-                checkForNotValidKeys(['x', 'y'], Object.keys(fixedPosition), true)
-            }
-        }
-    }
 }
 
 function setLinkEditability(editability: LinkGUIEditability, ids: string[] | string | undefined) {

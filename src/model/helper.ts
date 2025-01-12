@@ -1,4 +1,4 @@
-import type { FixedAxis, NodeGUIEditability } from '@/model/graph-node'
+import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import type { LinkGUIEditability } from '@/model/graph-link'
 
 /**
@@ -25,6 +25,32 @@ export function separateNodeAndLinkIds(
     }
 
     return [nodeIds, linkIds]
+}
+
+/**
+ * Sets the fixed position for a specific node if the provided position has the correct format.
+ * @param node
+ * @param fixedPosition
+ */
+export function setAndValFixedNodePosition(
+    node: GraphNode,
+    fixedPosition: FixedAxis | boolean | undefined
+) {
+    if (fixedPosition !== undefined) {
+        if (typeof fixedPosition === 'boolean') {
+            if (fixedPosition) {
+                node.fixedPosition = { x: true, y: true }
+            } else {
+                node.fixedPosition = { x: false, y: false }
+            }
+        } else {
+            if (checkForAllNecessaryKeys(['x', 'y'], Object.keys(fixedPosition), true)) {
+                node.fixedPosition = fixedPosition
+
+                checkForNotValidKeys(['x', 'y'], Object.keys(fixedPosition), true)
+            }
+        }
+    }
 }
 
 /**
