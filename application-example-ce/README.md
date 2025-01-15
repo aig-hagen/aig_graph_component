@@ -11,7 +11,7 @@ In your html you need to:
   * link to `style.css`
 
 Look at [this index file](./Menu/index.ce.html) for a minimal integration example
-or at [this one](./CLI/index_twographinstances.html) if you also want an example of two integrated
+or at [this one](./CLI/index.ce.html) if you also want an example of two integrated
 components as well as the programmatic interaction with the component.
 
 ## Which graph-editor.js to choose?
