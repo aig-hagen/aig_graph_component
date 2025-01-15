@@ -11,7 +11,7 @@ In your html you need to:
   * link to `style.css`
 
 Look at [this index file](./Menu/index.ce.html) for a minimal integration example
-or at [this one](./CLI/index.ce.html) if you also want an example of two integrated
+or at [this one](./CLI/index_twographinstances.html) if you also want an example of two integrated
 components as well as the programmatic interaction with the component.
 
 ## Which graph-editor.js to choose?
@@ -21,6 +21,7 @@ components as well as the programmatic interaction with the component.
 * No menu bar
 
 ### Menu
+_Still V3.0, will be updated with V3.3_
 * Ideal for __GUI__ Usage with __Menu Bar__
 * No programmatic interaction possible
 * No LaTeX support

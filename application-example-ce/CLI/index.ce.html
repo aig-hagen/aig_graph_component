@@ -30,7 +30,7 @@
         // display a graph in the second graph editor
         inst2.setGraph(graph1)
 
-        // write a graph manually
+        // write some graphs manually with different options
         let graphAsObject = {
             nodes: [
                 {id: 0, label: "A"},
@@ -52,6 +52,18 @@
             links: [
                 {sourceId: 0, targetId: 1, label: "$a_1\\ to\\ b_1$"},
                 {sourceId: 2, targetId: 2, label: "$c_1\\ to\\ c_1$"}
+            ]
+        }
+
+        let graphAsObjectWithEditability = {
+            nodes: [
+                {id: 0, label: "$a_0$", x: 24, fixedPosition: {x: true, y:false}},
+                {id: 1, label: "b", color: "lavenderblush", x: 222, y: 142, labelEditable: false},
+                {id: 2, label: "c", deletable: false, allowIncomingLinks: false, allowOutgoingLinks: false}
+            ],
+            links: [
+                {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$", deletable: true},
+                {sourceId: 2, targetId: 2, label: "c to c", labelEditable: false}
             ]
         }
 
@@ -90,6 +102,10 @@
         // set a graph and disable its editing via GUI
         inst1.setGraph(graphAsObjectWithPositionColorAndLatex);
         inst1.toggleGraphEditingInGUI(false);
+
+        // set a graph that already has individual editing options
+        inst2.setGraph(graphAsObjectWithEditability);
+
 
         //This function can be used, to get the graph editor instance by its id.
         function getGraphComponentById(id) {
