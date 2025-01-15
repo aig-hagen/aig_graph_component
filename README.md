@@ -12,15 +12,17 @@
 
 
 ## Usage
-The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)**
+The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)** (_currently V3.0, will be kept up-to-date starting from version 3.3._)
 and also as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-component/>` tag. 
-Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration.
+Refer to the [index.ce.html](application-example-ce/CLI/index_twographinstances.html) file in the [application-example-ce](application-example-ce) directory for a demonstration
+_(and simply run it for a quick start)_.
 
-For a quick start, simply run the referenced index file.
 
-You can use the GUI to build your graph or programmatically interact with it via the browser console or with a script.
-During interaction with the graph different events are fired to which you can react.
+You can build your graph using the GUI or interact with it programmatically,
+customizing its behaviour to suit your needs via the browser console or a script.
+
+During interaction with the graph, various events are triggered to which you can react.
 ### GUI
 *TODO (งツ)ว*
 ### Programmatically
@@ -38,9 +40,13 @@ const instance = document.getElementById('app').__vue_app__._instance.exposed
 _Note that when you run the app in development mode, this does not work after a hot-reload. 
 It only works correctly on the initial run or after refreshing the site._
 
+#### Setting the default behaviour
+
+
 #### Manually write a Graph
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
 
+##### JSON
 ```javascript
 // graph as object with optional normal and LaTeX label, color and x- and y- position
 let graphAsObject = {
@@ -55,19 +61,36 @@ let graphAsObject = {
   ]
 }
 ```
+In _JSON-like_ format the individual [editability options](#editability) can be directly passed in.
+```javascript
+// graph as object with some added editability options
+let graphAsObjectWithEditability = {
+  nodes: [
+    {id: 0, label: "$a_0$", x: 24, fixedPosition: {x: true, y:false}},
+    {id: 1, label: "b", color: "lavenderblush", x: 222, y: 142, labelEditable: false},
+    {id: 2, label: "c", deletable: false, allowIncomingLinks: false, allowOutgoingLinks: false}
+  ],
+  links: [
+    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$", deletable: true},
+    {sourceId: 2, targetId: 2, label: "c to c", labelEditable: false}
+  ]
+}
+```
+
+##### TGF
 ```javascript
 //graph as tgf with optional normal and LaTeX label and color
-graphAsTgf = "0 $a_0$\n 1 b /COLOR:/lavenderblush\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
+let graphAsTgf = "0 $a_0$\n 1 b /COLOR:/lavenderblush\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
 ```
 *In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
-Positioning is only available with the object notation.*
+Positioning and the editability options are only available with the object notation.*
 
 ##### Using LaTeX in Labels
 We can also use LaTeX input for labels by enclosing them in math delimiters `$$` or `\(\)`.
 
 It is recommended to use only one pair of delimiters per label. 
 If a space is required between expressions use `\\` before the space
-(_for GUI Input it is just one backslash_).
+(_for GUI Input it is just one backslash_) or `\text()`.
 
 
 #### Display a Graph in the Component
@@ -83,15 +106,38 @@ instance.setGraph()
 ```
 
 #### Getting a Graph
-Gets the graph that is currently displayed in the graph component instance. 
-We can choose between TGF or JSON like format (default) by passing ```"TGF"``` or ```"JSON"``` to it.
+Get the graph that is currently displayed in the graph component instance with `getGraph()`.
+
+Optionally, we can pass the following parameters to determine in which format and
+how detailed we want to get the graph:
+- format 
+  - `"tgf" | "json"` 
+  - default: `"json"`
+- includeColor 
+  - `boolean`
+  - default: true
+- includePosition
+  - `boolean`
+  - default: true
+  - only available in json like format
+- includeEditability
+  - `boolean`
+  - default: true
+  - only available in json like format
+
+
 ```javascript
+// get graph in json format
 let graphFromInstance = instance.getGraph()
+
+// get graph without node color, position and without node and link editability values
+instance.getGraph('json', false, false, false)
+
 ```
 
 #### Print a Graph
 If we want to print the currently displayed graph we call `printGraph()` on the instance.
-We can choose between TGF or JSON like format (default) by passing ```"TGF"``` or ```"JSON"``` to it.
+Similar to [getting a graph](#getting-a-graph), we can pass optional parameters to determine how detailed the print should be.
 
 For a graph assigned to a variable we use a simple `console.log()`.
 
@@ -99,9 +145,13 @@ For a graph assigned to a variable we use a simple `console.log()`.
 // log the currently displayed graph in JSON like format on the console
 instance.printGraph()
 
+// log in json like format but exclude colors and editability but include position.
+instance.printGraph('json', false, true, false)
+
 // log a graph assigned to a variable to the console
 console.log(graphAsTgf)
 ```
+
 #### Delete Nodes and Links
 We can delete one or multiple **nodes** by their id.
 ```javascript
@@ -159,6 +209,105 @@ For nodes this can be done by changing their radius:
 ```javascript
 instance.setNodeRadius(42)
 ```
+
+#### Editability
+We also have precise control over what can be edited through the GUI 
+using the ids of the specific nodes and links
+ - [Node and Link Deletion](#delete)
+ - [Label Editing](#label-editable)
+ - [Node Position Locking](#fixed-position)
+ - [Nodes Link Permission](#incoming-and-outgoing-links)
+
+##### Delete
+We can set whether nodes or links can be deleted with `setDeletable()`.
+```javascript
+// prohibit deletion via GUI for node 0 and 1 and the two edges connecting them
+instance.setDeletable(false, [0, 1, "0-1", "1-0"])
+
+// allow deletion via GUI for all currently existing nodes and links
+instance.setDeletable(true)
+```
+##### Label Editable
+We can set whether labels of nodes and links can be edited using `setLabelsEditable()`.
+```javascript
+// prohibit label editing via GUI for the node with id 3 and the edge with the id 2-3
+instance.setLabelEditable(false, [3, "2-3"])
+
+// prohibit label editing via GUI for all currently existing nodes and links
+instance.setLabelEditable(false)
+```
+##### Fixed Position
+For nodes, it is also possible to set whether they should have a fixed position.
+Meaning that they cannot be dragged via the GUI and are unaffected by the simulation forces.
+Fixed positions can be configured separately for the x- and y-axes using
+`setNodesFixedPosition({x: bool, y: bool}, id(s))`.
+```javascript
+// fix node 1 in x direction
+instance.setNodesFixedPosition({x: true, y: false}, 1)
+
+// fix node 0 and 2 in y direction
+instance.setNodesFixedPosition({x:false, y:true}, [0,2])
+
+// completely fix all currently existing nodes
+instance.setNodesFixedPosition({x: true, y: true})
+instance.setNodesFixedPosition(true)
+```
+##### Incoming and Outgoing Links
+Additionally, we can control whether certain nodes are allowed to have incoming and/or
+outgoing links with `setNodesLinkPermission(bool, bool)`.
+
+```javascript
+// only allow incoming links but no outgoing ones for the nodes with id 2 and 3
+instance.setNodesLinkPermission(true, false, [2,3])
+
+// allow neither incoming, nor outgoing links for all currently existing nodes
+instance.setNodesLinkPermission(false, false)
+```
+
+##### Convenience Function
+To set all the node editability parameter at once, we can use `setNodeEditability()`
+with an editability-object
+(`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`)
+and the specific IDS as parameters
+```javascript
+// setting all possible node editability options at once for the nodes with IDs 0, 1 and 2
+instance.setNodeEditability(
+    { 
+        deletable: false,
+        labelEditable: false,
+        fixedPosition:
+            {
+                x: true,
+                y: false
+            },
+        allowIncomingLinks: true,
+        allowOutgoingLinks: true
+    },
+    [0, 1, 2]  
+)
+```
+This is also possible for the links editability using `setLinkEditability()` with an
+editability-object containing: `{deletable, labelEditable}` and the link IDs.
+
+```javascript
+// setting all possible link editability options at once for the link with ID 0-1 and 2-2
+instance.setLinkEditability(
+    {
+        deletable: true,
+        labelEditable: false
+    },
+    ["0-1", "2-2"]    
+)
+
+// setting all possible link editability options at once for all currently existing links
+instance.setLinkEditability(
+    {
+        deletable: false,
+        labelEditable: false
+    },
+)
+```
+
 
 
 #### Miscellaneous
