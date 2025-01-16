@@ -15,7 +15,7 @@
 The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)** (_currently V3.0, will be kept up-to-date starting from version 3.3._)
 and also as a **custom element**,
 enabling easy embedding into an HTML-file using the `<graph-component/>` tag. 
-Refer to the [index.ce.html](application-example-ce/CLI/index_twographinstances.html) file in the [application-example-ce](application-example-ce) directory for a demonstration
+Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration
 _(and simply run it for a quick start)_.
 
 
@@ -228,7 +228,7 @@ instance.setDeletable(false, [0, 1, "0-1", "1-0"])
 instance.setDeletable(true)
 ```
 ##### Label Editable
-We can set whether labels of nodes and links can be edited using `setLabelsEditable()`.
+We can set whether labels of nodes and links can be edited using `setLabelEditable()`.
 ```javascript
 // prohibit label editing via GUI for the node with id 3 and the edge with the id 2-3
 instance.setLabelEditable(false, [3, "2-3"])
