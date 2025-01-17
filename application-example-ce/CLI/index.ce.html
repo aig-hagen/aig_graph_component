@@ -91,13 +91,9 @@
         // delete node with id 0 and id 1
         inst2.deleteNode([0, 1])
 
-        // turning ability on for zooming, that nodes repel each other and that there is a fixed link distance
-        inst2.toggleZoom(true)
+        // turning on that nodes repel each other and that there is a fixed link distance
         inst2.toggleNodePhysics(true)
         inst2.toggleFixedLinkDistance(true)
-
-        // after zooming, reset the view to the default position
-        inst2.resetView()
 
         // set a graph and disable its editing via GUI
         inst1.setGraph(graphAsObjectWithPositionColorAndLatex);

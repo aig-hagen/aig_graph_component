@@ -319,21 +319,15 @@ we can use the following:
 instance.toggleGraphEditingInGUI(false)
 ```
 
-We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
-```javascript
-instance.toggleZoom(false)
-```
+We can disable and enable that nodes repel each other, that there is a fixed distance for links
+and if nodes and links should have labels.
+
 ```javascript
 instance.toggleNodePhysics(true)
 ```
 ```javascript
 instance.toggleFixedLinkDistance(true)
 ```
-After zooming we can reset the canvas to its default position.
-```javascript
-instance.resetView()
-```
-You can also toggle if the nodes and links should have labels.
 ```javascript
 instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
