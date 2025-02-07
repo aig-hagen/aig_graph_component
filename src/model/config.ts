@@ -1,6 +1,9 @@
+import { NodeShape } from '@/model/node-shape'
+
 export interface GraphConfiguration {
     persistSettingsLocalStorage: boolean
 
+    nodeShape: NodeShape
     nodeRadius: number
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
@@ -21,6 +24,7 @@ export class GraphConfigDefault implements GraphConfiguration {
     persistSettingsLocalStorage = false
 
     private _nodeRadius = 24
+    nodeShape = NodeShape.CIRCLE
     showNodeLabels = true
     nodePhysicsEnabled = false
 
