@@ -33,7 +33,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
     fx?: number
     fy?: number
     private _fixedPosition?: FixedAxis
-    private _shape?: NodeShape
+    private _shape?: NodeShape | undefined
 
     /**
      * @param id - The internal ID which is used for node referencing.
@@ -68,13 +68,15 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
     }
 
     public set shape(shape: NodeShape | undefined) {
-        if (shape === (NodeShape.CIRCLE || NodeShape.RECTANGLE)) {
-            this._shape = shape
-        }
+        this._shape === NodeShape.CIRCLE || this._shape === NodeShape.RECTANGLE
+            ? (this._shape = shape)
+            : (this._shape = undefined)
     }
 
-    public get shape() {
-        return this._shape
+    public get shape(): NodeShape.CIRCLE | NodeShape.RECTANGLE | undefined {
+        return this._shape === NodeShape.CIRCLE || this._shape === NodeShape.RECTANGLE
+            ? this._shape
+            : undefined
     }
 
     public set fixedPosition(pos: FixedAxis | undefined) {

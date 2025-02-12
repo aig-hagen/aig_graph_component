@@ -1,6 +1,7 @@
 import { GraphLink } from '@/model/graph-link'
 import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
+import type { NodeShape } from '@/model/node-shape'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -13,6 +14,7 @@ export default class Graph {
         importedId?: string | number,
         label?: string,
         color?: string,
+        nodeShape?: NodeShape,
         //TODO soon there will probably also be global editability config settings, which will replace the default values
         fixedPosition: FixedAxis = { x: false, y: false },
         deletable: boolean = true,
@@ -27,6 +29,7 @@ export default class Graph {
             y,
             label,
             color,
+            nodeShape,
             fixedPosition,
             deletable,
             labelEditable,
