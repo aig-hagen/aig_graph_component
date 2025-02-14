@@ -1,5 +1,6 @@
 export interface GraphConfiguration {
     persistSettingsLocalStorage: boolean
+    hasToolbar: boolean
 
     nodeRadius: number
     showNodeLabels: boolean
@@ -10,6 +11,8 @@ export interface GraphConfiguration {
 
     isGraphEditableInGUI: boolean
 
+    zoomEnabled: boolean
+
     markerBoxSize: number
     markerPadding: number
     markerRef: number
@@ -19,12 +22,15 @@ export interface GraphConfiguration {
 
 export class GraphConfigDefault implements GraphConfiguration {
     persistSettingsLocalStorage = false
+    hasToolbar = false
 
     private _nodeRadius = 24
     showNodeLabels = true
     nodePhysicsEnabled = false
 
     isGraphEditableInGUI = true
+
+    zoomEnabled = false
 
     showLinkLabels = true
     fixedLinkDistanceEnabled = false

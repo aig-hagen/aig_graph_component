@@ -4,6 +4,8 @@ import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from '
 import GraphControls from '@/components/GraphControls.vue'
 //d3
 import * as d3 from 'd3'
+import type { D3ZoomEvent } from 'd3'
+import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
@@ -129,6 +131,7 @@ const config = reactive(new GraphConfigDefault())
 let simulation: any = undefined
 let width: number = 400
 let height: number = 400
+let zoom: Zoom | undefined
 let drag: Drag
 let canvas: Canvas | undefined
 let linkSelection: LinkSelection | undefined
@@ -161,9 +164,11 @@ defineExpose({
     setLinkEditability,
     toggleNodeLabels,
     toggleLinkLabels,
+    toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
-    toggleGraphEditingInGUI
+    toggleGraphEditingInGUI,
+    resetView
 })
 
 //region functions that are solely used as exposed ones
@@ -522,6 +527,10 @@ function toggleLinkLabels(isEnabled: boolean) {
 function toggleNodeLabels(isEnabled: boolean) {
     config.showNodeLabels = isEnabled
 }
+function toggleZoom(isEnabled: boolean) {
+    config.zoomEnabled = isEnabled
+    resetView()
+}
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
@@ -547,6 +556,9 @@ function initFromLocalStorage() {
     if (localStorage.enableFixedLinkDistance) {
         config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
     }
+    if (localStorage.enableZoom) {
+        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
+    }
 
     if (localStorage.persistSettings) {
         config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
@@ -556,8 +568,13 @@ function initFromLocalStorage() {
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
+    zoom = createZoom(
+        (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
+        config.zoomEnabled
+    )
     canvas = createCanvas(
         graphHost.value!,
+        zoom,
         (event) => (config.isGraphEditableInGUI ? onPointerMovedBeginningFromNode(event) : null),
         (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
@@ -576,6 +593,16 @@ function initData() {
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config.nodeRadius)
     restart()
+}
+
+function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
+    if (isEnabled) {
+        xOffset = event.transform.x
+        yOffset = event.transform.y
+        scale = event.transform.k
+
+        canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+    }
 }
 
 function createLink(
@@ -1610,6 +1637,7 @@ function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
 function resetView(): void {
     simulation.stop()
     graphHost.value!.selectChildren().remove()
+    zoom = undefined
     xOffset = 0
     yOffset = 0
     scale = 1
