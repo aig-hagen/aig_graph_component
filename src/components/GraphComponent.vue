@@ -737,16 +737,13 @@ function restart(alpha: number = 0.5): void {
                 const linkGroup = enter
                     .append('g')
                     .classed('graph-controller__link-container', true)
+
                 linkGroup
                     .append('path')
                     .classed('graph-controller__link', true)
                     .style('stroke', (d) => (d.color ? d.color : ''))
                     .attr('id', (d) => graphHostId.value + '-link-' + d.id)
-                    .attr('marker-end', (d) =>
-                        d.color
-                            ? `url(#${graphHostId.value}-link-arrow-` + d.color
-                            : `url(#${graphHostId.value}-link-arrow)`
-                    )
+
                 linkGroup
                     .append('path')
                     .classed('graph-controller__click-box', true)
@@ -764,8 +761,12 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerup', (event: PointerEvent, d: GraphLink) => {
                         onPointerUpLink(event, d)
                     })
+
                 linkGroup
                     .append('text')
+                    .attr('class', (d) => {
+                        return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+                    })
                     .append('textPath')
                     .attr('class', (d: GraphLink) =>
                         d.label
@@ -809,67 +810,6 @@ function restart(alpha: number = 0.5): void {
                 return linkGroup
             },
             (update) => {
-                update
-                    .selectChild('path')
-                    .attr('marker-start', function (d) {
-                        if (d.pathType?.includes('REVERSE')) {
-                            let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
-                            if (d.color) {
-                                markerName += '-' + escapeColor(d.color)
-                            }
-                            markerName += ')'
-                            return markerName
-                        } else {
-                            return null
-                        }
-                    })
-                    .attr('marker-end', function (d) {
-                        if (!d.pathType?.includes('REVERSE')) {
-                            let markerName = `url(#${graphHostId.value}-link-arrow`
-                            if (d.color) {
-                                markerName += '-' + escapeColor(d.color)
-                            }
-                            markerName += ')'
-                            return markerName
-                        } else {
-                            return null
-                        }
-                    })
-
-                // text positioning depending on path type
-                update
-                    .selectChild('text')
-                    .attr('class', (d) => {
-                        return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
-                    })
-                    .attr('dy', (d) => {
-                        if (d.pathType === PathType.REFLEXIVE) {
-                            return 15
-                        } else if (d.pathType == PathType.LINEREVERSE) {
-                            return -10
-                        } else if (d.pathType?.includes('REVERSE')) {
-                            return 20
-                        } else {
-                            return -10
-                        }
-                    })
-
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .classed(
-                        'hidden',
-                        (d) => !config.showLinkLabels || (!d.label && !d.labelEditable)
-                    )
-                    .classed('not-editable', !config.isGraphEditableInGUI)
-                    .attr('startOffset', (d) => {
-                        if (d.pathType?.includes('REVERSE')) {
-                            return '46%'
-                        } else {
-                            return '50%'
-                        }
-                    })
-
                 // move mathjax to link label mjx container
                 update
                     .selectChild('text')
@@ -945,6 +885,62 @@ function restart(alpha: number = 0.5): void {
                 return update
             }
         )
+
+    // link marker positioning depending on path type reversion
+    linkSelection
+        .selectChild('path')
+        .attr('marker-start', function (d) {
+            if (d.pathType?.includes('REVERSE')) {
+                let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
+                if (d.color) {
+                    markerName += '-' + escapeColor(d.color)
+                }
+                markerName += ')'
+                return markerName
+            } else {
+                return null
+            }
+        })
+        .attr('marker-end', function (d) {
+            if (!d.pathType?.includes('REVERSE')) {
+                let markerName = `url(#${graphHostId.value}-link-arrow`
+                if (d.color) {
+                    markerName += '-' + escapeColor(d.color)
+                }
+                markerName += ')'
+                return markerName
+            } else {
+                return null
+            }
+        })
+
+    // link label positioning, visibility and editability
+    linkSelection
+        .selectChild('text')
+        .attr('class', (d) => {
+            return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+        })
+        .attr('dy', (d) => {
+            if (d.pathType === PathType.REFLEXIVE) {
+                return 15
+            } else if (d.pathType == PathType.LINEREVERSE) {
+                return -10
+            } else if (d.pathType?.includes('REVERSE')) {
+                return 20
+            } else {
+                return -10
+            }
+        })
+        .selectChild('textPath')
+        .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
+        .classed('not-editable', !config.isGraphEditableInGUI)
+        .attr('startOffset', (d) => {
+            if (d.pathType?.includes('REVERSE')) {
+                return '46%'
+            } else {
+                return '50%'
+            }
+        })
 
     nodeSelection = nodeSelection!
         .data(graph.value.nodes, (d) => d.id)
