@@ -13,7 +13,14 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
+import {
+    linePath,
+    paddedArcPath,
+    paddedLinePath,
+    paddedReflexivePath,
+    generatePath,
+    getPathType
+} from '@/d3/paths'
 import {
     terminate,
     triggerLabelEdited,
@@ -46,8 +53,6 @@ import {
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
 //other
-//@ts-ignore
-import svgPathReverse from 'svg-path-reverse'
 import Bowser from 'bowser'
 
 const graphHost = computed(() => {
@@ -659,57 +664,28 @@ function createNode(
 function onTick(): void {
     nodeSelection!.attr('transform', (d) => `translate(${d.x},${d.y})`)
 
-    linkSelection!
-        .selectAll<SVGPathElement, GraphLink>('path')
-        .attr('d', (d: GraphLink) => generatePath(d))
-
-    updateDraggableLinkPath()
-    restart()
+    linkSelection!.selectAll<SVGPathElement, GraphLink>('path').attr('d', (d: GraphLink) => {
+        _updatePathType(d)
+        return generatePath(d, width, height, config)
+    })
 }
-function generatePath(d: GraphLink): string {
-    setPath(d)
 
-    switch (d.pathType) {
-        case PathType.REFLEXIVE: {
-            return paddedReflexivePath(d.source, [width / 2, height / 2], config)
-        }
-        case PathType.ARC: {
-            return paddedArcPath(d.source, d.target, config)
-        }
-        case PathType.ARCREVERSE: {
-            return svgPathReverse.reverse(paddedArcPath(d.source, d.target, config))
-        }
-        case PathType.LINE: {
-            return paddedLinePath(d.source, d.target, config)
-        }
-        case PathType.LINEREVERSE: {
-            return svgPathReverse.reverse(paddedLinePath(d.source, d.target, config))
-        }
-        default: {
-            return '' //should never be reached
-        }
+/**
+ * Sets the path type for a link depending on the connection and position of its nodes and updates the view.
+ * @param d
+ */
+function _updatePathType(d: GraphLink) {
+    let oldPathType = d.pathType
+    d.pathType = getPathType(d.source, d.target, graph.value)
+    if (oldPathType !== d.pathType) {
+        restart()
     }
 }
-function setPath(d: GraphLink) {
-    if (d.source.id === d.target.id) {
-        d.pathType = PathType.REFLEXIVE
-    } else if (isBidirectional(d.source, d.target)) {
-        d.pathType = needsReversion(d.source, d.target) ? PathType.ARCREVERSE : PathType.ARC
-    } else {
-        d.pathType = needsReversion(d.source, d.target) ? PathType.LINEREVERSE : PathType.LINE
-    }
-}
-function isBidirectional(source: GraphNode, target: GraphNode): boolean {
-    return (
-        source.id !== target.id &&
-        graph.value.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
-        graph.value.links.some((l) => l.target.id === target.id && l.source.id === source.id)
-    )
-}
-function needsReversion(source: GraphNode, target: GraphNode): boolean {
-    return source.x! > target.x!
-}
-function updateDraggableLinkPath(): void {
+
+/**
+ * Updates the draggable link path according to the needed shape.
+ */
+function _updateDraggableLinkPath(): void {
     const source = draggableLinkSourceNode
     if (source !== undefined) {
         const target = draggableLinkTargetNode
@@ -717,7 +693,7 @@ function updateDraggableLinkPath(): void {
             draggableLink!.attr('d', () => {
                 if (source.id === target.id) {
                     return paddedReflexivePath(source, [width / 2, height / 2], config)
-                } else if (isBidirectional(source, target)) {
+                } else if (graph.value.hasBidirectionalConnection(source, target)) {
                     return paddedLinePath(source, target, config)
                 } else {
                     return paddedArcPath(source, target, config)
@@ -729,6 +705,7 @@ function updateDraggableLinkPath(): void {
         }
     }
 }
+
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
@@ -1182,7 +1159,7 @@ function onPointerMovedBeginningFromNode(event: PointerEvent): void {
     if (draggableLinkSourceNode !== undefined) {
         const pointer = d3.pointers(event, graphHost.value!.node())[0]
         draggableLinkEnd = [(pointer[0] - xOffset) / scale, (pointer[1] - yOffset) / scale]
-        updateDraggableLinkPath()
+        _updateDraggableLinkPath()
     }
 }
 
@@ -1301,6 +1278,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
             }
         }
     }
+    restart()
 }
 
 /**
@@ -1437,6 +1415,7 @@ function handleInputForLabel(
                     _redrawNodeContainer(textContainingElement as HTMLDivElement)
                 }
             }
+            restart()
         }
         foreignObj.remove()
 

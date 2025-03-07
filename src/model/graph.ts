@@ -138,6 +138,19 @@ export default class Graph {
             .map((link) => link.id)
     }
 
+    /**
+     * Determine if a source and a target node have a bidirectional link connection.
+     * @param source
+     * @param target
+     */
+    public hasBidirectionalConnection(source: GraphNode, target: GraphNode): boolean {
+        return (
+            source.id !== target.id &&
+            this.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
+            this.links.some((l) => l.target.id === target.id && l.source.id === source.id)
+        )
+    }
+
     /** Formats the graph in trivial graph format.
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included

@@ -21,10 +21,10 @@ export class GraphLink implements D3Link, LinkGUIEditability {
     // eslint-disable-next-line no-useless-constructor
     /**
      *
-     * @param source
-     * @param target
-     * @param pathType
-     * @param label
+     * @param source - The links source node
+     * @param target - The links target node
+     * @param pathType - The path type is relevant for correct rendering in the view. It is set by and gets constantly updated during the simulation.
+     * @param label - The link label
      * @param color The color of the node which was set (for default color this is empty)
      * @param deletable - If the link is deletable via GUI
      * @param labelEditable - If the link label is editable via GUI

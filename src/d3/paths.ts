@@ -1,6 +1,60 @@
 import Matrix from 'ml-matrix'
+//@ts-ignore
+import svgPathReverse from 'svg-path-reverse'
 import type { GraphConfiguration } from '@/model/config'
-import { GraphNode } from '@/model/graph-node'
+import type { GraphNode } from '@/model/graph-node'
+import type { GraphLink } from '@/model/graph-link'
+import { PathType } from '@/model/path-type'
+import type Graph from '@/model/graph'
+import type { UnwrapRef } from 'vue'
+
+/**
+ * Generates a path string depending on the needed path type
+ * @param d
+ * @param width
+ * @param height
+ * @param config
+ */
+export function generatePath(
+    d: GraphLink,
+    width: number,
+    height: number,
+    config: GraphConfiguration
+): string {
+    switch (d.pathType) {
+        case PathType.REFLEXIVE: {
+            return paddedReflexivePath(d.source, [width / 2, height / 2], config)
+        }
+        case PathType.ARC: {
+            return paddedArcPath(d.source, d.target, config)
+        }
+        case PathType.ARCREVERSE: {
+            return svgPathReverse.reverse(paddedArcPath(d.source, d.target, config))
+        }
+        case PathType.LINE: {
+            return paddedLinePath(d.source, d.target, config)
+        }
+        case PathType.LINEREVERSE: {
+            return svgPathReverse.reverse(paddedLinePath(d.source, d.target, config))
+        }
+        default: {
+            return '' //should never be reached
+        }
+    }
+}
+
+/**
+ * Gets the path type for a link depending on the connection and position of its nodes.
+ */
+export function getPathType(source: GraphNode, target: GraphNode, graph: UnwrapRef<Graph>) {
+    if (source.id === target.id) {
+        return PathType.REFLEXIVE
+    } else if (graph.hasBidirectionalConnection(source, target)) {
+        return doesPathNeedReversion(source, target) ? PathType.ARCREVERSE : PathType.ARC
+    } else {
+        return doesPathNeedReversion(source, target) ? PathType.LINEREVERSE : PathType.LINE
+    }
+}
 
 /**
  * Creates the path of a straight line between the edges of two nodes.
@@ -44,15 +98,15 @@ export function paddedArcPath(
     const diff = Matrix.subtract(t, s)
     const dist = diff.norm('frobenius')
     const norm = diff.divide(dist)
-    const rotation = degreesToRadians(10)
-    const start = rotate(norm, -rotation)
+    const rotation = _degreesToRadians(10)
+    const start = _rotate(norm, -rotation)
         .multiply(graphConfiguration.nodeRadius - 1)
         .add(s)
     const endNorm = Matrix.multiply(norm, -1)
-    const end = rotate(endNorm, rotation)
+    const end = _rotate(endNorm, rotation)
         .multiply(graphConfiguration.nodeRadius)
         .add(t)
-        .add(rotate(endNorm, rotation).multiply(2 * graphConfiguration.markerBoxSize))
+        .add(_rotate(endNorm, rotation).multiply(2 * graphConfiguration.markerBoxSize))
     const arcRadius = 1.2 * dist
     return `M${start.get(0, 0)},${start.get(0, 1)}
           A${arcRadius},${arcRadius},0,0,1,${end.get(0, 0)},${end.get(0, 1)}`
@@ -78,14 +132,14 @@ export function paddedReflexivePath(
     }
     const diff = Matrix.subtract(n, c)
     const norm = diff.divide(diff.norm('frobenius'))
-    const rotation = degreesToRadians(40)
-    const start = rotate(norm, rotation)
+    const rotation = _degreesToRadians(40)
+    const start = _rotate(norm, rotation)
         .multiply(graphConfiguration.nodeRadius - 1)
         .add(n)
-    const end = rotate(norm, -rotation)
+    const end = _rotate(norm, -rotation)
         .multiply(graphConfiguration.nodeRadius)
         .add(n)
-        .add(rotate(norm, -rotation).multiply(2 * graphConfiguration.markerBoxSize))
+        .add(_rotate(norm, -rotation).multiply(2 * graphConfiguration.markerBoxSize))
     return `M${start.get(0, 0)},${start.get(0, 1)}
           A${graphConfiguration.nodeRadius},${
               graphConfiguration.nodeRadius
@@ -104,11 +158,20 @@ export function linePath(from: [number, number], to: [number, number]): string {
 }
 
 /**
+ * Determines if a path needs reversion, which is the case when the source nodes x value
+ * is bigger than the target nodes x value.
+ * This is necessary for flipping the text-path element that is used for the link labels.
+ */
+export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boolean {
+    return source.x! > target.x!
+}
+
+/**
  * Calculates the radian value for the given degrees.
  *
  * @param degrees The degrees.
  */
-function degreesToRadians(degrees: number): number {
+function _degreesToRadians(degrees: number): number {
     return degrees * (Math.PI / 180)
 }
 
@@ -118,7 +181,7 @@ function degreesToRadians(degrees: number): number {
  * @param vector The vector to be rotated.
  * @param radians The radians to rotate the vector by.
  */
-function rotate(vector: Matrix, radians: number): Matrix {
+function _rotate(vector: Matrix, radians: number): Matrix {
     const x = vector.get(0, 0)
     const y = vector.get(0, 1)
     return new Matrix([
