@@ -384,8 +384,8 @@ Events are fired from the graph host. This is where we attach the event listener
 ```javascript
 // get the graph host
 // w/o shadow root
-const graphHost = document.getElementById('gc1').querySelector('.graph-host')
-// with shadow root: document.getElementById('gc1').shadowRoot.querySelector('.graph-host')
+const graphHost = document.getElementById('gc1').querySelector('.graph-controller__graph-host')
+// with shadow root: document.getElementById('gc1').shadowRoot.querySelector('.graph-controller__graph-host')
 
 // add event listener for right click on node
 graphHost.addEventListener('nodeclicked', function(e){
