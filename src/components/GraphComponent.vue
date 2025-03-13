@@ -160,6 +160,7 @@ defineExpose({
     setLinkColor,
     deleteNode,
     deleteLink,
+    setLabel,
     setNodeRadius,
     setDeletable,
     setLabelEditable,
@@ -311,6 +312,41 @@ function deleteLink(ids: string[] | string) {
                     triggerLinkDeleted(removedLink, graphHost.value)
                 }
             })
+    }
+}
+
+/**
+ * Exposed function that sets the label of nodes and links via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param label
+ * @param ids
+ */
+function setLabel(label: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    _updateLabel(d, label)
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    _updateLabel(d, label)
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            _updateLabel(d, label)
+        })
+        linkSelection!.each((d) => {
+            _updateLabel(d, label)
+        })
     }
 }
 
