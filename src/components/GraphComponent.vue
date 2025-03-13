@@ -668,6 +668,8 @@ function onTick(): void {
         _updatePathType(d)
         return generatePath(d, width, height, config)
     })
+
+    _updateLinkMjxPosition()
 }
 
 /**
@@ -715,154 +717,76 @@ function restart(alpha: number = 0.5): void {
                     .append('g')
                     .classed('graph-controller__link-container', true)
 
-                linkGroup
-                    .append('path')
-                    .classed('graph-controller__link', true)
-                    .style('stroke', (d) => (d.color ? d.color : ''))
-                    .attr('id', (d) => graphHostId.value + '-link-' + d.id)
+            linkGroup
+                .append('path')
+                .classed('graph-controller__link', true)
+                .style('stroke', (d) => (d.color ? d.color : ''))
+                .attr('id', (d) => graphHostId.value + '-link-' + d.id)
 
-                linkGroup
-                    .append('path')
-                    .classed('graph-controller__click-box', true)
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a link, should not create a new node
-                        terminate(event)
-                    })
-                    .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
-                    .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
-                        triggerLinkClicked(d, event.button, graphHost.value)
-                        if (config.isGraphEditableInGUI) {
-                            onPointerDownDeleteLink(event, d)
-                        }
-                    })
-                    .on('pointerup', (event: PointerEvent, d: GraphLink) => {
-                        onPointerUpLink(event, d)
-                    })
+            linkGroup
+                .append('path')
+                .classed('graph-controller__click-box', true)
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a link, should not create a new node
+                    terminate(event)
+                })
+                .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
+                .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
+                    triggerLinkClicked(d, event.button, graphHost.value)
+                    if (config.isGraphEditableInGUI) {
+                        onPointerDownDeleteLink(event, d)
+                    }
+                })
+                .on('pointerup', (event: PointerEvent, d: GraphLink) => {
+                    onPointerUpLink(event, d)
+                })
 
-                linkGroup
-                    .append('text')
-                    .attr('class', (d) => {
-                        return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
-                    })
-                    .append('textPath')
-                    .attr('class', (d: GraphLink) =>
-                        d.label
-                            ? 'graph-controller__link-label'
-                            : 'graph-controller__link-label-placeholder'
-                    )
-                    .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
-                    .attr('startOffset', '50%')
-                    .text((d: GraphLink) => (d.label ? d.label : 'add label'))
-                    .on('click', (event: PointerEvent, d: GraphLink) => {
-                        if (config.isGraphEditableInGUI) {
-                            onLinkLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
+            linkGroup
+                .append('text')
+                .attr('class', (d) => {
+                    return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+                })
+                .append('textPath')
+                .attr('class', (d: GraphLink) =>
+                    d.label
+                        ? 'graph-controller__link-label'
+                        : 'graph-controller__link-label-placeholder'
+                )
+                .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
+                .text((d: GraphLink) => (d.label ? d.label : 'add label'))
+                .on('click', (event: PointerEvent, d: GraphLink) => {
+                    if (config.isGraphEditableInGUI) {
+                        onLinkLabelClicked(event, d)
+                    }
+                })
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a label, should not create a new node
+                    terminate(event)
+                })
 
-                linkGroup
-                    .append('foreignObject')
-                    .classed('graph-controller__link-label-mathjax-container', true)
-                    .attr('xmlns', 'http://www.w3.org/2000/svg')
-                    .attr('width', 1)
-                    .attr('height', 1)
-                    .html(
-                        (d: GraphLink) =>
-                            `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
-                            </div>`
-                    )
-                    .on('click', (event: PointerEvent, d: GraphLink) => {
-                        if (config.isGraphEditableInGUI) {
-                            onLinkLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
+            linkGroup
+                .append('foreignObject')
+                .classed('graph-controller__link-label-mathjax-container', true)
+                .attr('xmlns', 'http://www.w3.org/2000/svg')
+                .attr('width', 1)
+                .attr('height', 1)
+                .html(
+                    (d: GraphLink) =>
+                        `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
+                        </div>`
+                )
+                .on('click', (event: PointerEvent, d: GraphLink) => {
+                    if (config.isGraphEditableInGUI) {
+                        onLinkLabelClicked(event, d)
+                    }
+                })
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a label, should not create a new node
+                    terminate(event)
+                })
 
-                return linkGroup
-            },
-            (update) => {
-                // move mathjax to link label mjx container
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .selectChild('mjx-container')
-                    .each(function (d) {
-                        const graphLink = d as GraphLink
-                        const linkLabelMjxContainer = d3
-                            .select(
-                                (this! as HTMLElement).parentNode!.parentNode!
-                                    .parentNode as SVGGElement
-                            )
-                            .selectChild('foreignObject')
-                            .selectChild('div')
-                            .attr('class', 'graph-controller__link-label')
-                            .classed(
-                                'hidden',
-                                !config.showLinkLabels ||
-                                    (!graphLink.label && !graphLink.labelEditable)
-                            )
-                            .node() as HTMLDivElement
-
-                        const mjxContainer = d3.select(this!).remove().node() as HTMLElement
-
-                        linkLabelMjxContainer?.appendChild(mjxContainer)
-                    })
-
-                // if there is no text after moving mathjax
-                // we need a placeholder for the textpath
-                // to still be able to retrieve the textpath position
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .each(function () {
-                        const textPathElement = this as SVGTextPathElement
-
-                        let hasTextNode = false
-                        const children = textPathElement.childNodes
-
-                        children.forEach((child) => {
-                            if (
-                                child?.nodeType === Node.TEXT_NODE &&
-                                child?.textContent?.trim() !== ''
-                            ) {
-                                hasTextNode = true
-                            }
-                        })
-                        if (!hasTextNode) {
-                            d3.select(textPathElement)
-                                .text('I')
-                                .attr(
-                                    'class',
-                                    'graph-controller__link-label-placeholder mjx-hidden'
-                                )
-                        }
-                    })
-
-                // setting position for mathjax label
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .each(function () {
-                        const textPathElement = this as SVGTextPathElement
-                        const [x, y] = _getTextPathPosition(textPathElement)
-
-                        //@ts-ignore
-                        d3.select(textPathElement.parentNode.parentNode)
-                            .select('foreignObject')
-                            .attr('x', x)
-                            .attr('y', y)
-                    })
-
-                return update
-            }
-        )
-
+            return linkGroup
+        })
     // link marker positioning depending on path type reversion
     linkSelection
         .selectChild('path')
@@ -909,6 +833,9 @@ function restart(alpha: number = 0.5): void {
             }
         })
         .selectChild('textPath')
+        .attr('class', (d: GraphLink) =>
+            d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'
+        )
         .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
         .classed('not-editable', !config.isGraphEditableInGUI)
         .attr('startOffset', (d) => {
@@ -918,6 +845,7 @@ function restart(alpha: number = 0.5): void {
                 return '50%'
             }
         })
+        .text((d: GraphLink) => (d.label ? d.label : 'add label'))
 
     nodeSelection = nodeSelection!
         .data(graph.value.nodes, (d) => d.id)
@@ -959,12 +887,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('height', 2 * config.nodeRadius)
                     .attr('x', -config.nodeRadius)
                     .attr('y', -config.nodeRadius)
-                    .html(
-                        (d: GraphNode) =>
-                            `<div class=${d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'}>
-                                ${d.label ? d.label : 'add label'}
-                         </div>`
-                    )
+                    .append('xmlns:div')
                     .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
@@ -994,12 +917,97 @@ function restart(alpha: number = 0.5): void {
                 return update
             }
         )
+
+    nodeSelection
+        .selectChild('foreignObject')
+        .selectChild('div')
+        .attr('class', (d) =>
+            d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
+        )
+        .text((d) => (d.label ? d.label : 'add label'))
+
     //version will only be injected until MathJax is initialized
     if (window.MathJax?.version) {
-        window.MathJax.typeset()
+        window.MathJax.typesetPromise().then(() => {
+            _handleLinkMathJax()
+        })
     }
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
+}
+
+/**
+ * Moves the latex link label that was created from MathJax to the correct container.
+ *
+ * This is necessary since for link labels, normal text and mjx content don't have the same container.
+ */
+function _handleLinkMathJax() {
+    // move link label mathjax to link label mjx container
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .selectChild('mjx-container')
+        .each(function (d) {
+            const mjxContainer = this as HTMLElement
+            const graphLink = d as GraphLink
+
+            const linkLabelMjxContainer = d3
+                .select(mjxContainer.parentNode!.parentNode!.parentNode as SVGGElement) // link container
+                .selectChild('foreignObject')
+                .selectChild('div')
+                .attr('class', 'graph-controller__link-label')
+                .classed(
+                    'hidden',
+                    !config.showLinkLabels || (!graphLink.label && !graphLink.labelEditable)
+                )
+                .node() as HTMLDivElement
+
+            linkLabelMjxContainer.replaceChild(mjxContainer, linkLabelMjxContainer.childNodes[0])
+        })
+
+    // if there is no text after moving mathjax
+    // we need a placeholder for the textpath
+    // to still be able to retrieve the textpath position
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .each(function () {
+            const textPathElement = this as SVGTextPathElement
+
+            let hasTextNode = false
+            const children = textPathElement.childNodes
+
+            children.forEach((child) => {
+                if (child?.nodeType === Node.TEXT_NODE && child?.textContent?.trim() !== '') {
+                    hasTextNode = true
+                }
+            })
+            if (!hasTextNode) {
+                d3.select(textPathElement)
+                    .text('I')
+                    .attr('class', 'graph-controller__link-label-placeholder mjx-hidden')
+            }
+        })
+
+    _updateLinkMjxPosition()
+}
+
+/**
+ * Updates the position for the link label mathjax container.
+ */
+function _updateLinkMjxPosition() {
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .each(function () {
+            const textPathElement = this as SVGTextPathElement
+            const [x, y] = _getTextPathPosition(textPathElement)
+
+            d3.select(textPathElement!.parentNode!.parentNode as SVGGElement) //link container
+                .select('foreignObject')
+                .attr('x', x)
+                .attr('y', y)
+        })
 }
 
 // region onNodePointerDown
@@ -1318,11 +1326,9 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
  * @param node
  */
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
+    terminate(event)
     if (node.labelEditable) {
-        const eventParent = event?.target as Element
-        const textElement = eventParent.closest('div') as HTMLDivElement
-
-        handleInputForLabel(node, textElement, [node.x!, node.y!])
+        handleInputForLabel(node, [node.x!, node.y!])
     }
 }
 
@@ -1344,7 +1350,7 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
         }
 
         let position = _getTextPathPosition(textPathElement)
-        handleInputForLabel(link, textPathElement, position)
+        handleInputForLabel(link, position)
     }
 }
 
@@ -1352,14 +1358,9 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
  * Handles the input for node and link labels.
  *
  * @param element
- * @param textContainingElement
  * @param position
  */
-function handleInputForLabel(
-    element: GraphNode | GraphLink,
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    position: [number, number]
-) {
+function handleInputForLabel(element: GraphNode | GraphLink, position: [number, number]) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
     // create input
     const input = document.createElement('input')
@@ -1389,10 +1390,8 @@ function handleInputForLabel(
     }
 
     let pressedEnter = false
-
     input.onkeyup = function (e) {
         if (e.key === 'Enter') {
-            triggerLabelEdited(element, input.value, graphHost.value)
             pressedEnter = true
             input.blur()
         } else if (e.key === 'Escape') {
@@ -1402,20 +1401,7 @@ function handleInputForLabel(
     }
     input.onblur = function () {
         if (pressedEnter) {
-            if (elementType === 'link') {
-                _handleLinkMjxContainer(textContainingElement as SVGTextPathElement)
-            }
-
-            if (input.value === '') {
-                _unsetLabel(textContainingElement, element, elementType)
-            } else {
-                _setLabel(input, textContainingElement, element, elementType)
-
-                if (elementType === 'node') {
-                    _redrawNodeContainer(textContainingElement as HTMLDivElement)
-                }
-            }
-            restart()
+            _updateLabel(element, input.value.trim())
         }
         foreignObj.remove()
 
@@ -1426,71 +1412,64 @@ function handleInputForLabel(
 }
 
 /**
+ * Updates the label of the element as well as the view and triggers the labeledited event
+ * @param element - graph node or link
+ * @param label - new label
+ */
+function _updateLabel(element: GraphNode | GraphLink, label: string) {
+    triggerLabelEdited(element, label, graphHost.value)
+
+    element.label = label
+    restart()
+
+    let elementType = element instanceof GraphNode ? 'node' : 'link'
+    if (elementType === 'link') {
+        _handleLinkMjxContainer(element as GraphLink)
+    } else if (elementType === 'node' && label !== '') {
+        _redrawNodeContainer(element as GraphNode)
+    }
+}
+
+/**
  * Removes the link labels current mjx container.
  *
  * This is necessary during input of a new link label, since for link labels,
  * mjx and normal text content don't have the same textContainingElement,
  * so the old mjx-container needs to be removed separately.
- * @param textContainingElement
+ * @param link
  */
-function _handleLinkMjxContainer(textContainingElement: SVGTextPathElement) {
-    const linkContainer = textContainingElement.closest('.graph-controller__link-container')
+function _handleLinkMjxContainer(link: GraphLink) {
+    const linkContainer = graphHost.value
+        .node()!
+        .querySelector<SVGTextPathElement>(
+            `#${graphHostId.value + '-link-' + link.id}`
+        )!.parentElement
+
     linkContainer!.querySelector('mjx-container')?.remove()
+
     linkContainer!
         .querySelector('div')!
         .setAttribute('class', 'graph-controller__link-label-placeholder')
+
+    restart()
 }
 
 /**
  * Redraw the node container.
  *
  * This is necessary for node labels that are larger than the node, ensuring they fully appear above the node circle.
- * @param textContainingElement
+ * @param node
  */
-function _redrawNodeContainer(textContainingElement: HTMLDivElement) {
-    let nodeContainer = textContainingElement.closest(
-        '.graph-controller__node-container'
-    ) as SVGGElement
-    const nodeContainerParent = nodeContainer!.parentElement
-    nodeContainer!.remove()
-    nodeContainerParent!.append(nodeContainer)
-}
+function _redrawNodeContainer(node: GraphNode) {
+    const nodeContainer = graphHost.value
+        .node()!
+        .querySelector<SVGGElement>(`#${graphHostId.value + '-node-' + node.id}`)!.parentElement
 
-/**
- * Unsets the label in the elements data structure, changes the respective HTML class and adds a label placeholder
- * @param textContainingElement
- * @param element
- * @param elementType "node" or "link" for the html class name
- */
-function _unsetLabel(
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    element: GraphNode | GraphLink,
-    elementType: string
-) {
-    textContainingElement.setAttribute(
-        'class',
-        `graph-controller__${elementType}-label-placeholder`
-    )
-    textContainingElement.textContent = 'add label'
-    element.label = undefined
-}
-
-/**
- * Sets the label in the elements data structure and respective HTML and changes the HTML class
- * @param input
- * @param textContainingElement
- * @param element
- * @param elementType "node" or "link" for the html class name
- */
-function _setLabel(
-    input: HTMLInputElement,
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    element: GraphNode | GraphLink,
-    elementType: string
-) {
-    textContainingElement.setAttribute('class', `graph-controller__${elementType}-label`)
-    textContainingElement.textContent = input.value.trim()
-    element.label = textContainingElement.textContent
+    if (nodeContainer) {
+        const nodeContainerParent = nodeContainer!.parentElement
+        nodeContainer!.remove()
+        nodeContainerParent!.append(nodeContainer)
+    }
 }
 
 function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
