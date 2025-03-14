@@ -15,8 +15,7 @@ export function createCanvas(
 ): Canvas {
     const canvasGroup = host
         .append('svg')
-        .attr('width', '100%')
-        .attr('height', '100%')
+        .attr('class', 'graph-controller__graph-canvas')
         .on('pointermove', (event: PointerEvent) => onPointerMoved(event))
         .on('pointerup', (event: PointerEvent) => onPointerUp(event))
         .on('contextmenu', (event: MouseEvent) => terminate(event))

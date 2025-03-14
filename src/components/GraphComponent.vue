@@ -1683,6 +1683,12 @@ function _resetGraph(): void {
     background-color: lightgrey;
 }
 
+.graph-controller__graph-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 .graph-controller__link {
     stroke: #004c97;
     stroke-width: 4px;
