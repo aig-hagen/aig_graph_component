@@ -923,7 +923,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('height', 2 * config.nodeRadius)
                     .attr('x', -config.nodeRadius)
                     .attr('y', -config.nodeRadius)
-                    .append('xmlns:div')
+                    .append('xhtml:div')
                     .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
