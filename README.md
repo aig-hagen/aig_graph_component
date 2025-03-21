@@ -14,15 +14,13 @@
 ## Usage
 The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)** (_currently V3.0, will be kept up-to-date starting from version 3.3._)
 and also as a **custom element**,
-enabling easy embedding into an HTML-file using the `<graph-component/>` tag. 
-Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration
-_(and simply run it for a quick start)_.
+allowing easy embedding into an HTML-file using the `<graph-component/>` tag.
 
+You can create your graph using the [GUI](#gui), or interact with it 
+and customize its behaviour [programmatically](#programmatically).
 
-You can build your graph using the GUI or interact with it programmatically,
-customizing its behaviour to suit your needs via the browser console or a script.
+Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory.
 
-During interaction with the graph, various events are triggered to which you can react.
 ### GUI
 *TODO (งツ)ว*
 ### Programmatically
@@ -170,6 +168,14 @@ instance.deleteLink("0-1")
 instance.deleteLink(["1-0", "2-2"])
 ```
 
+#### Changing Labels of Nodes and Links
+We can change the labels of one or more existing nodes or links by their id.
+
+```javascript
+//setting a new label for the nodes with id 0 and 1 and the link between it
+instance.setLabel("new label", [0,1,"1-0"])
+```
+
 #### Changing Color of Nodes and Links
 We can change the color of one or more existing nodes or links by their id or change the color of all existing ones.
 The color can be:
@@ -312,7 +318,7 @@ instance.setLinkEditability(
 
 #### Miscellaneous
 If we want to embed the component and only display the graph without 
-allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via CLI remain available)*,
+allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via API remain available)*,
 we can use the following: 
 
 ```javascript
