@@ -156,11 +156,10 @@ defineExpose({
     getGraph,
     setGraph,
     printGraph,
-    setNodeColor,
-    setLinkColor,
     deleteNode,
     deleteLink,
     setLabel,
+    setColor,
     setNodeRadius,
     setDeletable,
     setLabelEditable,
@@ -234,52 +233,6 @@ function printGraph(
     }
 }
 
-function setNodeColor(color: string, ids: string[] | number[] | string | number | undefined) {
-    if (ids !== undefined) {
-        const idStringArray = Array.isArray(ids) ? ids : [ids]
-        const idArray = idStringArray.map(Number)
-        for (const id of idArray) {
-            nodeSelection!
-                .selectAll<SVGCircleElement, GraphNode>('circle')
-                .filter((d) => d.id === id)
-                .each((d) => (d.color = color))
-                .style('fill', color)
-        }
-    } else {
-        //if no ids are provided, the color is set for all currently existing nodes
-        nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
-            .each((d) => (d.color = color))
-            .style('fill', color)
-    }
-}
-
-function setLinkColor(color: string, ids: string[] | string | undefined) {
-    if (ids) {
-        const idArray = Array.isArray(ids) ? ids : [ids]
-
-        _deleteNotNeededColorMarker(idArray)
-
-        for (const id of idArray) {
-            linkSelection!
-                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
-                .filter((d) => d.id === id)
-                .each((d) => (d.color = color))
-                .style('stroke', color)
-        }
-    } else {
-        //if no ids are provided, the color is set for all currently existing links
-        _deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
-
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
-            .each((d) => (d.color = color))
-            .style('stroke', color)
-    }
-
-    createLinkMarkerColored(canvas!, graphHostId.value, config, color)
-}
-
 function deleteNode(ids: number[] | number) {
     const idArray = Array.isArray(ids) ? ids : [ids]
     for (const id of idArray) {
@@ -348,6 +301,50 @@ function setLabel(label: string, ids: string[] | number[] | string | number | un
             _updateLabel(d, label)
         })
     }
+}
+
+/**
+ * Exposed function that sets the color of nodes and links via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param color
+ * @param ids
+ */
+function setColor(color: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        _deleteNotNeededColorMarker(linkIds)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('fill', color)
+        }
+        for (const id of linkIds) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
+                .filter((d) => d.id === id)
+                .each((d) => (d.color = color))
+                .style('stroke', color)
+        }
+    } else {
+        //if no ids are provided, the color is set for all currently existing nodes
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .each((d) => (d.color = color))
+            .style('fill', color)
+
+        //if no ids are provided, the color is set for all currently existing links
+        _deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
+        linkSelection!
+            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
+            .each((d) => (d.color = color))
+            .style('stroke', color)
+    }
+    createLinkMarkerColored(canvas!, graphHostId.value, config, color)
+    restart()
 }
 
 function setNodeRadius(radius: number) {
