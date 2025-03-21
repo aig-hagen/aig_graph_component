@@ -156,8 +156,7 @@ defineExpose({
     getGraph,
     setGraph,
     printGraph,
-    deleteNode,
-    deleteLink,
+    deleteElement,
     setLabel,
     setColor,
     setNodeRadius,
@@ -233,39 +232,64 @@ function printGraph(
     }
 }
 
-function deleteNode(ids: number[] | number) {
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
-            .filter((d) => d.id === id)
-            .each(function (d) {
-                let r = graph.value.removeNode(d)
-                if (r !== undefined) {
-                    let [removedNode, removedLinks] = r
-                    triggerNodeDeleted(removedNode, graphHost.value)
-                    removedLinks.forEach((link) => {
-                        triggerLinkDeleted(link, graphHost.value)
-                    })
-                }
-            })
-    }
-    graphHasNodes.value = graph.value.nodes.length > 0
-}
+/**
+ * Exposed function that deletes nodes and links via their IDs.
+ * If no IDs are provided all currently existing nodes and links are deleted.
+ * @param ids
+ */
+function deleteElement(ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
 
-function deleteLink(ids: string[] | string) {
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('path')
-            .filter((d) => d.id === id)
-            .each(function (d) {
-                let removedLink = graph.value.removeLink(d)
-                if (removedLink !== undefined) {
-                    triggerLinkDeleted(removedLink, graphHost.value)
-                }
-            })
+        for (const id of nodeIds) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    let r = graph.value.removeNode(d)
+                    if (r !== undefined) {
+                        let [removedNode, removedLinks] = r
+                        triggerNodeDeleted(removedNode, graphHost.value)
+                        removedLinks.forEach((link) => {
+                            triggerLinkDeleted(link, graphHost.value)
+                        })
+                    }
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('path')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    let removedLink = graph.value.removeLink(d)
+                    if (removedLink !== undefined) {
+                        triggerLinkDeleted(removedLink, graphHost.value)
+                    }
+                })
+        }
+    } else {
+        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+            let r = graph.value.removeNode(d)
+            if (r !== undefined) {
+                let [removedNode, removedLinks] = r
+                triggerNodeDeleted(removedNode, graphHost.value)
+                removedLinks.forEach((link) => {
+                    triggerLinkDeleted(link, graphHost.value)
+                })
+            }
+        })
+
+        linkSelection!.selectAll<SVGPathElement, GraphLink>('path').each(function (d) {
+            let removedLink = graph.value.removeLink(d)
+            if (removedLink !== undefined) {
+                triggerLinkDeleted(removedLink, graphHost.value)
+            }
+        })
     }
+
+    graphHasNodes.value = graph.value.nodes.length > 0
+    restart()
 }
 
 /**
