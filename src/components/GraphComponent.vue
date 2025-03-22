@@ -151,7 +151,7 @@ let scale = 1
 let longRightClickTimerNode: number
 let longRightClickTimerLink: number
 
-//exposing for cli functionality
+//exposing for API
 defineExpose({
     getGraph,
     setGraph,
@@ -164,8 +164,7 @@ defineExpose({
     setLabelEditable,
     setNodesLinkPermission,
     setNodesFixedPosition,
-    setNodeEditability,
-    setLinkEditability,
+    setEditability,
     toggleNodeLabels,
     toggleLinkLabels,
     toggleZoom,
@@ -490,6 +489,7 @@ function setNodesLinkPermission(
 
 /**
  * Exposed function to set if a node can be dragged via GUI and is influenced by the simulation forces.
+ * If no IDs are provided, it is set for all currently existing nodes.
  * @param fixedPosition
  * @param ids
  */
@@ -514,47 +514,55 @@ function setNodesFixedPosition(
     }
 }
 
-function setNodeEditability(
-    editability: NodeGUIEditability,
+/**
+ * Exposed function to set the editability parameters of nodes and links at once using an editability-object.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param editability
+ * @param ids
+ * */
+function setEditability(
+    editability: NodeGUIEditability | LinkGUIEditability,
     ids: string[] | number[] | string | number | undefined
 ) {
+    const allEditabilityProps: (
+        | keyof NodeGUIEditability
+        | keyof LinkGUIEditability
+        | keyof FixedAxis
+    )[] = [
+        'fixedPosition',
+        'deletable',
+        'labelEditable',
+        'allowIncomingLinks',
+        'allowOutgoingLinks'
+    ]
+    const linkEditabilityProps: (keyof LinkGUIEditability)[] = ['deletable', 'labelEditable']
+
     if (ids !== undefined) {
-        const idStringArray = Array.isArray(ids) ? ids : [ids]
-        const idArray = idStringArray.map(Number)
-        for (const id of idArray) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+        const onlyLinks = nodeIds.length === 0
+
+        for (const id of nodeIds) {
             nodeSelection!
                 .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    setAndValFixedNodePosition(d, editability.fixedPosition)
                     d.deletable = editability.deletable ?? d.deletable
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
-                    d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
-                    d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+                    if ('fixedPosition' in editability) {
+                        setAndValFixedNodePosition(d, editability.fixedPosition)
+                    }
+                    if ('allowIncomingLinks' in editability) {
+                        d.allowIncomingLinks =
+                            editability.allowIncomingLinks ?? d.allowIncomingLinks
+                    }
+                    if ('allowOutgoingLinks' in editability) {
+                        d.allowOutgoingLinks =
+                            editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+                    }
                 })
         }
-    } else {
-        //if no ids are provided, the editability is set for all currently existing nodes
-        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
-            setAndValFixedNodePosition(d, editability.fixedPosition)
-            d.deletable = editability.deletable ?? d.deletable
-            d.labelEditable = editability.labelEditable ?? d.labelEditable
-            d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
-            d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
-        })
-    }
 
-    checkForNotValidKeys(
-        ['fixedPosition', 'deletable', 'labelEditable', 'allowIncomingLinks', 'allowOutgoingLinks'],
-        Object.keys(editability),
-        true
-    )
-}
-
-function setLinkEditability(editability: LinkGUIEditability, ids: string[] | string | undefined) {
-    if (ids) {
-        const idArray = Array.isArray(ids) ? ids : [ids]
-        for (const id of idArray) {
+        for (const id of linkIds) {
             linkSelection!
                 .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
                 .filter((d) => d.id === id)
@@ -563,16 +571,38 @@ function setLinkEditability(editability: LinkGUIEditability, ids: string[] | str
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
                 })
         }
+
+        checkForNotValidKeys(
+            onlyLinks ? linkEditabilityProps : allEditabilityProps,
+            Object.keys(editability),
+            true
+        )
     } else {
+        //if no ids are provided, the editability is set for all currently existing nodes and links
+        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+            d.deletable = editability.deletable ?? d.deletable
+            d.labelEditable = editability.labelEditable ?? d.labelEditable
+            if ('fixedPosition' in editability) {
+                setAndValFixedNodePosition(d, editability.fixedPosition)
+            }
+            if ('allowIncomingLinks' in editability) {
+                d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
+            }
+            if ('allowOutgoingLinks' in editability) {
+                d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+            }
+        })
+
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
             .each(function (d) {
                 d.deletable = editability.deletable ?? d.deletable
                 d.labelEditable = editability.labelEditable ?? d.labelEditable
             })
-    }
 
-    checkForNotValidKeys(['deletable', 'labelEditable'], Object.keys(editability), true)
+        checkForNotValidKeys(allEditabilityProps, Object.keys(editability), true)
+    }
+    restart()
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -768,11 +798,8 @@ function _updateDraggableLinkPath(): void {
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
-        .join(
-            (enter) => {
-                const linkGroup = enter
-                    .append('g')
-                    .classed('graph-controller__link-container', true)
+        .join((enter) => {
+            const linkGroup = enter.append('g').classed('graph-controller__link-container', true)
 
             linkGroup
                 .append('path')
@@ -981,6 +1008,7 @@ function restart(alpha: number = 0.5): void {
         .attr('class', (d) =>
             d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
         )
+        .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
         .text((d) => (d.label ? d.label : 'add label'))
 
     //version will only be injected until MathJax is initialized
@@ -1419,12 +1447,14 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
  */
 function handleInputForLabel(element: GraphNode | GraphLink, position: [number, number]) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
+
     // create input
     const input = document.createElement('input')
     input.setAttribute('class', 'graph-controller__label-input')
     input.setAttribute('id', `${elementType}-label-input-field`)
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
+
     // append input to foreign object
     const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
     foreignObj.setAttribute('width', '100%')
@@ -1432,6 +1462,7 @@ function handleInputForLabel(element: GraphNode | GraphLink, position: [number, 
     foreignObj.setAttribute('x', `${position[0]! - 90}`)
     foreignObj.setAttribute('y', `${position[1]! - 12}`)
     foreignObj.append(input)
+
     // append foreign object
     graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
     input.focus()
@@ -1440,12 +1471,11 @@ function handleInputForLabel(element: GraphNode | GraphLink, position: [number, 
         isVirtualKeyboardProbablyOpen = true
     }
 
-    //event handler
+    //event handling
     input.ondblclick = function (e) {
         //double-click on the input should not create a new node
         terminate(e)
     }
-
     let pressedEnter = false
     input.onkeyup = function (e) {
         if (e.key === 'Enter') {
