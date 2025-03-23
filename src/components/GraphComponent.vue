@@ -4,6 +4,8 @@ import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from '
 import GraphControls from '@/components/GraphControls.vue'
 //d3
 import * as d3 from 'd3'
+import type { D3ZoomEvent } from 'd3'
+import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
@@ -11,7 +13,14 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { linePath, paddedArcPath, paddedLinePath, paddedReflexivePath } from '@/d3/paths'
+import {
+    linePath,
+    paddedArcPath,
+    paddedLinePath,
+    paddedReflexivePath,
+    generatePath,
+    getPathType
+} from '@/d3/paths'
 import {
     terminate,
     triggerLabelEdited,
@@ -44,8 +53,6 @@ import {
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
 //other
-//@ts-ignore
-import svgPathReverse from 'svg-path-reverse'
 import Bowser from 'bowser'
 
 const graphHost = computed(() => {
@@ -129,6 +136,7 @@ const config = reactive(new GraphConfigDefault())
 let simulation: any = undefined
 let width: number = 400
 let height: number = 400
+let zoom: Zoom | undefined
 let drag: Drag
 let canvas: Canvas | undefined
 let linkSelection: LinkSelection | undefined
@@ -143,27 +151,27 @@ let scale = 1
 let longRightClickTimerNode: number
 let longRightClickTimerLink: number
 
-//exposing for cli functionality
+//exposing for API
 defineExpose({
     getGraph,
     setGraph,
     printGraph,
-    setNodeColor,
-    setLinkColor,
-    deleteNode,
-    deleteLink,
+    deleteElement,
+    setLabel,
+    setColor,
     setNodeRadius,
     setDeletable,
     setLabelEditable,
     setNodesLinkPermission,
     setNodesFixedPosition,
-    setNodeEditability,
-    setLinkEditability,
+    setEditability,
     toggleNodeLabels,
     toggleLinkLabels,
+    toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
-    toggleGraphEditingInGUI
+    toggleGraphEditingInGUI,
+    resetView
 })
 
 //region functions that are solely used as exposed ones
@@ -223,33 +231,121 @@ function printGraph(
     }
 }
 
-function setNodeColor(color: string, ids: string[] | number[] | string | number | undefined) {
+/**
+ * Exposed function that deletes nodes and links via their IDs.
+ * If no IDs are provided all currently existing nodes and links are deleted.
+ * @param ids
+ */
+function deleteElement(ids: string[] | number[] | string | number | undefined) {
     if (ids !== undefined) {
-        const idStringArray = Array.isArray(ids) ? ids : [ids]
-        const idArray = idStringArray.map(Number)
-        for (const id of idArray) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    let r = graph.value.removeNode(d)
+                    if (r !== undefined) {
+                        let [removedNode, removedLinks] = r
+                        triggerNodeDeleted(removedNode, graphHost.value)
+                        removedLinks.forEach((link) => {
+                            triggerLinkDeleted(link, graphHost.value)
+                        })
+                    }
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .selectAll<SVGPathElement, GraphLink>('path')
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    let removedLink = graph.value.removeLink(d)
+                    if (removedLink !== undefined) {
+                        triggerLinkDeleted(removedLink, graphHost.value)
+                    }
+                })
+        }
+    } else {
+        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+            let r = graph.value.removeNode(d)
+            if (r !== undefined) {
+                let [removedNode, removedLinks] = r
+                triggerNodeDeleted(removedNode, graphHost.value)
+                removedLinks.forEach((link) => {
+                    triggerLinkDeleted(link, graphHost.value)
+                })
+            }
+        })
+
+        linkSelection!.selectAll<SVGPathElement, GraphLink>('path').each(function (d) {
+            let removedLink = graph.value.removeLink(d)
+            if (removedLink !== undefined) {
+                triggerLinkDeleted(removedLink, graphHost.value)
+            }
+        })
+    }
+
+    graphHasNodes.value = graph.value.nodes.length > 0
+    restart()
+}
+
+/**
+ * Exposed function that sets the label of nodes and links via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param label
+ * @param ids
+ */
+function setLabel(label: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    _updateLabel(d, label)
+                })
+        }
+
+        for (const id of linkIds) {
+            linkSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    _updateLabel(d, label)
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            _updateLabel(d, label)
+        })
+        linkSelection!.each((d) => {
+            _updateLabel(d, label)
+        })
+    }
+}
+
+/**
+ * Exposed function that sets the color of nodes and links via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param color
+ * @param ids
+ */
+function setColor(color: string, ids: string[] | number[] | string | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+
+        _deleteNotNeededColorMarker(linkIds)
+
+        for (const id of nodeIds) {
             nodeSelection!
                 .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each((d) => (d.color = color))
                 .style('fill', color)
         }
-    } else {
-        //if no ids are provided, the color is set for all currently existing nodes
-        nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
-            .each((d) => (d.color = color))
-            .style('fill', color)
-    }
-}
-
-function setLinkColor(color: string, ids: string[] | string | undefined) {
-    if (ids) {
-        const idArray = Array.isArray(ids) ? ids : [ids]
-
-        _deleteNotNeededColorMarker(idArray)
-
-        for (const id of idArray) {
+        for (const id of linkIds) {
             linkSelection!
                 .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
                 .filter((d) => d.id === id)
@@ -257,51 +353,21 @@ function setLinkColor(color: string, ids: string[] | string | undefined) {
                 .style('stroke', color)
         }
     } else {
+        //if no ids are provided, the color is set for all currently existing nodes
+        nodeSelection!
+            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .each((d) => (d.color = color))
+            .style('fill', color)
+
         //if no ids are provided, the color is set for all currently existing links
         _deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
-
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
             .each((d) => (d.color = color))
             .style('stroke', color)
     }
-
     createLinkMarkerColored(canvas!, graphHostId.value, config, color)
-}
-
-function deleteNode(ids: number[] | number) {
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
-            .filter((d) => d.id === id)
-            .each(function (d) {
-                let r = graph.value.removeNode(d)
-                if (r !== undefined) {
-                    let [removedNode, removedLinks] = r
-                    triggerNodeDeleted(removedNode, graphHost.value)
-                    removedLinks.forEach((link) => {
-                        triggerLinkDeleted(link, graphHost.value)
-                    })
-                }
-            })
-    }
-    graphHasNodes.value = graph.value.nodes.length > 0
-}
-
-function deleteLink(ids: string[] | string) {
-    const idArray = Array.isArray(ids) ? ids : [ids]
-    for (const id of idArray) {
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('path')
-            .filter((d) => d.id === id)
-            .each(function (d) {
-                let removedLink = graph.value.removeLink(d)
-                if (removedLink !== undefined) {
-                    triggerLinkDeleted(removedLink, graphHost.value)
-                }
-            })
-    }
+    restart()
 }
 
 function setNodeRadius(radius: number) {
@@ -423,6 +489,7 @@ function setNodesLinkPermission(
 
 /**
  * Exposed function to set if a node can be dragged via GUI and is influenced by the simulation forces.
+ * If no IDs are provided, it is set for all currently existing nodes.
  * @param fixedPosition
  * @param ids
  */
@@ -447,47 +514,55 @@ function setNodesFixedPosition(
     }
 }
 
-function setNodeEditability(
-    editability: NodeGUIEditability,
+/**
+ * Exposed function to set the editability parameters of nodes and links at once using an editability-object.
+ * If no IDs are provided, it is set for all currently existing nodes and links.
+ * @param editability
+ * @param ids
+ * */
+function setEditability(
+    editability: NodeGUIEditability | LinkGUIEditability,
     ids: string[] | number[] | string | number | undefined
 ) {
+    const allEditabilityProps: (
+        | keyof NodeGUIEditability
+        | keyof LinkGUIEditability
+        | keyof FixedAxis
+    )[] = [
+        'fixedPosition',
+        'deletable',
+        'labelEditable',
+        'allowIncomingLinks',
+        'allowOutgoingLinks'
+    ]
+    const linkEditabilityProps: (keyof LinkGUIEditability)[] = ['deletable', 'labelEditable']
+
     if (ids !== undefined) {
-        const idStringArray = Array.isArray(ids) ? ids : [ids]
-        const idArray = idStringArray.map(Number)
-        for (const id of idArray) {
+        const [nodeIds, linkIds] = separateNodeAndLinkIds(ids)
+        const onlyLinks = nodeIds.length === 0
+
+        for (const id of nodeIds) {
             nodeSelection!
                 .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    setAndValFixedNodePosition(d, editability.fixedPosition)
                     d.deletable = editability.deletable ?? d.deletable
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
-                    d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
-                    d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+                    if ('fixedPosition' in editability) {
+                        setAndValFixedNodePosition(d, editability.fixedPosition)
+                    }
+                    if ('allowIncomingLinks' in editability) {
+                        d.allowIncomingLinks =
+                            editability.allowIncomingLinks ?? d.allowIncomingLinks
+                    }
+                    if ('allowOutgoingLinks' in editability) {
+                        d.allowOutgoingLinks =
+                            editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+                    }
                 })
         }
-    } else {
-        //if no ids are provided, the editability is set for all currently existing nodes
-        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
-            setAndValFixedNodePosition(d, editability.fixedPosition)
-            d.deletable = editability.deletable ?? d.deletable
-            d.labelEditable = editability.labelEditable ?? d.labelEditable
-            d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
-            d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
-        })
-    }
 
-    checkForNotValidKeys(
-        ['fixedPosition', 'deletable', 'labelEditable', 'allowIncomingLinks', 'allowOutgoingLinks'],
-        Object.keys(editability),
-        true
-    )
-}
-
-function setLinkEditability(editability: LinkGUIEditability, ids: string[] | string | undefined) {
-    if (ids) {
-        const idArray = Array.isArray(ids) ? ids : [ids]
-        for (const id of idArray) {
+        for (const id of linkIds) {
             linkSelection!
                 .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
                 .filter((d) => d.id === id)
@@ -496,16 +571,38 @@ function setLinkEditability(editability: LinkGUIEditability, ids: string[] | str
                     d.labelEditable = editability.labelEditable ?? d.labelEditable
                 })
         }
+
+        checkForNotValidKeys(
+            onlyLinks ? linkEditabilityProps : allEditabilityProps,
+            Object.keys(editability),
+            true
+        )
     } else {
+        //if no ids are provided, the editability is set for all currently existing nodes and links
+        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+            d.deletable = editability.deletable ?? d.deletable
+            d.labelEditable = editability.labelEditable ?? d.labelEditable
+            if ('fixedPosition' in editability) {
+                setAndValFixedNodePosition(d, editability.fixedPosition)
+            }
+            if ('allowIncomingLinks' in editability) {
+                d.allowIncomingLinks = editability.allowIncomingLinks ?? d.allowIncomingLinks
+            }
+            if ('allowOutgoingLinks' in editability) {
+                d.allowOutgoingLinks = editability.allowOutgoingLinks ?? d.allowOutgoingLinks
+            }
+        })
+
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
             .each(function (d) {
                 d.deletable = editability.deletable ?? d.deletable
                 d.labelEditable = editability.labelEditable ?? d.labelEditable
             })
-    }
 
-    checkForNotValidKeys(['deletable', 'labelEditable'], Object.keys(editability), true)
+        checkForNotValidKeys(allEditabilityProps, Object.keys(editability), true)
+    }
+    restart()
 }
 
 function toggleNodePhysics(isEnabled: boolean): void {
@@ -521,6 +618,10 @@ function toggleLinkLabels(isEnabled: boolean) {
 }
 function toggleNodeLabels(isEnabled: boolean) {
     config.showNodeLabels = isEnabled
+}
+function toggleZoom(isEnabled: boolean) {
+    config.zoomEnabled = isEnabled
+    resetView()
 }
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
@@ -547,6 +648,9 @@ function initFromLocalStorage() {
     if (localStorage.enableFixedLinkDistance) {
         config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
     }
+    if (localStorage.enableZoom) {
+        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
+    }
 
     if (localStorage.persistSettings) {
         config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
@@ -556,8 +660,13 @@ function initFromLocalStorage() {
 function initData() {
     width = graphHost.value.node()!.clientWidth
     height = graphHost.value.node()!.clientHeight
+    zoom = createZoom(
+        (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
+        config.zoomEnabled
+    )
     canvas = createCanvas(
         graphHost.value!,
+        zoom,
         (event) => (config.isGraphEditableInGUI ? onPointerMovedBeginningFromNode(event) : null),
         (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
@@ -576,6 +685,16 @@ function initData() {
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config.nodeRadius)
     restart()
+}
+
+function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
+    if (isEnabled) {
+        xOffset = event.transform.x
+        yOffset = event.transform.y
+        scale = event.transform.k
+
+        canvas!.attr('transform', `translate(${xOffset},${yOffset})scale(${scale})`)
+    }
 }
 
 function createLink(
@@ -632,57 +751,30 @@ function createNode(
 function onTick(): void {
     nodeSelection!.attr('transform', (d) => `translate(${d.x},${d.y})`)
 
-    linkSelection!
-        .selectAll<SVGPathElement, GraphLink>('path')
-        .attr('d', (d: GraphLink) => generatePath(d))
+    linkSelection!.selectAll<SVGPathElement, GraphLink>('path').attr('d', (d: GraphLink) => {
+        _updatePathType(d)
+        return generatePath(d, width, height, config)
+    })
 
-    updateDraggableLinkPath()
-    restart()
+    _updateLinkMjxPosition()
 }
-function generatePath(d: GraphLink): string {
-    setPath(d)
 
-    switch (d.pathType) {
-        case PathType.REFLEXIVE: {
-            return paddedReflexivePath(d.source, [width / 2, height / 2], config)
-        }
-        case PathType.ARC: {
-            return paddedArcPath(d.source, d.target, config)
-        }
-        case PathType.ARCREVERSE: {
-            return svgPathReverse.reverse(paddedArcPath(d.source, d.target, config))
-        }
-        case PathType.LINE: {
-            return paddedLinePath(d.source, d.target, config)
-        }
-        case PathType.LINEREVERSE: {
-            return svgPathReverse.reverse(paddedLinePath(d.source, d.target, config))
-        }
-        default: {
-            return '' //should never be reached
-        }
+/**
+ * Sets the path type for a link depending on the connection and position of its nodes and updates the view.
+ * @param d
+ */
+function _updatePathType(d: GraphLink) {
+    let oldPathType = d.pathType
+    d.pathType = getPathType(d.source, d.target, graph.value)
+    if (oldPathType !== d.pathType) {
+        restart()
     }
 }
-function setPath(d: GraphLink) {
-    if (d.source.id === d.target.id) {
-        d.pathType = PathType.REFLEXIVE
-    } else if (isBidirectional(d.source, d.target)) {
-        d.pathType = needsReversion(d.source, d.target) ? PathType.ARCREVERSE : PathType.ARC
-    } else {
-        d.pathType = needsReversion(d.source, d.target) ? PathType.LINEREVERSE : PathType.LINE
-    }
-}
-function isBidirectional(source: GraphNode, target: GraphNode): boolean {
-    return (
-        source.id !== target.id &&
-        graph.value.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
-        graph.value.links.some((l) => l.target.id === target.id && l.source.id === source.id)
-    )
-}
-function needsReversion(source: GraphNode, target: GraphNode): boolean {
-    return source.x! > target.x!
-}
-function updateDraggableLinkPath(): void {
+
+/**
+ * Updates the draggable link path according to the needed shape.
+ */
+function _updateDraggableLinkPath(): void {
     const source = draggableLinkSourceNode
     if (source !== undefined) {
         const target = draggableLinkTargetNode
@@ -690,7 +782,7 @@ function updateDraggableLinkPath(): void {
             draggableLink!.attr('d', () => {
                 if (source.id === target.id) {
                     return paddedReflexivePath(source, [width / 2, height / 2], config)
-                } else if (isBidirectional(source, target)) {
+                } else if (graph.value.hasBidirectionalConnection(source, target)) {
                     return paddedLinePath(source, target, config)
                 } else {
                     return paddedArcPath(source, target, config)
@@ -702,222 +794,142 @@ function updateDraggableLinkPath(): void {
         }
     }
 }
+
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
-        .join(
-            (enter) => {
-                const linkGroup = enter
-                    .append('g')
-                    .classed('graph-controller__link-container', true)
-                linkGroup
-                    .append('path')
-                    .classed('graph-controller__link', true)
-                    .style('stroke', (d) => (d.color ? d.color : ''))
-                    .attr('id', (d) => graphHostId.value + '-link-' + d.id)
-                    .attr('marker-end', (d) =>
-                        d.color
-                            ? `url(#${graphHostId.value}-link-arrow-` + d.color
-                            : `url(#${graphHostId.value}-link-arrow)`
-                    )
-                linkGroup
-                    .append('path')
-                    .classed('graph-controller__click-box', true)
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a link, should not create a new node
-                        terminate(event)
-                    })
-                    .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
-                    .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
-                        triggerLinkClicked(d, event.button, graphHost.value)
-                        if (config.isGraphEditableInGUI) {
-                            onPointerDownDeleteLink(event, d)
-                        }
-                    })
-                    .on('pointerup', (event: PointerEvent, d: GraphLink) => {
-                        onPointerUpLink(event, d)
-                    })
-                linkGroup
-                    .append('text')
-                    .append('textPath')
-                    .attr('class', (d: GraphLink) =>
-                        d.label
-                            ? 'graph-controller__link-label'
-                            : 'graph-controller__link-label-placeholder'
-                    )
-                    .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
-                    .attr('startOffset', '50%')
-                    .text((d: GraphLink) => (d.label ? d.label : 'add label'))
-                    .on('click', (event: PointerEvent, d: GraphLink) => {
-                        if (config.isGraphEditableInGUI) {
-                            onLinkLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
+        .join((enter) => {
+            const linkGroup = enter.append('g').classed('graph-controller__link-container', true)
 
-                linkGroup
-                    .append('foreignObject')
-                    .classed('graph-controller__link-label-mathjax-container', true)
-                    .attr('xmlns', 'http://www.w3.org/2000/svg')
-                    .attr('width', 1)
-                    .attr('height', 1)
-                    .html(
-                        (d: GraphLink) =>
-                            `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
-                            </div>`
-                    )
-                    .on('click', (event: PointerEvent, d: GraphLink) => {
-                        if (config.isGraphEditableInGUI) {
-                            onLinkLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
+            linkGroup
+                .append('path')
+                .classed('graph-controller__link', true)
+                .style('stroke', (d) => (d.color ? d.color : ''))
+                .attr('id', (d) => graphHostId.value + '-link-' + d.id)
 
-                return linkGroup
-            },
-            (update) => {
-                update
-                    .selectChild('path')
-                    .attr('marker-start', function (d) {
-                        if (d.pathType?.includes('REVERSE')) {
-                            let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
-                            if (d.color) {
-                                markerName += '-' + escapeColor(d.color)
-                            }
-                            markerName += ')'
-                            return markerName
-                        } else {
-                            return null
-                        }
-                    })
-                    .attr('marker-end', function (d) {
-                        if (!d.pathType?.includes('REVERSE')) {
-                            let markerName = `url(#${graphHostId.value}-link-arrow`
-                            if (d.color) {
-                                markerName += '-' + escapeColor(d.color)
-                            }
-                            markerName += ')'
-                            return markerName
-                        } else {
-                            return null
-                        }
-                    })
+            linkGroup
+                .append('path')
+                .classed('graph-controller__click-box', true)
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a link, should not create a new node
+                    terminate(event)
+                })
+                .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
+                .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
+                    triggerLinkClicked(d, event.button, graphHost.value)
+                    if (config.isGraphEditableInGUI) {
+                        onPointerDownDeleteLink(event, d)
+                    }
+                })
+                .on('pointerup', (event: PointerEvent, d: GraphLink) => {
+                    onPointerUpLink(event, d)
+                })
 
-                // text positioning depending on path type
-                update
-                    .selectChild('text')
-                    .attr('class', (d) => {
-                        return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
-                    })
-                    .attr('dy', (d) => {
-                        if (d.pathType === PathType.REFLEXIVE) {
-                            return 15
-                        } else if (d.pathType == PathType.LINEREVERSE) {
-                            return -10
-                        } else if (d.pathType?.includes('REVERSE')) {
-                            return 20
-                        } else {
-                            return -10
-                        }
-                    })
+            linkGroup
+                .append('text')
+                .attr('class', (d) => {
+                    return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+                })
+                .append('textPath')
+                .attr('class', (d: GraphLink) =>
+                    d.label
+                        ? 'graph-controller__link-label'
+                        : 'graph-controller__link-label-placeholder'
+                )
+                .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
+                .text((d: GraphLink) => (d.label ? d.label : 'add label'))
+                .on('click', (event: PointerEvent, d: GraphLink) => {
+                    if (config.isGraphEditableInGUI) {
+                        onLinkLabelClicked(event, d)
+                    }
+                })
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a label, should not create a new node
+                    terminate(event)
+                })
 
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .classed(
-                        'hidden',
-                        (d) => !config.showLinkLabels || (!d.label && !d.labelEditable)
-                    )
-                    .classed('not-editable', !config.isGraphEditableInGUI)
-                    .attr('startOffset', (d) => {
-                        if (d.pathType?.includes('REVERSE')) {
-                            return '46%'
-                        } else {
-                            return '50%'
-                        }
-                    })
+            linkGroup
+                .append('foreignObject')
+                .classed('graph-controller__link-label-mathjax-container', true)
+                .attr('xmlns', 'http://www.w3.org/2000/svg')
+                .attr('width', 1)
+                .attr('height', 1)
+                .html(
+                    (d: GraphLink) =>
+                        `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
+                        </div>`
+                )
+                .on('click', (event: PointerEvent, d: GraphLink) => {
+                    if (config.isGraphEditableInGUI) {
+                        onLinkLabelClicked(event, d)
+                    }
+                })
+                .on('dblclick', (event: PointerEvent) => {
+                    //a double click on a label, should not create a new node
+                    terminate(event)
+                })
 
-                // move mathjax to link label mjx container
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .selectChild('mjx-container')
-                    .each(function (d) {
-                        const graphLink = d as GraphLink
-                        const linkLabelMjxContainer = d3
-                            .select(
-                                (this! as HTMLElement).parentNode!.parentNode!
-                                    .parentNode as SVGGElement
-                            )
-                            .selectChild('foreignObject')
-                            .selectChild('div')
-                            .attr('class', 'graph-controller__link-label')
-                            .classed(
-                                'hidden',
-                                !config.showLinkLabels ||
-                                    (!graphLink.label && !graphLink.labelEditable)
-                            )
-                            .node() as HTMLDivElement
-
-                        const mjxContainer = d3.select(this!).remove().node() as HTMLElement
-
-                        linkLabelMjxContainer?.appendChild(mjxContainer)
-                    })
-
-                // if there is no text after moving mathjax
-                // we need a placeholder for the textpath
-                // to still be able to retrieve the textpath position
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .each(function () {
-                        const textPathElement = this as SVGTextPathElement
-
-                        let hasTextNode = false
-                        const children = textPathElement.childNodes
-
-                        children.forEach((child) => {
-                            if (
-                                child?.nodeType === Node.TEXT_NODE &&
-                                child?.textContent?.trim() !== ''
-                            ) {
-                                hasTextNode = true
-                            }
-                        })
-                        if (!hasTextNode) {
-                            d3.select(textPathElement)
-                                .text('I')
-                                .attr(
-                                    'class',
-                                    'graph-controller__link-label-placeholder mjx-hidden'
-                                )
-                        }
-                    })
-
-                // setting position for mathjax label
-                update
-                    .selectChild('text')
-                    .selectChild('textPath')
-                    .each(function () {
-                        const textPathElement = this as SVGTextPathElement
-                        const [x, y] = _getTextPathPosition(textPathElement)
-
-                        //@ts-ignore
-                        d3.select(textPathElement.parentNode.parentNode)
-                            .select('foreignObject')
-                            .attr('x', x)
-                            .attr('y', y)
-                    })
-
-                return update
+            return linkGroup
+        })
+    // link marker positioning depending on path type reversion
+    linkSelection
+        .selectChild('path')
+        .attr('marker-start', function (d) {
+            if (d.pathType?.includes('REVERSE')) {
+                let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
+                if (d.color) {
+                    markerName += '-' + escapeColor(d.color)
+                }
+                markerName += ')'
+                return markerName
+            } else {
+                return null
             }
+        })
+        .attr('marker-end', function (d) {
+            if (!d.pathType?.includes('REVERSE')) {
+                let markerName = `url(#${graphHostId.value}-link-arrow`
+                if (d.color) {
+                    markerName += '-' + escapeColor(d.color)
+                }
+                markerName += ')'
+                return markerName
+            } else {
+                return null
+            }
+        })
+
+    // link label positioning, visibility and editability
+    linkSelection
+        .selectChild('text')
+        .attr('class', (d) => {
+            return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+        })
+        .attr('dy', (d) => {
+            if (d.pathType === PathType.REFLEXIVE) {
+                return 15
+            } else if (d.pathType == PathType.LINEREVERSE) {
+                return -10
+            } else if (d.pathType?.includes('REVERSE')) {
+                return 20
+            } else {
+                return -10
+            }
+        })
+        .selectChild('textPath')
+        .attr('class', (d: GraphLink) =>
+            d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'
         )
+        .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
+        .classed('not-editable', !config.isGraphEditableInGUI)
+        .attr('startOffset', (d) => {
+            if (d.pathType?.includes('REVERSE')) {
+                return '46%'
+            } else {
+                return '50%'
+            }
+        })
+        .text((d: GraphLink) => (d.label ? d.label : 'add label'))
 
     nodeSelection = nodeSelection!
         .data(graph.value.nodes, (d) => d.id)
@@ -959,12 +971,7 @@ function restart(alpha: number = 0.5): void {
                     .attr('height', 2 * config.nodeRadius)
                     .attr('x', -config.nodeRadius)
                     .attr('y', -config.nodeRadius)
-                    .html(
-                        (d: GraphNode) =>
-                            `<div class=${d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'}>
-                                ${d.label ? d.label : 'add label'}
-                         </div>`
-                    )
+                    .append('xhtml:div')
                     .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
                             onNodeLabelClicked(event, d)
@@ -994,12 +1001,98 @@ function restart(alpha: number = 0.5): void {
                 return update
             }
         )
+
+    nodeSelection
+        .selectChild('foreignObject')
+        .selectChild('div')
+        .attr('class', (d) =>
+            d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
+        )
+        .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
+        .text((d) => (d.label ? d.label : 'add label'))
+
     //version will only be injected until MathJax is initialized
     if (window.MathJax?.version) {
-        window.MathJax.typeset()
+        window.MathJax.typesetPromise().then(() => {
+            _handleLinkMathJax()
+        })
     }
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
+}
+
+/**
+ * Moves the latex link label that was created from MathJax to the correct container.
+ *
+ * This is necessary since for link labels, normal text and mjx content don't have the same container.
+ */
+function _handleLinkMathJax() {
+    // move link label mathjax to link label mjx container
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .selectChild('mjx-container')
+        .each(function (d) {
+            const mjxContainer = this as HTMLElement
+            const graphLink = d as GraphLink
+
+            const linkLabelMjxContainer = d3
+                .select(mjxContainer.parentNode!.parentNode!.parentNode as SVGGElement) // link container
+                .selectChild('foreignObject')
+                .selectChild('div')
+                .attr('class', 'graph-controller__link-label')
+                .classed(
+                    'hidden',
+                    !config.showLinkLabels || (!graphLink.label && !graphLink.labelEditable)
+                )
+                .node() as HTMLDivElement
+
+            linkLabelMjxContainer.replaceChild(mjxContainer, linkLabelMjxContainer.childNodes[0])
+        })
+
+    // if there is no text after moving mathjax
+    // we need a placeholder for the textpath
+    // to still be able to retrieve the textpath position
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .each(function () {
+            const textPathElement = this as SVGTextPathElement
+
+            let hasTextNode = false
+            const children = textPathElement.childNodes
+
+            children.forEach((child) => {
+                if (child?.nodeType === Node.TEXT_NODE && child?.textContent?.trim() !== '') {
+                    hasTextNode = true
+                }
+            })
+            if (!hasTextNode) {
+                d3.select(textPathElement)
+                    .text('I')
+                    .attr('class', 'graph-controller__link-label-placeholder mjx-hidden')
+            }
+        })
+
+    _updateLinkMjxPosition()
+}
+
+/**
+ * Updates the position for the link label mathjax container.
+ */
+function _updateLinkMjxPosition() {
+    linkSelection!
+        .selectChild('text')
+        .selectChild('textPath')
+        .each(function () {
+            const textPathElement = this as SVGTextPathElement
+            const [x, y] = _getTextPathPosition(textPathElement)
+
+            d3.select(textPathElement!.parentNode!.parentNode as SVGGElement) //link container
+                .select('foreignObject')
+                .attr('x', x)
+                .attr('y', y)
+        })
 }
 
 // region onNodePointerDown
@@ -1159,7 +1252,7 @@ function onPointerMovedBeginningFromNode(event: PointerEvent): void {
     if (draggableLinkSourceNode !== undefined) {
         const pointer = d3.pointers(event, graphHost.value!.node())[0]
         draggableLinkEnd = [(pointer[0] - xOffset) / scale, (pointer[1] - yOffset) / scale]
-        updateDraggableLinkPath()
+        _updateDraggableLinkPath()
     }
 }
 
@@ -1278,6 +1371,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
             }
         }
     }
+    restart()
 }
 
 /**
@@ -1317,11 +1411,9 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
  * @param node
  */
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
+    terminate(event)
     if (node.labelEditable) {
-        const eventParent = event?.target as Element
-        const textElement = eventParent.closest('div') as HTMLDivElement
-
-        handleInputForLabel(node, textElement, [node.x!, node.y!])
+        handleInputForLabel(node, [node.x!, node.y!])
     }
 }
 
@@ -1343,7 +1435,7 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
         }
 
         let position = _getTextPathPosition(textPathElement)
-        handleInputForLabel(link, textPathElement, position)
+        handleInputForLabel(link, position)
     }
 }
 
@@ -1351,21 +1443,18 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
  * Handles the input for node and link labels.
  *
  * @param element
- * @param textContainingElement
  * @param position
  */
-function handleInputForLabel(
-    element: GraphNode | GraphLink,
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    position: [number, number]
-) {
+function handleInputForLabel(element: GraphNode | GraphLink, position: [number, number]) {
     let elementType = element instanceof GraphNode ? 'node' : 'link'
+
     // create input
     const input = document.createElement('input')
     input.setAttribute('class', 'graph-controller__label-input')
     input.setAttribute('id', `${elementType}-label-input-field`)
     element.label == undefined ? (input.value = '') : (input.value = element.label)
     input.placeholder = `Enter ${elementType} label`
+
     // append input to foreign object
     const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject')
     foreignObj.setAttribute('width', '100%')
@@ -1373,6 +1462,7 @@ function handleInputForLabel(
     foreignObj.setAttribute('x', `${position[0]! - 90}`)
     foreignObj.setAttribute('y', `${position[1]! - 12}`)
     foreignObj.append(input)
+
     // append foreign object
     graphHost.value.select<SVGElement>('svg').select<SVGGElement>('g').node()!.append(foreignObj)
     input.focus()
@@ -1381,17 +1471,14 @@ function handleInputForLabel(
         isVirtualKeyboardProbablyOpen = true
     }
 
-    //event handler
+    //event handling
     input.ondblclick = function (e) {
         //double-click on the input should not create a new node
         terminate(e)
     }
-
     let pressedEnter = false
-
     input.onkeyup = function (e) {
         if (e.key === 'Enter') {
-            triggerLabelEdited(element, input.value, graphHost.value)
             pressedEnter = true
             input.blur()
         } else if (e.key === 'Escape') {
@@ -1401,19 +1488,7 @@ function handleInputForLabel(
     }
     input.onblur = function () {
         if (pressedEnter) {
-            if (elementType === 'link') {
-                _handleLinkMjxContainer(textContainingElement as SVGTextPathElement)
-            }
-
-            if (input.value === '') {
-                _unsetLabel(textContainingElement, element, elementType)
-            } else {
-                _setLabel(input, textContainingElement, element, elementType)
-
-                if (elementType === 'node') {
-                    _redrawNodeContainer(textContainingElement as HTMLDivElement)
-                }
-            }
+            _updateLabel(element, input.value.trim())
         }
         foreignObj.remove()
 
@@ -1424,71 +1499,64 @@ function handleInputForLabel(
 }
 
 /**
+ * Updates the label of the element as well as the view and triggers the labeledited event
+ * @param element - graph node or link
+ * @param label - new label
+ */
+function _updateLabel(element: GraphNode | GraphLink, label: string) {
+    triggerLabelEdited(element, label, graphHost.value)
+
+    element.label = label
+    restart()
+
+    let elementType = element instanceof GraphNode ? 'node' : 'link'
+    if (elementType === 'link') {
+        _handleLinkMjxContainer(element as GraphLink)
+    } else if (elementType === 'node' && label !== '') {
+        _redrawNodeContainer(element as GraphNode)
+    }
+}
+
+/**
  * Removes the link labels current mjx container.
  *
  * This is necessary during input of a new link label, since for link labels,
  * mjx and normal text content don't have the same textContainingElement,
  * so the old mjx-container needs to be removed separately.
- * @param textContainingElement
+ * @param link
  */
-function _handleLinkMjxContainer(textContainingElement: SVGTextPathElement) {
-    const linkContainer = textContainingElement.closest('.graph-controller__link-container')
+function _handleLinkMjxContainer(link: GraphLink) {
+    const linkContainer = graphHost.value
+        .node()!
+        .querySelector<SVGTextPathElement>(
+            `#${graphHostId.value + '-link-' + link.id}`
+        )!.parentElement
+
     linkContainer!.querySelector('mjx-container')?.remove()
+
     linkContainer!
         .querySelector('div')!
         .setAttribute('class', 'graph-controller__link-label-placeholder')
+
+    restart()
 }
 
 /**
  * Redraw the node container.
  *
  * This is necessary for node labels that are larger than the node, ensuring they fully appear above the node circle.
- * @param textContainingElement
+ * @param node
  */
-function _redrawNodeContainer(textContainingElement: HTMLDivElement) {
-    let nodeContainer = textContainingElement.closest(
-        '.graph-controller__node-container'
-    ) as SVGGElement
-    const nodeContainerParent = nodeContainer!.parentElement
-    nodeContainer!.remove()
-    nodeContainerParent!.append(nodeContainer)
-}
+function _redrawNodeContainer(node: GraphNode) {
+    const nodeContainer = graphHost.value
+        .node()!
+        .querySelector<SVGGElement>(`#${graphHostId.value + '-node-' + node.id}`)!.parentElement
 
-/**
- * Unsets the label in the elements data structure, changes the respective HTML class and adds a label placeholder
- * @param textContainingElement
- * @param element
- * @param elementType "node" or "link" for the html class name
- */
-function _unsetLabel(
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    element: GraphNode | GraphLink,
-    elementType: string
-) {
-    textContainingElement.setAttribute(
-        'class',
-        `graph-controller__${elementType}-label-placeholder`
-    )
-    textContainingElement.textContent = 'add label'
-    element.label = undefined
-}
-
-/**
- * Sets the label in the elements data structure and respective HTML and changes the HTML class
- * @param input
- * @param textContainingElement
- * @param element
- * @param elementType "node" or "link" for the html class name
- */
-function _setLabel(
-    input: HTMLInputElement,
-    textContainingElement: HTMLDivElement | SVGTextPathElement,
-    element: GraphNode | GraphLink,
-    elementType: string
-) {
-    textContainingElement.setAttribute('class', `graph-controller__${elementType}-label`)
-    textContainingElement.textContent = input.value.trim()
-    element.label = textContainingElement.textContent
+    if (nodeContainer) {
+        const nodeContainerParent = nodeContainer!.parentElement
+        nodeContainer!.remove()
+        nodeContainerParent!.append(nodeContainer)
+    }
 }
 
 function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
@@ -1610,6 +1678,7 @@ function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
 function resetView(): void {
     simulation.stop()
     graphHost.value!.selectChildren().remove()
+    zoom = undefined
     xOffset = 0
     yOffset = 0
     scale = 1
@@ -1663,6 +1732,12 @@ function _resetGraph(): void {
     height: 100%;
     touch-action: none;
     background-color: lightgrey;
+}
+
+.graph-controller__graph-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
 .graph-controller__link {

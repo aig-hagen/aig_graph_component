@@ -11,16 +11,16 @@ In your html you need to:
   * link to `style.css`
 
 Look at [this index file](./Menu/index.ce.html) for a minimal integration example
-or at [this one](./CLI/index.ce.html) if you also want an example of two integrated
+or at [this one](./API/index.ce.html) if you also want an example of two integrated
 components as well as the programmatic interaction with the component.
 
 ## Which graph-editor.js to choose?
-### CLI
+### API Directory
 * __Programmatic__ interaction possible
 * __LaTex__ Support
 * No menu bar
 
-### Menu
+### Menu Directory
 _Still V3.0, will be updated with V3.3_
 * Ideal for __GUI__ Usage with __Menu Bar__
 * No programmatic interaction possible

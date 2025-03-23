@@ -2,7 +2,7 @@ import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/grap
 import type { LinkGUIEditability } from '@/model/graph-link'
 
 /**
- * Separates an array of IDs into node and link IDs.
+ * Separates a single ID or an array of IDs into node and link IDs.
  * @param ids
  * @returns A tuple containing two array, one for the node IDs and one for the link IDs.
  */
@@ -56,13 +56,13 @@ export function setAndValFixedNodePosition(
 /**
  * Adds a backslash before special characters in a color value for use in a CSS attribute selector.
  *
- * Special characters: #, ., ,, ;, :, <, >, +, ~, ^, $, |, [, ], (, ), \
+ * Special characters: #, ., ,, ;, :, <, >, +, ~, ^, $, |, [, ], (, ), \, %
  *
  * @param color - The color value to escape.
  * @returns The escaped color value.
  */
 export function escapeColor(color: string) {
-    return color.replace(/([#.,;:<>+~^$|[\]()\\/])/g, '\\$1')
+    return color.replace(/([#.,;:<>+~^$|[\]()%\\ ])/g, '\\$1')
 }
 
 /**

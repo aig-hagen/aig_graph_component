@@ -141,6 +141,19 @@ export default class Graph {
             .map((link) => link.id)
     }
 
+    /**
+     * Determine if a source and a target node have a bidirectional link connection.
+     * @param source
+     * @param target
+     */
+    public hasBidirectionalConnection(source: GraphNode, target: GraphNode): boolean {
+        return (
+            source.id !== target.id &&
+            this.links.some((l) => l.target.id === source.id && l.source.id === target.id) &&
+            this.links.some((l) => l.target.id === target.id && l.source.id === source.id)
+        )
+    }
+
     /** Formats the graph in trivial graph format.
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
@@ -210,67 +223,42 @@ export default class Graph {
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true
     ): string {
-        let nodesStructure = this.nodes
-            .map((node: GraphNode) => {
-                let include = ['id']
+        let nodes = this.nodes.map((node) => {
+            return Object.fromEntries(
+                Object.entries(node).filter(([key]) => {
+                    return (
+                        key === 'id' ||
+                        (includeNodeLabels && key === 'label') ||
+                        (includeNodeColor && key === 'color') ||
+                        (includeNodePosition && (key === 'x' || key === 'y')) ||
+                        (includeNodeEditability &&
+                            [
+                                'fixedPosition',
+                                'deletable',
+                                'labelEditable',
+                                'allowIncomingLinks',
+                                'allowOutgoingLinks'
+                            ].includes(key))
+                    )
+                })
+            )
+        })
 
-                if (includeNodeLabels && node.label !== undefined) {
-                    include.push('label')
-                }
-                if (includeNodeColor && node.color !== undefined) {
-                    include.push('color')
-                }
-                if (includeNodePosition && node.x !== undefined && node.y !== undefined) {
-                    include.push('x')
-                    include.push('y')
-                }
-                if (includeNodeEditability) {
-                    if (node.fixedPosition !== undefined) {
-                        include.push('fixedPosition')
-                    }
-                    if (node.deletable !== undefined) {
-                        include.push('deletable')
-                    }
-                    if (node.labelEditable !== undefined) {
-                        include.push('labelEditable')
-                    }
-                    if (node.allowIncomingLinks !== undefined) {
-                        include.push('allowIncomingLinks')
-                    }
-                    if (node.allowOutgoingLinks !== undefined) {
-                        include.push('allowOutgoingLinks')
-                    }
-                }
+        let links = this.links.map((link: GraphLink) => {
+            return Object.fromEntries(
+                Object.entries(this._convertToJSONLink(link)).filter(([key]) => {
+                    return (
+                        key === 'sourceId' ||
+                        key === 'targetId' ||
+                        (includeLinkLabels && key === 'label') ||
+                        (includeLinkColor && key === 'color') ||
+                        (includeLinkEditability && ['deletable', 'labelEditable'].includes(key))
+                    )
+                })
+            )
+        })
 
-                return JSON.stringify(node, include)
-            })
-            .join(',\n\t\t')
-
-        let linkStructure = this.links
-            .map((link: GraphLink) => {
-                let include = ['sourceId', 'targetId']
-
-                if (includeLinkLabels && link.label !== undefined) {
-                    include.push('label')
-                }
-                if (includeLinkColor && link.color !== undefined) {
-                    include.push('color')
-                }
-                if (includeLinkEditability) {
-                    if (link.deletable !== undefined) {
-                        include.push('deletable')
-                    }
-                    if (link.labelEditable !== undefined) {
-                        include.push('labelEditable')
-                    }
-                }
-
-                let linkWithSplitId = this._convertToJSONLink(link)
-                return JSON.stringify(linkWithSplitId, include)
-            })
-            .join(',\n\t\t')
-
-        return `{\n\t"nodes":[\n\t\t${nodesStructure}\n\t],\n\t"links":[\n\t\t${linkStructure}\n\t]\n}`
+        return JSON.stringify({ nodes, links }, null, 4)
     }
 
     private _convertToJSONLink(link: GraphLink): jsonLink {

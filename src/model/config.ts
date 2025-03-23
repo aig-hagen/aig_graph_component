@@ -2,6 +2,7 @@ import { NodeShape } from '@/model/node-shape'
 
 export interface GraphConfiguration {
     persistSettingsLocalStorage: boolean
+    hasToolbar: boolean
 
     nodeShape: NodeShape
     nodeRadius: number
@@ -13,6 +14,8 @@ export interface GraphConfiguration {
 
     isGraphEditableInGUI: boolean
 
+    zoomEnabled: boolean
+
     markerBoxSize: number
     markerPadding: number
     markerRef: number
@@ -22,6 +25,7 @@ export interface GraphConfiguration {
 
 export class GraphConfigDefault implements GraphConfiguration {
     persistSettingsLocalStorage = false
+    hasToolbar = false
 
     private _nodeRadius = 24
     nodeShape = NodeShape.CIRCLE
@@ -29,6 +33,8 @@ export class GraphConfigDefault implements GraphConfiguration {
     nodePhysicsEnabled = false
 
     isGraphEditableInGUI = true
+
+    zoomEnabled = false
 
     showLinkLabels = true
     fixedLinkDistanceEnabled = false

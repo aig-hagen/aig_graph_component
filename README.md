@@ -14,15 +14,13 @@
 ## Usage
 The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)** (_currently V3.0, will be kept up-to-date starting from version 3.3._)
 and also as a **custom element**,
-enabling easy embedding into an HTML-file using the `<graph-component/>` tag. 
-Refer to the [index.ce.html](application-example-ce/CLI/index.ce.html) file in the [application-example-ce](application-example-ce) directory for a demonstration
-_(and simply run it for a quick start)_.
+allowing easy embedding into an HTML-file using the `<graph-component/>` tag.
 
+You can create your graph using the [GUI](#gui), or interact with it 
+and customize its behaviour [programmatically](#programmatically).
 
-You can build your graph using the GUI or interact with it programmatically,
-customizing its behaviour to suit your needs via the browser console or a script.
+Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory.
 
-During interaction with the graph, various events are triggered to which you can react.
 ### GUI
 *TODO (งツ)ว*
 ### Programmatically
@@ -41,7 +39,7 @@ _Note that when you run the app in development mode, this does not work after a 
 It only works correctly on the initial run or after refreshing the site._
 
 #### Setting the default behaviour
-
+TODO
 
 #### Manually write a Graph
 We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
@@ -153,21 +151,30 @@ console.log(graphAsTgf)
 ```
 
 #### Delete Nodes and Links
-We can delete one or multiple **nodes** by their id.
+We can delete one or multiple **nodes** and **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
 ```javascript
 // delete node with id 0
-instance.deleteNode(0)
+instance.deleteElement(0)
 
 // delete node with id 4 and node with id 2
-instance.deleteNode([4,2])
-```
-We can also delete one or multiple **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
-```javascript
-// delete link that goes from node id 0 to node id 1
-instance.deleteLink("0-1")
+instance.deleteElement([4,2])
 
-// delete links from node with id 1 to node with id 0 and the self-pointing edge of node with id 2
-instance.deleteLink(["1-0", "2-2"])
+// delete link that goes from node id 0 to node id 1
+instance.deleteElement("0-1")
+
+// delete node with id 0 and the link that goes from node id 1 to node id 2
+instance.deleteElement([0, "1-2"])
+
+// delete all currently existing nodes and links
+instance.deleteElement()
+```
+
+#### Changing Labels of Nodes and Links
+We can change the labels of one or more existing nodes and links by their id.
+
+```javascript
+//setting a new label for the nodes with id 0 and 1 and the link between it
+instance.setLabel("new label", [0, 1, "1-0"])
 ```
 
 #### Changing Color of Nodes and Links
@@ -178,29 +185,24 @@ The color can be:
 - RGB
 - HSL / HSLA
 
-_This will not influence the color of nodes or links created in the future._
+_This will not influence the color of nodes or links created in the future. 
+If you wish to do this, you need to change the corresponding CSS-classes._
 
-For changing the color of nodes, we use `setNodeColor(color, id(s))`.
+For changing the color of nodes and links, we use `setColor(color, id(s))`.
 ```javascript
 //setting the color for the node with id 0 using an html color name
-instance.setNodeColor("bisque", 0)
+instance.setColor("bisque", 0)
 //setting the color for the node with id 0 and the node with id 1 using hexadecimal
-instance.setNodeColor("#8FBC8F", [0,1])
-//setting the color for all currently existing nodes using RBG and HSLA
-instance.setNodeColor("RGB(250,70,99)")
-instance.setNodeColor("HSL(212,92%,45%,0.5)")
-```
-
-Changing the color of links, is similar to the one of nodes, just use `setLinkColor(color, id(s))`.
-_A links id consists of the source nodes and target nodes id, joined by a hyphen._
-```javascript
+instance.setColor("#8FBC8F", [0,1])
 //setting the color for the link that originates from node with id 0 to node with id 1
-instance.setLinkColor("orangered", "0-1")
-//setting the color for more links
-instance.setLinkColor("#FFDAB9", ["0-1", "2-2"])
-//setting the color for all currently existing links using RBG and HSLA
-instance.setLinkColor("RGB(250,70,99)")
-instance.setLinkColor("HSL(212,92%,45%,0.5)")
+instance.setColor("orangered", "0-1")
+
+//setting the color for more nodes and links
+instance.setColor("#FFDAB9", [1, "0-1", "2-2"])
+
+//setting the color for all currently existing nodes and links using RBG and HSLA
+instance.setColor("RGB(250,70,99)")
+instance.setColor("HSL(212,92%,45%,0.5)")
 ```
 
 #### Changing Size
@@ -213,12 +215,12 @@ instance.setNodeRadius(42)
 #### Editability
 We also have precise control over what can be edited through the GUI 
 using the ids of the specific nodes and links
- - [Node and Link Deletion](#delete)
+ - [Deletion](#deletion)
  - [Label Editing](#label-editable)
  - [Node Position Locking](#fixed-position)
  - [Nodes Link Permission](#incoming-and-outgoing-links)
 
-##### Delete
+##### Deletion
 We can set whether nodes or links can be deleted with `setDeletable()`.
 ```javascript
 // prohibit deletion via GUI for node 0 and 1 and the two edges connecting them
@@ -265,13 +267,18 @@ instance.setNodesLinkPermission(false, false)
 ```
 
 ##### Convenience Function
-To set all the node editability parameter at once, we can use `setNodeEditability()`
-with an editability-object
-(`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`)
-and the specific IDS as parameters
+To set all the editability parameter at once, we can use `setEditability(editabilityObject, id(s))`
+with an editability-object and the specific ids as parameters. 
+If no ids are specified, it is set for all currently existing nodes and links.
+
+- Nodes editability object:`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`
+- Links editability object:`{deletable, labelEditable}`
+
+When applying the editability object to both nodes and links simultaneously, only the valid options for each type will be set.
+
 ```javascript
 // setting all possible node editability options at once for the nodes with IDs 0, 1 and 2
-instance.setNodeEditability(
+instance.setEditability(
     { 
         deletable: false,
         labelEditable: false,
@@ -286,48 +293,62 @@ instance.setNodeEditability(
     [0, 1, 2]  
 )
 ```
-This is also possible for the links editability using `setLinkEditability()` with an
-editability-object containing: `{deletable, labelEditable}` and the link IDs.
+
 
 ```javascript
 // setting all possible link editability options at once for the link with ID 0-1 and 2-2
-instance.setLinkEditability(
+instance.setEditability(
     {
         deletable: true,
         labelEditable: false
     },
     ["0-1", "2-2"]    
 )
+```
 
-// setting all possible link editability options at once for all currently existing links
-instance.setLinkEditability(
+```javascript
+// setting some editability for all currently existing nodes and links
+instance.setEditability(
     {
         deletable: false,
-        labelEditable: false
+        labelEditable: false,
+        fixedPosition: 
+            {
+                x: true,
+                y: true
+            },
     },
 )
+/*Deletable and labelEditable will be applied to both nodes and links, 
+whereas fixedPosition will only be applied to nodes.*/
 ```
 
 
 
 #### Miscellaneous
 If we want to embed the component and only display the graph without 
-allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via CLI remain available)*,
+allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via API remain available)*,
 we can use the following: 
 
 ```javascript
 instance.toggleGraphEditingInGUI(false)
 ```
 
-We can disable and enable that nodes repel each other, that there is a fixed distance for links
-and if nodes and links should have labels.
-
+We can disable and enable the ability to zoom, that nodes repel each other and that there is a fixed distance for links.
+```javascript
+instance.toggleZoom(false)
+```
 ```javascript
 instance.toggleNodePhysics(true)
 ```
 ```javascript
 instance.toggleFixedLinkDistance(true)
 ```
+After zooming we can reset the canvas to its default position.
+```javascript
+instance.resetView()
+```
+You can also toggle if the nodes and links should have labels.
 ```javascript
 instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
@@ -378,8 +399,8 @@ Events are fired from the graph host. This is where we attach the event listener
 ```javascript
 // get the graph host
 // w/o shadow root
-const graphHost = document.getElementById('gc1').querySelector('.graph-host')
-// with shadow root: document.getElementById('gc1').shadowRoot.querySelector('.graph-host')
+const graphHost = document.getElementById('gc1').querySelector('.graph-controller__graph-host')
+// with shadow root: document.getElementById('gc1').shadowRoot.querySelector('.graph-controller__graph-host')
 
 // add event listener for right click on node
 graphHost.addEventListener('nodeclicked', function(e){
