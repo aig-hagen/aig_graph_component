@@ -242,7 +242,6 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
 
         for (const id of nodeIds) {
             nodeSelection!
-                .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
                     let r = graph.value.removeNode(d)
@@ -258,7 +257,6 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
 
         for (const id of linkIds) {
             linkSelection!
-                .selectAll<SVGPathElement, GraphLink>('path')
                 .filter((d) => d.id === id)
                 .each(function (d) {
                     let removedLink = graph.value.removeLink(d)
@@ -268,7 +266,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 })
         }
     } else {
-        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+        nodeSelection!.each(function (d) {
             let r = graph.value.removeNode(d)
             if (r !== undefined) {
                 let [removedNode, removedLinks] = r
@@ -279,7 +277,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             }
         })
 
-        linkSelection!.selectAll<SVGPathElement, GraphLink>('path').each(function (d) {
+        linkSelection!.each(function (d) {
             let removedLink = graph.value.removeLink(d)
             if (removedLink !== undefined) {
                 triggerLinkDeleted(removedLink, graphHost.value)
@@ -340,7 +338,7 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
 
         for (const id of nodeIds) {
             nodeSelection!
-                .selectAll<SVGCircleElement, GraphNode>('circle')
+                .selectAll<SVGCircleElement | SVGRectElement, GraphNode>('.graph-controller__node')
                 .filter((d) => d.id === id)
                 .each((d) => (d.color = color))
                 .style('fill', color)
@@ -355,7 +353,7 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
     } else {
         //if no ids are provided, the color is set for all currently existing nodes
         nodeSelection!
-            .selectAll<SVGCircleElement, GraphNode>('circle')
+            .selectAll<SVGCircleElement | SVGRectElement, GraphNode>('.graph-controller__node')
             .each((d) => (d.color = color))
             .style('fill', color)
 
@@ -543,7 +541,6 @@ function setEditability(
 
         for (const id of nodeIds) {
             nodeSelection!
-                .selectAll<SVGCircleElement, GraphNode>('circle')
                 .filter((d) => d.id === id)
                 .each(function (d) {
                     d.deletable = editability.deletable ?? d.deletable
@@ -579,7 +576,7 @@ function setEditability(
         )
     } else {
         //if no ids are provided, the editability is set for all currently existing nodes and links
-        nodeSelection!.selectAll<SVGCircleElement, GraphNode>('circle').each(function (d) {
+        nodeSelection!.each(function (d) {
             d.deletable = editability.deletable ?? d.deletable
             d.labelEditable = editability.labelEditable ?? d.labelEditable
             if ('fixedPosition' in editability) {
@@ -751,10 +748,15 @@ function createNode(
 function onTick(): void {
     nodeSelection!.attr('transform', (d) => `translate(${d.x},${d.y})`)
 
-    linkSelection!.selectAll<SVGPathElement, GraphLink>('path').attr('d', (d: GraphLink) => {
-        _updatePathType(d)
-        return generatePath(d, width, height, config)
-    })
+    linkSelection!
+        .selectAll<
+            SVGPathElement,
+            GraphLink
+        >('.graph-controller__link, .graph-controller__link-click-box')
+        .attr('d', (d: GraphLink) => {
+            _updatePathType(d)
+            return generatePath(d, width, height, config)
+        })
 
     _updateLinkMjxPosition()
 }
@@ -809,7 +811,7 @@ function restart(alpha: number = 0.5): void {
 
             linkGroup
                 .append('path')
-                .classed('graph-controller__click-box', true)
+                .classed('graph-controller__link-click-box', true)
                 .on('dblclick', (event: PointerEvent) => {
                     //a double click on a link, should not create a new node
                     terminate(event)
@@ -1756,7 +1758,7 @@ function _resetGraph(): void {
     }
 }
 
-.graph-controller__click-box {
+.graph-controller__link-click-box {
     stroke: rgba($color: #000, $alpha: 0);
     stroke-width: 16px;
     fill: none;
