@@ -875,7 +875,7 @@ function restart(alpha: number = 0.5): void {
         })
     // link marker positioning depending on path type reversion
     linkSelection
-        .selectChild('path')
+        .selectChild('.graph-controller__link')
         .attr('marker-start', function (d) {
             if (d.pathType?.includes('REVERSE')) {
                 let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
