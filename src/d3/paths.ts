@@ -5,6 +5,7 @@ import type { GraphConfiguration } from '@/model/config'
 import type { GraphNode } from '@/model/graph-node'
 import type { GraphLink } from '@/model/graph-link'
 import { PathType } from '@/model/path-type'
+import { SideType } from '@/model/side-type'
 import type Graph from '@/model/graph'
 import type { UnwrapRef } from 'vue'
 
@@ -57,6 +58,32 @@ export function getPathType(source: GraphNode, target: GraphNode, graph: UnwrapR
 }
 
 /**
+ * Determines on which side of a rectangular shaped node a path should be attached.
+ *
+ * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
+ * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
+ * @return The determined side of the node
+ */
+function getPathAttachmentSide(oppositeLegLength: number, adjacentLegLength: number) {
+    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
+    if (angle < 0) {
+        angle += 360
+    }
+
+    let side
+    if (angle === 45) side = SideType.BOTTOMRIGHT
+    else if (angle > 45 && angle < 135) side = SideType.BOTTOM
+    else if (angle === 135) side = SideType.BOTTOMLEFT
+    else if (angle > 135 && angle < 255) side = SideType.LEFT
+    else if (angle === 225) side = SideType.TOPLEFT
+    else if (angle > 255 && angle < 315) side = SideType.TOP
+    else if (angle === 315) side = SideType.TOPRIGHT
+    else side = SideType.RIGHT
+
+    return side
+}
+
+/**
  * Creates the path of a straight line between the edges of two nodes.
  *
  * @param source The source Node.
@@ -82,7 +109,7 @@ export function paddedLinePath(
 }
 
 /**
- * Creates the path of an arc line between the edges of two nodes.
+ * Creates the path of an arc line between the border of two nodes.
  *
  * @param source The source Node.
  * @param target The target Node.
@@ -173,6 +200,14 @@ export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boo
  */
 function _degreesToRadians(degrees: number): number {
     return degrees * (Math.PI / 180)
+}
+
+/**
+ * Calculates the degree value for the given radian.
+ * @param radians
+ */
+function _radiansToDegrees(radians: number): number {
+    return radians * (180 / Math.PI)
 }
 
 /**
