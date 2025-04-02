@@ -8,6 +8,7 @@ import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
 import type Graph from '@/model/graph'
 import type { UnwrapRef } from 'vue'
+import { NodeShape } from '@/model/node-shape'
 
 /**
  * Generates a path string depending on the needed path type
@@ -58,52 +59,67 @@ export function getPathType(source: GraphNode, target: GraphNode, graph: UnwrapR
 }
 
 /**
- * Determines on which side of a rectangular shaped node a path should be attached.
- *
- * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
- * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
- * @return The determined side of the node
- */
-function getPathAttachmentSide(oppositeLegLength: number, adjacentLegLength: number) {
-    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
-    if (angle < 0) {
-        angle += 360
-    }
-
-    let side
-    if (angle === 45) side = SideType.BOTTOMRIGHT
-    else if (angle > 45 && angle < 135) side = SideType.BOTTOM
-    else if (angle === 135) side = SideType.BOTTOMLEFT
-    else if (angle > 135 && angle < 255) side = SideType.LEFT
-    else if (angle === 225) side = SideType.TOPLEFT
-    else if (angle > 255 && angle < 315) side = SideType.TOP
-    else if (angle === 315) side = SideType.TOPRIGHT
-    else side = SideType.RIGHT
-
-    return side
-}
-
-/**
- * Creates the path of a straight line between the edges of two nodes.
+ * Creates the path of a straight line between the border of two nodes.
  *
  * @param source The source Node.
  * @param target The target Node.
- * @param graphConfiguration Visual configuration.
+ * @param config
  */
 export function paddedLinePath(
     source: GraphNode,
     target: GraphNode,
-    graphConfiguration: GraphConfiguration
+    config: GraphConfiguration
 ): string {
-    const deltaX = target.x! - source.x!
-    const deltaY = target.y! - source.y!
-    const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-    const normX = deltaX / dist
-    const normY = deltaY / dist
-    const sourceX = source.x! + (graphConfiguration.nodeRadius - 1) * normX
-    const sourceY = source.y! + (graphConfiguration.nodeRadius - 1) * normY
-    const targetX = target.x! - graphConfiguration.markerPadding * normX
-    const targetY = target.y! - graphConfiguration.markerPadding * normY
+    let sourceX, sourceY, targetX, targetY
+
+    if (config.nodeShape === NodeShape.CIRCLE) {
+        const deltaX = target.x! - source.x!
+        const deltaY = target.y! - source.y!
+        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        const normX = deltaX / dist
+        const normY = deltaY / dist
+
+        sourceX = source.x! + (config.nodeRadius - 1) * normX
+        sourceY = source.y! + (config.nodeRadius - 1) * normY
+        targetX = target.x! - config.markerPadding * normX
+        targetY = target.y! - config.markerPadding * normY
+    } else if (config.nodeShape === NodeShape.RECTANGLE) {
+        //fixme radius will be adapted to width and height in the future
+        const sourceXCenter = source.x! + config.nodeRadius * 0.5
+        const sourceYCenter = source.y! + config.nodeRadius * 0.5
+        const targetXCenter = target.x! + config.nodeRadius * 0.5
+        const targetYCenter = target.y! + config.nodeRadius * 0.5
+
+        const deltaX = targetXCenter - sourceXCenter // Ankathete / adjacent leg
+        const deltaY = targetYCenter - sourceYCenter // Gegenkathete / opposite leg
+        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY) // hypotenuse
+        const normX = deltaX / dist //cos
+        const normY = deltaY / dist //sin
+
+        const offsetSource = _getOffsetForSide(
+            _getPathAttachmentSide(deltaY, deltaX),
+            0.5 * config.nodeRadius - 1,
+            0.5 * config.nodeRadius - 1,
+            0.5 * config.nodeRadius - 2,
+            normX,
+            normY
+        )
+        sourceX = sourceXCenter + offsetSource.x
+        sourceY = sourceYCenter + offsetSource.y
+
+        const offsetTarget = _getOffsetForSide(
+            _getPathAttachmentSide(-deltaY, -deltaX),
+            0.5 * config.nodeRadius - config.markerPadding,
+            0.5 * config.nodeRadius - config.markerPadding,
+            0.5 * config.nodeRadius - config.markerPadding,
+            -normX,
+            -normY
+        )
+
+        targetX = targetXCenter - offsetTarget.x
+        targetY = targetYCenter - offsetTarget.y
+    }
+
     return `M${sourceX},${sourceY}
           L${targetX},${targetY}`
 }
@@ -191,6 +207,75 @@ export function linePath(from: [number, number], to: [number, number]): string {
  */
 export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boolean {
     return source.x! > target.x!
+}
+
+/**
+ * Determines on which side of a rectangular shaped node a path should be attached.
+ *
+ * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
+ * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
+ * @return The determined side of the node
+ */
+function _getPathAttachmentSide(oppositeLegLength: number, adjacentLegLength: number) {
+    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
+    if (angle < 0) {
+        angle += 360
+    }
+
+    const threshold = 2
+
+    if (Math.abs(angle - 45) <= threshold) return SideType.BOTTOMRIGHT
+    else if (angle > 45 + threshold && angle < 135 - threshold) return SideType.BOTTOM
+    else if (Math.abs(angle - 135) <= threshold) return SideType.BOTTOMLEFT
+    else if (angle > 135 + threshold && angle < 225 - threshold) return SideType.LEFT
+    else if (Math.abs(angle - 225) <= threshold) return SideType.TOPLEFT
+    else if (angle > 225 + threshold && angle < 315 - threshold) return SideType.TOP
+    else if (Math.abs(angle - 315) <= threshold) return SideType.TOPRIGHT
+    else return SideType.RIGHT
+}
+
+function _getOffsetForSide(
+    side: SideType,
+    widthOffset: number,
+    heightOffset: number,
+    diagonalOffset: number,
+    normX: number,
+    normY: number
+) {
+    return {
+        [SideType.RIGHT]: {
+            x: widthOffset,
+            y: heightOffset * normY
+        },
+        [SideType.BOTTOMRIGHT]: {
+            x: diagonalOffset,
+            y: diagonalOffset
+        },
+        [SideType.BOTTOM]: {
+            x: widthOffset * normX,
+            y: heightOffset
+        },
+        [SideType.BOTTOMLEFT]: {
+            x: -diagonalOffset,
+            y: diagonalOffset
+        },
+        [SideType.LEFT]: {
+            x: -widthOffset,
+            y: heightOffset * normY
+        },
+        [SideType.TOPLEFT]: {
+            x: -diagonalOffset,
+            y: -diagonalOffset
+        },
+        [SideType.TOP]: {
+            x: widthOffset * normX,
+            y: -heightOffset
+        },
+        [SideType.TOPRIGHT]: {
+            x: diagonalOffset,
+            y: -diagonalOffset
+        }
+    }[side]
 }
 
 /**
