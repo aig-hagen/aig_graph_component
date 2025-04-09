@@ -109,8 +109,8 @@ export function paddedLinePath(
 
         const offsetTarget = _getOffsetForSide(
             _getPathAttachmentSide(-deltaY, -deltaX),
-            0.5 * config.nodeRadius - config.markerPadding,
-            0.5 * config.nodeRadius - config.markerPadding,
+            0.5 * config.nodeRadius - config.markerPadding - 2,
+            0.5 * config.nodeRadius - config.markerPadding - 2,
             0.5 * config.nodeRadius - config.markerPadding,
             -normX,
             -normY
@@ -129,30 +129,82 @@ export function paddedLinePath(
  *
  * @param source The source Node.
  * @param target The target Node.
- * @param graphConfiguration Visual configuration.
+ * @param config
  */
 export function paddedArcPath(
     source: GraphNode,
     target: GraphNode,
-    graphConfiguration: GraphConfiguration
+    config: GraphConfiguration
 ): string {
-    const s = new Matrix([[source.x!, source.y!]])
-    const t = new Matrix([[target.x!, target.y!]])
-    const diff = Matrix.subtract(t, s)
-    const dist = diff.norm('frobenius')
-    const norm = diff.divide(dist)
-    const rotation = _degreesToRadians(10)
-    const start = _rotate(norm, -rotation)
-        .multiply(graphConfiguration.nodeRadius - 1)
-        .add(s)
-    const endNorm = Matrix.multiply(norm, -1)
-    const end = _rotate(endNorm, rotation)
-        .multiply(graphConfiguration.nodeRadius)
-        .add(t)
-        .add(_rotate(endNorm, rotation).multiply(2 * graphConfiguration.markerBoxSize))
-    const arcRadius = 1.2 * dist
-    return `M${start.get(0, 0)},${start.get(0, 1)}
+    if (config.nodeShape === NodeShape.CIRCLE) {
+        const s = new Matrix([[source.x!, source.y!]])
+        const t = new Matrix([[target.x!, target.y!]])
+        const diff = Matrix.subtract(t, s)
+        const dist = diff.norm('frobenius')
+        const norm = diff.divide(dist)
+        const rotation = _degreesToRadians(10)
+        const start = _rotate(norm, -rotation)
+            .multiply(config.nodeRadius - 1)
+            .add(s)
+        const endNorm = Matrix.multiply(norm, -1)
+        const end = _rotate(endNorm, rotation)
+            .multiply(config.nodeRadius)
+            .add(t)
+            .add(_rotate(endNorm, rotation).multiply(2 * config.markerBoxSize))
+        const arcRadius = 1.2 * dist
+        return `M${start.get(0, 0)},${start.get(0, 1)}
           A${arcRadius},${arcRadius},0,0,1,${end.get(0, 0)},${end.get(0, 1)}`
+    } else if (config.nodeShape === NodeShape.RECTANGLE) {
+        //fixme radius will be adapted to width and height in the future
+        const sourceXCenter = source.x! + config.nodeRadius * 0.5
+        const sourceYCenter = source.y! + config.nodeRadius * 0.5
+        const targetXCenter = target.x! + config.nodeRadius * 0.5
+        const targetYCenter = target.y! + config.nodeRadius * 0.5
+
+        const s = new Matrix([[sourceXCenter, sourceYCenter]])
+        const t = new Matrix([[targetXCenter, targetYCenter]])
+        const delta = Matrix.subtract(t, s)
+        const dist = delta.norm('frobenius')
+        const norm = delta.divide(dist)
+        const rotation = _degreesToRadians(30)
+
+        const offsetSource = _getOffsetForSide(
+            _getPathAttachmentSide(delta.get(0, 1), delta.get(0, 0)),
+            0.5 * config.nodeRadius - 1,
+            0.5 * config.nodeRadius - 1,
+            0.5 * config.nodeRadius - 2,
+            norm.get(0, 0),
+            norm.get(0, 1)
+        )
+        const sourceX = sourceXCenter + offsetSource.x
+        const sourceY = sourceYCenter + offsetSource.y
+
+        const start = _rotate(norm, -rotation).add([[sourceX, sourceY]])
+
+        const offsetTarget = _getOffsetForSide(
+            _getPathAttachmentSide(-delta.get(0, 1), -delta.get(0, 0)),
+            0.5 * config.nodeRadius - config.markerPadding + 4,
+            0.5 * config.nodeRadius - config.markerPadding + 4,
+            0.5 * config.nodeRadius - config.markerPadding + 6,
+            -norm.get(0, 0),
+            -norm.get(0, 1)
+        )
+        const targetX = targetXCenter - offsetTarget.x
+        const targetY = targetYCenter - offsetTarget.y
+
+        const endNorm = Matrix.multiply(norm, -1)
+
+        const end = _rotate(endNorm, rotation)
+            .add([[targetX, targetY]])
+            .add(_rotate(endNorm, rotation).multiply(2 * config.markerBoxSize))
+
+        const arcRadius = 1.2 * dist
+
+        return `M${start.get(0, 0)},${start.get(0, 1)}
+          A${arcRadius},${arcRadius},0,0,1,${end.get(0, 0)},${end.get(0, 1)}`
+    } else {
+        return '' //should never be reached
+    }
 }
 
 /**
@@ -214,15 +266,18 @@ export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boo
  *
  * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
  * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
+ * @param threshold - The angle range (in degree) within which a direction is considered diagonal
  * @return The determined side of the node
  */
-function _getPathAttachmentSide(oppositeLegLength: number, adjacentLegLength: number) {
+function _getPathAttachmentSide(
+    oppositeLegLength: number,
+    adjacentLegLength: number,
+    threshold: number = 2
+) {
     let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
     if (angle < 0) {
         angle += 360
     }
-
-    const threshold = 2
 
     if (Math.abs(angle - 45) <= threshold) return SideType.BOTTOMRIGHT
     else if (angle > 45 + threshold && angle < 135 - threshold) return SideType.BOTTOM
