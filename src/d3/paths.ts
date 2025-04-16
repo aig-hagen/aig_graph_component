@@ -209,36 +209,75 @@ export function paddedArcPath(
 
 /**
  * Creates the path of a reflexive line of a node.
- * It will be always be directed away from the center.
+ * It will always be directed away from the center.
  *
  * @param node The Node.
- * @param center The center point of the graph.
- * @param graphConfiguration Visual configuration.
+ * @param center The center point of the canvas.
+ * @param config
  */
 export function paddedReflexivePath(
     node: GraphNode,
     center: [number, number],
-    graphConfiguration: GraphConfiguration
+    config: GraphConfiguration
 ): string {
-    const n = new Matrix([[node.x!, node.y!]])
     const c = new Matrix([center])
-    if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
-        c.add([[0, 1]]) // Nodes at the exact center of the Graph should have their reflexive edge above them.
+
+    if (config.nodeShape === NodeShape.RECTANGLE) {
+        //fixme radius will be adapted to width and height in the future
+        const nodeXCenter = node.x! + config.nodeRadius * 0.5
+        const nodeYCenter = node.y! + config.nodeRadius * 0.5
+
+        const n = new Matrix([[nodeXCenter, nodeYCenter]])
+        if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
+            c.add([[0, 1]]) // Nodes at the exact center of the Graph should have their reflexive edge above them.
+        }
+        const delta = Matrix.subtract(n, c)
+        const norm = delta.divide(delta.norm('frobenius'))
+        const rotation = _degreesToRadians(45)
+
+        let pathStartsInCorner = _getAttachmentCornerForPathStartReflexiveLink(
+            delta.get(0, 0),
+            delta.get(0, 1),
+            25
+        )
+
+        let start, end
+        if (pathStartsInCorner) {
+            let m = _getPathPointsForRectReflexiveLink(pathStartsInCorner, node, config)
+            start = m.start
+            end = m.end
+        } else {
+            start = _rotate(norm, rotation)
+                .multiply(0.5 * config.nodeRadius - 1)
+                .add(n)
+
+            end = _rotate(norm, -rotation)
+                .multiply(0.5 * config.nodeRadius - 1)
+                .add(n)
+                .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+        }
+        return `M${start.get(0, 0)},${start.get(0, 1)} A${0.5 * config.nodeRadius},${0.5 * config.nodeRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+    } else if (config.nodeShape === NodeShape.CIRCLE) {
+        const n = new Matrix([[node.x!, node.y!]])
+        if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
+            c.add([[0, 1]]) // Nodes at the exact center of the Graph should have their reflexive edge above them.
+        }
+        const diff = Matrix.subtract(n, c)
+        const norm = diff.divide(diff.norm('frobenius'))
+        const rotation = _degreesToRadians(40)
+        const start = _rotate(norm, rotation)
+            .multiply(config.nodeRadius - 1)
+            .add(n)
+        const end = _rotate(norm, -rotation)
+            .multiply(config.nodeRadius)
+            .add(n)
+            .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+
+        return `M${start.get(0, 0)},${start.get(0, 1)}
+              A${config.nodeRadius},${config.nodeRadius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
+    } else {
+        return `` //should never be reached
     }
-    const diff = Matrix.subtract(n, c)
-    const norm = diff.divide(diff.norm('frobenius'))
-    const rotation = _degreesToRadians(40)
-    const start = _rotate(norm, rotation)
-        .multiply(graphConfiguration.nodeRadius - 1)
-        .add(n)
-    const end = _rotate(norm, -rotation)
-        .multiply(graphConfiguration.nodeRadius)
-        .add(n)
-        .add(_rotate(norm, -rotation).multiply(2 * graphConfiguration.markerBoxSize))
-    return `M${start.get(0, 0)},${start.get(0, 1)}
-          A${graphConfiguration.nodeRadius},${
-              graphConfiguration.nodeRadius
-          },0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
 }
 
 /**
@@ -331,6 +370,96 @@ function _getOffsetForSide(
             y: -diagonalOffset
         }
     }[side]
+}
+
+/**
+ * Gets the start and end coordinates for a path required for a reflexive link on a rectangular node.
+ * @param side - The corner of the rect node on which the path should start
+ * @param node - The node
+ * @param config - The graph config
+ */
+function _getPathPointsForRectReflexiveLink(
+    side: SideType.BOTTOMRIGHT | SideType.BOTTOMLEFT | SideType.TOPLEFT | SideType.TOPRIGHT,
+    node: GraphNode,
+    config: GraphConfiguration
+) {
+    const x = node.x!
+    const y = node.y!
+    const widthOffset = config.nodeRadius //fixme radius will be adapted to width and height in the future
+    const markerBoxSize = config.markerBoxSize
+
+    const points = {
+        [SideType.BOTTOMLEFT]: {
+            start: [x + 2, y + widthOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + widthOffset + 2 * markerBoxSize]
+        },
+        [SideType.BOTTOMRIGHT]: {
+            start: [x + widthOffset - 2, y + widthOffset - 1],
+            end: [x + widthOffset + 2 * markerBoxSize, y + 4]
+        },
+        [SideType.TOPRIGHT]: {
+            start: [x + widthOffset - 2, y + 1],
+            end: [x + 4, y - 2 * markerBoxSize]
+        },
+        [SideType.TOPLEFT]: {
+            start: [x + 2, y + 1],
+            end: [x - 2 * markerBoxSize, y + widthOffset - 2 * markerBoxSize]
+        }
+    }
+
+    const { start, end } = points[side]
+    return {
+        start: new Matrix([start]),
+        end: new Matrix([end])
+    }
+}
+
+/**
+ * Determine the corner where a reflexive link path should start for a rectangular node.
+ * @param oppositeLegLength
+ * @param adjacentLegLength
+ * @param threshold
+ * @returns The side type of the attachment corner or false if the attachment side isn't a corner.
+ */
+function _getAttachmentCornerForPathStartReflexiveLink(
+    oppositeLegLength: number,
+    adjacentLegLength: number,
+    threshold: number = 2
+) {
+    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
+    if (angle < 0) {
+        angle += 360
+    }
+
+    if (_isAngleInRange(angle, 0, threshold)) {
+        return SideType.BOTTOMLEFT
+    } else if (_isAngleInRange(angle, 90, threshold)) {
+        return SideType.BOTTOMRIGHT
+    } else if (_isAngleInRange(angle, 180, threshold)) {
+        return SideType.TOPRIGHT
+    } else if (_isAngleInRange(angle, 270, threshold)) {
+        return SideType.TOPLEFT
+    } else {
+        return false
+    }
+}
+
+/**
+ * Checks whether a given angle is within a range around a center angle,
+ * where the range is defined as the area from the angleCenter + and - the threshold within 0 and 360 degrees.
+ *
+ * @param angleToCheck The angle (in degrees) to check.
+ * @param angleCenter The center of the angle range (in degrees).
+ * @param threshold The threshold (in degrees) that defines how far the range extends
+ *                    on either side of the center.
+ */
+function _isAngleInRange(angleToCheck: number, angleCenter: number, threshold: number) {
+    const start = (angleCenter - threshold + 360) % 360
+    const end = (angleCenter + threshold) % 360
+
+    return start < end
+        ? angleToCheck >= start && angleToCheck <= end
+        : angleToCheck >= start || angleToCheck <= end
 }
 
 /**
