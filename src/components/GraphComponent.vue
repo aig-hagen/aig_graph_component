@@ -26,6 +26,7 @@ import {
 } from '@/d3/event'
 //model
 import Graph from '@/model/graph'
+import { NodeShape } from '@/model/node-shape'
 import { PathType } from '@/model/path-type'
 import { GraphConfigDefault } from '@/model/config'
 import {
@@ -661,10 +662,17 @@ function initData() {
         (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
             if (config.isGraphEditableInGUI) {
-                createNode(
-                    d3.pointer(event, canvas!.node())[0],
-                    d3.pointer(event, canvas!.node())[1]
-                )
+                if (config.nodeShape === NodeShape.RECTANGLE) {
+                    createNode(
+                        d3.pointer(event, canvas!.node())[0] - 0.5 * config.nodeRadius, //fixme radius will be adapted to width and height in the future
+                        d3.pointer(event, canvas!.node())[1] - 0.5 * config.nodeRadius
+                    )
+                } else {
+                    createNode(
+                        d3.pointer(event, canvas!.node())[0],
+                        d3.pointer(event, canvas!.node())[1]
+                    )
+                }
             }
         }
     )
