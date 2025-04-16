@@ -2,7 +2,7 @@ import Matrix from 'ml-matrix'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
 import type { GraphConfiguration } from '@/model/config'
-import type { GraphNode } from '@/model/graph-node'
+import { GraphNode } from '@/model/graph-node'
 import type { GraphLink } from '@/model/graph-link'
 import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
@@ -25,19 +25,19 @@ export function generatePath(
 ): string {
     switch (d.pathType) {
         case PathType.REFLEXIVE: {
-            return paddedReflexivePath(d.source, [width / 2, height / 2], config)
+            return reflexivePath(d.source, [width / 2, height / 2], config)
         }
         case PathType.ARC: {
-            return paddedArcPath(d.source, d.target, config)
+            return arcPath(d.source, d.target, config)
         }
         case PathType.ARCREVERSE: {
-            return svgPathReverse.reverse(paddedArcPath(d.source, d.target, config))
+            return svgPathReverse.reverse(arcPath(d.source, d.target, config))
         }
         case PathType.LINE: {
-            return paddedLinePath(d.source, d.target, config)
+            return linePath(d.source, d.target, config)
         }
         case PathType.LINEREVERSE: {
-            return svgPathReverse.reverse(paddedLinePath(d.source, d.target, config))
+            return svgPathReverse.reverse(linePath(d.source, d.target, config))
         }
         default: {
             return '' //should never be reached
@@ -59,13 +59,13 @@ export function getPathType(source: GraphNode, target: GraphNode, graph: UnwrapR
 }
 
 /**
- * Creates the path of a straight line between the border of two nodes.
+ * Creates the path of a straight line between the border of two nodes or between a source node and an end point.
  *
- * @param source The source Node.
- * @param target The target Node.
+ * @param source The source node.
+ * @param target The target node or an endpoint with x and y coordinates.
  * @param config
  */
-export function paddedLinePath(
+export function linePath(
     source: GraphNode,
     target: GraphNode,
     config: GraphConfiguration
@@ -81,18 +81,30 @@ export function paddedLinePath(
 
         sourceX = source.x! + (config.nodeRadius - 1) * normX
         sourceY = source.y! + (config.nodeRadius - 1) * normY
-        targetX = target.x! - config.markerPadding * normX
-        targetY = target.y! - config.markerPadding * normY
+
+        if (target instanceof GraphNode) {
+            targetX = target.x! - config.markerPadding * normX
+            targetY = target.y! - config.markerPadding * normY
+        } else {
+            targetX = target.x!
+            targetY = target.y!
+        }
     } else if (config.nodeShape === NodeShape.RECTANGLE) {
         //fixme radius will be adapted to width and height in the future
         const sourceXCenter = source.x! + config.nodeRadius * 0.5
         const sourceYCenter = source.y! + config.nodeRadius * 0.5
-        const targetXCenter = target.x! + config.nodeRadius * 0.5
-        const targetYCenter = target.y! + config.nodeRadius * 0.5
+        let targetXCenter, targetYCenter
+        if (target instanceof GraphNode) {
+            targetXCenter = target.x! + config.nodeRadius * 0.5
+            targetYCenter = target.y! + config.nodeRadius * 0.5
+        } else {
+            targetXCenter = target.x!
+            targetYCenter = target.y!
+        }
 
-        const deltaX = targetXCenter - sourceXCenter // Ankathete / adjacent leg
-        const deltaY = targetYCenter - sourceYCenter // Gegenkathete / opposite leg
-        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY) // hypotenuse
+        const deltaX = targetXCenter - sourceXCenter
+        const deltaY = targetYCenter - sourceYCenter
+        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
         const normX = deltaX / dist //cos
         const normY = deltaY / dist //sin
 
@@ -107,17 +119,22 @@ export function paddedLinePath(
         sourceX = sourceXCenter + offsetSource.x
         sourceY = sourceYCenter + offsetSource.y
 
-        const offsetTarget = _getOffsetForSide(
-            _getPathAttachmentSide(-deltaY, -deltaX),
-            0.5 * config.nodeRadius - config.markerPadding - 2,
-            0.5 * config.nodeRadius - config.markerPadding - 2,
-            0.5 * config.nodeRadius - config.markerPadding,
-            -normX,
-            -normY
-        )
+        if (target instanceof GraphNode) {
+            const offsetTarget = _getOffsetForSide(
+                _getPathAttachmentSide(-deltaY, -deltaX),
+                0.5 * config.nodeRadius - config.markerPadding - 2,
+                0.5 * config.nodeRadius - config.markerPadding - 2,
+                0.5 * config.nodeRadius - config.markerPadding,
+                -normX,
+                -normY
+            )
 
-        targetX = targetXCenter - offsetTarget.x
-        targetY = targetYCenter - offsetTarget.y
+            targetX = targetXCenter - offsetTarget.x
+            targetY = targetYCenter - offsetTarget.y
+        } else {
+            targetX = targetXCenter
+            targetY = targetYCenter
+        }
     }
 
     return `M${sourceX},${sourceY}
@@ -131,11 +148,7 @@ export function paddedLinePath(
  * @param target The target Node.
  * @param config
  */
-export function paddedArcPath(
-    source: GraphNode,
-    target: GraphNode,
-    config: GraphConfiguration
-): string {
+export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfiguration): string {
     if (config.nodeShape === NodeShape.CIRCLE) {
         const s = new Matrix([[source.x!, source.y!]])
         const t = new Matrix([[target.x!, target.y!]])
@@ -215,7 +228,7 @@ export function paddedArcPath(
  * @param center The center point of the canvas.
  * @param config
  */
-export function paddedReflexivePath(
+export function reflexivePath(
     node: GraphNode,
     center: [number, number],
     config: GraphConfiguration
@@ -278,17 +291,6 @@ export function paddedReflexivePath(
     } else {
         return `` //should never be reached
     }
-}
-
-/**
- * Creates a straight path between two points.
- *
- * @param from Source coordinates.
- * @param to Target coordinates.
- */
-export function linePath(from: [number, number], to: [number, number]): string {
-    return `M${from[0]},${from[1]}
-          L${to[0]},${to[1]}`
 }
 
 /**

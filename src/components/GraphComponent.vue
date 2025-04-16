@@ -13,14 +13,7 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import {
-    linePath,
-    paddedArcPath,
-    paddedLinePath,
-    paddedReflexivePath,
-    generatePath,
-    getPathType
-} from '@/d3/paths'
+import { generatePath, getPathType, arcPath, linePath, reflexivePath } from '@/d3/paths'
 import {
     terminate,
     triggerLabelEdited,
@@ -783,16 +776,18 @@ function _updateDraggableLinkPath(): void {
         if (target !== undefined) {
             draggableLink!.attr('d', () => {
                 if (source.id === target.id) {
-                    return paddedReflexivePath(source, [width / 2, height / 2], config)
+                    return reflexivePath(source, [width / 2, height / 2], config)
                 } else if (graph.value.hasBidirectionalConnection(source, target)) {
-                    return paddedLinePath(source, target, config)
+                    return linePath(source, target, config)
                 } else {
-                    return paddedArcPath(source, target, config)
+                    return arcPath(source, target, config)
                 }
             })
         } else if (draggableLinkEnd !== undefined) {
-            const from: [number, number] = [source.x!, source.y!]
-            draggableLink!.attr('d', linePath(from, draggableLinkEnd))
+            draggableLink!.attr(
+                'd',
+                linePath(source, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config)
+            )
         }
     }
 }
@@ -1190,8 +1185,7 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
  * @param node
  */
 function _onPointerDownCreateDraggableLink(node: GraphNode): void {
-    const coordinates: [number, number] = [node.x!, node.y!]
-    draggableLinkEnd = coordinates
+    draggableLinkEnd = [node.x!, node.y!]
     draggableLinkSourceNode = node
     draggableLink!
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
