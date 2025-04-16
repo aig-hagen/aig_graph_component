@@ -67,7 +67,7 @@ export function getPathType(source: GraphNode, target: GraphNode, graph: UnwrapR
  */
 export function linePath(
     source: GraphNode,
-    target: GraphNode,
+    target: GraphNode | { x: number; y: number },
     config: GraphConfiguration
 ): string {
     let sourceX, sourceY, targetX, targetY
@@ -316,17 +316,15 @@ function _getPathAttachmentSide(
     threshold: number = 2
 ) {
     let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
-    if (angle < 0) {
-        angle += 360
-    }
+    if (angle < 0) angle += 360
 
-    if (Math.abs(angle - 45) <= threshold) return SideType.BOTTOMRIGHT
-    else if (angle > 45 + threshold && angle < 135 - threshold) return SideType.BOTTOM
-    else if (Math.abs(angle - 135) <= threshold) return SideType.BOTTOMLEFT
-    else if (angle > 135 + threshold && angle < 225 - threshold) return SideType.LEFT
-    else if (Math.abs(angle - 225) <= threshold) return SideType.TOPLEFT
-    else if (angle > 225 + threshold && angle < 315 - threshold) return SideType.TOP
-    else if (Math.abs(angle - 315) <= threshold) return SideType.TOPRIGHT
+    if (_isAngleInRange(angle, 45, threshold)) return SideType.BOTTOMRIGHT
+    else if (_isAngleInRange(angle, [45, 135], -threshold)) return SideType.BOTTOM
+    else if (_isAngleInRange(angle, 135, threshold)) return SideType.BOTTOMLEFT
+    else if (_isAngleInRange(angle, [135, 225], -threshold)) return SideType.LEFT
+    else if (_isAngleInRange(angle, 225, threshold)) return SideType.TOPLEFT
+    else if (_isAngleInRange(angle, [225, 315], -threshold)) return SideType.TOP
+    else if (_isAngleInRange(angle, 315, threshold)) return SideType.TOPRIGHT
     else return SideType.RIGHT
 }
 
@@ -447,17 +445,30 @@ function _getAttachmentCornerForPathStartReflexiveLink(
 }
 
 /**
- * Checks whether a given angle is within a range around a center angle,
- * where the range is defined as the area from the angleCenter + and - the threshold within 0 and 360 degrees.
+ * Checks whether a given angle is within a range around a center angle or a range of angles,
+ * where the range is defined as the area from the angleRange ± the threshold within 0 and 360 degrees.
  *
  * @param angleToCheck The angle (in degrees) to check.
- * @param angleCenter The center of the angle range (in degrees).
+ * @param angleRange The center of the angle range or the start and end angle for the range (in degrees).
  * @param threshold The threshold (in degrees) that defines how far the range extends
  *                    on either side of the center.
  */
-function _isAngleInRange(angleToCheck: number, angleCenter: number, threshold: number) {
-    const start = (angleCenter - threshold + 360) % 360
-    const end = (angleCenter + threshold) % 360
+function _isAngleInRange(
+    angleToCheck: number,
+    angleRange: number | [number, number],
+    threshold: number = 0
+): boolean {
+    angleToCheck = (angleToCheck + 360) % 360
+
+    let start, end
+
+    if (typeof angleRange === 'number') {
+        start = (angleRange - threshold + 360) % 360
+        end = (angleRange + threshold) % 360
+    } else {
+        start = (angleRange[0] - threshold + 360) % 360
+        end = (angleRange[1] + threshold) % 360
+    }
 
     return start < end
         ? angleToCheck >= start && angleToCheck <= end
