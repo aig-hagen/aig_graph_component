@@ -1136,36 +1136,68 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
         .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
-    let g = d3.select(nodeElement.parentElement)
+    let nodeContainer = d3.select(nodeElement.parentElement)
 
-    //remove previous arc
-    g.select('g.arc').remove()
+    if (config.nodeShape === NodeShape.CIRCLE) {
+        let arcGenerator = d3
+                .arc()
+                .outerRadius(config.nodeRadius + 4)
+                .innerRadius(config.nodeRadius),
+            startArc = [{ startAngle: 0, endAngle: 0 }]
 
-    let arcGenerator = d3
-            .arc()
-            .outerRadius(config.nodeRadius + 4)
-            .innerRadius(config.nodeRadius),
-        startArc = [{ startAngle: 0, endAngle: 0 }]
+        let path = nodeContainer
+            .append('g')
+            .attr('class', 'arc')
+            .selectAll('path.arc')
+            .data(startArc)
 
-    let path = g.append('g').attr('class', 'arc').selectAll('path.arc').data(startArc)
+        path.enter()
+            .append('path')
+            .attr('class', 'arc')
+            .style('fill', 'black')
+            .style('opacity', 0.7)
+            .transition()
+            .duration(750)
+            .ease(d3.easeLinear)
+            .attrTween('d', function (d) {
+                let end = { startAngle: 0, endAngle: 2 * Math.PI }
+                let interpolate = d3.interpolate(d, end)
+                return function (t) {
+                    //@ts-ignore
+                    return arcGenerator(interpolate(t))
+                }
+            })
+            .on('end', () => _onPointerDownDeleteNode(node))
+    } else if (config.nodeShape === NodeShape.RECTANGLE) {
+        const lineGenerator = d3.line()
 
-    path.enter()
-        .append('path')
-        .attr('class', 'arc')
-        .style('fill', 'black')
-        .style('opacity', 0.7)
-        .transition()
-        .duration(750)
-        .ease(d3.easeLinear)
-        .attrTween('d', function (d) {
-            let end = { startAngle: 0, endAngle: 2 * Math.PI }
-            let interpolate = d3.interpolate(d, end)
-            return function (t) {
-                //@ts-ignore
-                return arcGenerator(interpolate(t))
-            }
-        })
-        .on('end', () => _onPointerDownDeleteNode(node))
+        const pathData = lineGenerator([
+            [0, 0],
+            [config.nodeRadius, 0],
+            [config.nodeRadius, config.nodeRadius],
+            [0, config.nodeRadius],
+            [0, 0]
+        ])
+
+        let nodePath = nodeContainer
+            .append('path')
+            .attr('fill', 'none')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 2)
+            .attr('opacity', '0.7')
+            .attr('d', pathData)
+
+        let nodePathLength = 4 * config.nodeRadius // fixme nodewitdh, height
+
+        nodePath
+            .attr('stroke-dasharray', nodePathLength)
+            .attr('stroke-dashoffset', nodePathLength)
+            .transition()
+            .duration(750)
+            .ease(d3.easeLinear)
+            .attr('stroke-dashoffset', 0)
+            .on('end', () => _onPointerDownDeleteNode(node))
+    }
 }
 
 /**
@@ -1224,13 +1256,31 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
  * @param node
  */
 function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
-    let nodeParent = graphHost.value
-            .node()!
-            .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!.parentElement,
-        g = d3.select(nodeParent)
+    let nodeById = graphHost.value
+        .node()!
+        .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!
+    let nodeElement = d3.select(nodeById)
+    let nodeContainer = d3.select(nodeById.parentElement)
 
-    g.select('circle').classed('on-deletion', false)
-    g.select('g.arc').select('path.arc').interrupt().remove()
+    if (config.nodeShape === NodeShape.CIRCLE) {
+        nodeElement.classed('on-deletion', false)
+        nodeContainer.select('g.arc').select('path.arc').interrupt().remove()
+        nodeContainer.select('g.arc').remove()
+    } else if (config.nodeShape === NodeShape.RECTANGLE) {
+        if (nodeElement.classed('on-deletion')) {
+            let nodePath = nodeContainer.select('path')
+            nodePath
+                .attr('stroke-dasharray', 4 * config.nodeRadius) //fixme node width, height
+                .attr('stroke-dashoffset', 0)
+                .transition()
+                .attr('stroke-dashoffset', 4 * config.nodeRadius)
+                .on('end', () => {
+                    nodeContainer.select('path').remove()
+                })
+        }
+
+        nodeElement.classed('on-deletion', false)
+    }
 }
 
 /**
