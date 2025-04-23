@@ -1169,15 +1169,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             })
             .on('end', () => _onPointerDownDeleteNode(node))
     } else if (config.nodeShape === NodeShape.RECTANGLE) {
-        const lineGenerator = d3.line()
-
-        const pathData = lineGenerator([
-            [0, 0],
-            [config.nodeRadius, 0],
-            [config.nodeRadius, config.nodeRadius],
-            [0, config.nodeRadius],
-            [0, 0]
-        ])
+        const pathData = generateRoundedRectPath(config.nodeRadius, config.nodeRadius, 4) //fixme nodewidth, height, cornerradius
 
         let nodePath = nodeContainer
             .append('path')

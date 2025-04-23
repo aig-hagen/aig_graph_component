@@ -54,6 +54,32 @@ export function setAndValFixedNodePosition(
 }
 
 /**
+ * Generates an SVG path that outlines a rectangle shaped node, optionally with rounded corners.
+ * This is needed for the delete animation.
+ * @param width - The nodes width
+ * @param height - The nodes height
+ * @param cornerRadius - The corner radius (equivalent to the `rx` and `ry` values of an SVG `<rect>`)
+ * @returns A string representing the SVG path data (`d` attribute)
+ */
+export function generateRoundedRectPath(
+    width: number,
+    height: number,
+    cornerRadius: number
+): string {
+    return `
+        M 0,${cornerRadius}
+        A ${cornerRadius},${cornerRadius} 0 0 1 ${cornerRadius},0
+        H ${width - cornerRadius}
+        A ${cornerRadius},${cornerRadius} 0 0 1 ${width},${cornerRadius}
+        V ${height - cornerRadius}
+        A ${cornerRadius},${cornerRadius} 0 0 1 ${width - cornerRadius},${height}
+        H ${cornerRadius}
+        A ${cornerRadius},${cornerRadius} 0 0 1 0,${height - cornerRadius}
+        Z
+    `
+}
+
+/**
  * Adds a backslash before special characters in a color value for use in a CSS attribute selector.
  *
  * Special characters: #, ., ,, ;, :, <, >, +, ~, ^, $, |, [, ], (, ), \, %
