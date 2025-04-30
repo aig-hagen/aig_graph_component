@@ -1496,7 +1496,14 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
     terminate(event)
     if (node.labelEditable) {
-        handleInputForLabel(node, [node.x!, node.y!])
+        let position =
+            config.nodeProps.shape === NodeShape.CIRCLE
+                ? ([node.x!, node.y!] as [number, number])
+                : ([
+                      node.x! + 0.5 * config.nodeProps.width,
+                      node.y! + 0.5 * config.nodeProps.height
+                  ] as [number, number])
+        handleInputForLabel(node, position)
     }
 }
 
