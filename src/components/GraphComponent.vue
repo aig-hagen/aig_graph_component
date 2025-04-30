@@ -32,6 +32,7 @@ import { GraphConfigDefault } from '@/model/config'
 import {
     checkForNotValidKeys,
     escapeColor,
+    generateRoundedRectPath,
     releaseImplicitPointerCapture,
     separateNodeAndLinkIds,
     setAndValFixedNodePosition,
@@ -662,10 +663,10 @@ function initData() {
         (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
             if (config.isGraphEditableInGUI) {
-                if (config.nodeShape === NodeShape.RECTANGLE) {
+                if (config.nodeProps.shape === NodeShape.RECTANGLE) {
                     createNode(
-                        d3.pointer(event, canvas!.node())[0] - 0.5 * config.nodeRadius, //fixme radius will be adapted to width and height in the future
-                        d3.pointer(event, canvas!.node())[1] - 0.5 * config.nodeRadius
+                        d3.pointer(event, canvas!.node())[0] - 0.5 * config.nodeProps.width,
+                        d3.pointer(event, canvas!.node())[1] - 0.5 * config.nodeProps.height
                     )
                 } else {
                     createNode(
@@ -681,7 +682,7 @@ function initData() {
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
-    drag = createDrag(simulation, width, height, config.nodeRadius)
+    drag = createDrag(simulation, width, height, config.nodeProps)
     restart()
 }
 
@@ -723,6 +724,7 @@ function createNode(
     label?: string,
     nodeColor?: string,
     //TODO soon there will probably also be global editability config settings, which will replace the default values
+    nodeShape?: NodeShape,
     hasFixedPosition: FixedAxis = { x: false, y: false },
     isDeletableViaGUI: boolean = true,
     isLabelEditableViaGUI: boolean = true,
@@ -735,6 +737,7 @@ function createNode(
         importedId,
         label,
         nodeColor,
+        nodeShape,
         hasFixedPosition,
         isDeletableViaGUI,
         isLabelEditableViaGUI,
@@ -961,21 +964,42 @@ function restart(alpha: number = 0.5): void {
                             onPointerUpNode(event, d)
                         }
                     })
-                nodeGroup
-                    .append('circle')
+
+                //shape
+                const nodeShape = nodeGroup
+                    .append(config.nodeProps.shape)
                     .classed('graph-controller__node', true)
                     .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('r', config.nodeRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
 
-                nodeGroup
+                if (config.nodeProps.shape === NodeShape.CIRCLE) {
+                    nodeShape.attr('r', config.nodeProps.radius)
+                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+                    nodeShape
+                        .attr('width', config.nodeProps.width)
+                        .attr('height', config.nodeProps.height)
+                        .attr('rx', config.nodeProps.cornerRadius)
+                        .attr('ry', config.nodeProps.cornerRadius)
+                }
+
+                //label
+                const nodeForeignObject = nodeGroup
                     .append('foreignObject')
                     .classed('graph-controller__node-label-container', true)
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
-                    .attr('width', 2 * config.nodeRadius)
-                    .attr('height', 2 * config.nodeRadius)
-                    .attr('x', -config.nodeRadius)
-                    .attr('y', -config.nodeRadius)
+
+                if (config.nodeProps.shape === NodeShape.CIRCLE) {
+                    nodeForeignObject
+                        .attr('width', config.nodeProps.radius)
+                        .attr('height', config.nodeProps.radius)
+                        .attr('x', -0.5 * config.nodeProps.radius)
+                        .attr('y', -0.5 * config.nodeProps.radius)
+                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+                    nodeForeignObject
+                        .attr('width', config.nodeProps.width)
+                        .attr('height', config.nodeProps.height)
+                }
+                nodeForeignObject
                     .append('xhtml:div')
                     .on('click', (event: PointerEvent, d: GraphNode) => {
                         if (config.isGraphEditableInGUI) {
@@ -992,7 +1016,16 @@ function restart(alpha: number = 0.5): void {
                 return nodeGroup
             },
             (update) => {
-                update.selectChild('circle').attr('r', config.nodeRadius)
+                if (config.nodeProps.shape === NodeShape.CIRCLE) {
+                    update.selectChild('.graph-controller__node').attr('r', config.nodeProps.radius)
+                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+                    update
+                        .selectChild('.graph-controller__node')
+                        .attr('width', config.nodeProps.width)
+                        .attr('height', config.nodeProps.height)
+                        .attr('rx', config.nodeProps.cornerRadius)
+                        .attr('ry', config.nodeProps.cornerRadius)
+                }
 
                 update
                     .selectChild('foreignObject')
@@ -1138,11 +1171,11 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
 
     let nodeContainer = d3.select(nodeElement.parentElement)
 
-    if (config.nodeShape === NodeShape.CIRCLE) {
+    if (config.nodeProps.shape === NodeShape.CIRCLE) {
         let arcGenerator = d3
                 .arc()
-                .outerRadius(config.nodeRadius + 4)
-                .innerRadius(config.nodeRadius),
+                .outerRadius(config.nodeProps.radius + 4)
+                .innerRadius(config.nodeProps.radius),
             startArc = [{ startAngle: 0, endAngle: 0 }]
 
         let path = nodeContainer
@@ -1168,8 +1201,12 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
                 }
             })
             .on('end', () => _onPointerDownDeleteNode(node))
-    } else if (config.nodeShape === NodeShape.RECTANGLE) {
-        const pathData = generateRoundedRectPath(config.nodeRadius, config.nodeRadius, 4) //fixme nodewidth, height, cornerradius
+    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+        const pathData = generateRoundedRectPath(
+            config.nodeProps.width,
+            config.nodeProps.height,
+            config.nodeProps.cornerRadius
+        )
 
         let nodePath = nodeContainer
             .append('path')
@@ -1179,7 +1216,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .attr('opacity', '0.7')
             .attr('d', pathData)
 
-        let nodePathLength = 4 * config.nodeRadius // fixme nodewitdh, height
+        let nodePathLength = 2 * config.nodeProps.width + 2 * config.nodeProps.height
 
         nodePath
             .attr('stroke-dasharray', nodePathLength)
@@ -1254,18 +1291,18 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeElement = d3.select(nodeById)
     let nodeContainer = d3.select(nodeById.parentElement)
 
-    if (config.nodeShape === NodeShape.CIRCLE) {
+    if (config.nodeProps.shape === NodeShape.CIRCLE) {
         nodeElement.classed('on-deletion', false)
         nodeContainer.select('g.arc').select('path.arc').interrupt().remove()
         nodeContainer.select('g.arc').remove()
-    } else if (config.nodeShape === NodeShape.RECTANGLE) {
+    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
         if (nodeElement.classed('on-deletion')) {
             let nodePath = nodeContainer.select('path')
             nodePath
-                .attr('stroke-dasharray', 4 * config.nodeRadius) //fixme node width, height
+                .attr('stroke-dasharray', 2 * config.nodeProps.width + 2 * config.nodeProps.height)
                 .attr('stroke-dashoffset', 0)
                 .transition()
-                .attr('stroke-dashoffset', 4 * config.nodeRadius)
+                .attr('stroke-dashoffset', 2 * config.nodeProps.width + 2 * config.nodeProps.height)
                 .on('end', () => {
                     nodeContainer.select('path').remove()
                 })

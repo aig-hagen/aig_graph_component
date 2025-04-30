@@ -72,31 +72,30 @@ export function linePath(
 ): string {
     let sourceX, sourceY, targetX, targetY
 
-    if (config.nodeShape === NodeShape.CIRCLE) {
+    if (config.nodeProps.shape === NodeShape.CIRCLE) {
         const deltaX = target.x! - source.x!
         const deltaY = target.y! - source.y!
         const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
         const normX = deltaX / dist
         const normY = deltaY / dist
 
-        sourceX = source.x! + (config.nodeRadius - 1) * normX
-        sourceY = source.y! + (config.nodeRadius - 1) * normY
+        sourceX = source.x! + (config.nodeProps.radius - 1) * normX
+        sourceY = source.y! + (config.nodeProps.radius - 1) * normY
 
         if (target instanceof GraphNode) {
-            targetX = target.x! - config.markerPadding * normX
-            targetY = target.y! - config.markerPadding * normY
+            targetX = target.x! - config.markerPadding.x * normX
+            targetY = target.y! - config.markerPadding.y * normY
         } else {
             targetX = target.x!
             targetY = target.y!
         }
-    } else if (config.nodeShape === NodeShape.RECTANGLE) {
-        //fixme radius will be adapted to width and height in the future
-        const sourceXCenter = source.x! + config.nodeRadius * 0.5
-        const sourceYCenter = source.y! + config.nodeRadius * 0.5
+    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+        const sourceXCenter = source.x! + config.nodeProps.width * 0.5
+        const sourceYCenter = source.y! + config.nodeProps.height * 0.5
         let targetXCenter, targetYCenter
         if (target instanceof GraphNode) {
-            targetXCenter = target.x! + config.nodeRadius * 0.5
-            targetYCenter = target.y! + config.nodeRadius * 0.5
+            targetXCenter = target.x! + config.nodeProps.width * 0.5
+            targetYCenter = target.y! + config.nodeProps.height * 0.5
         } else {
             targetXCenter = target.x!
             targetYCenter = target.y!
@@ -110,9 +109,9 @@ export function linePath(
 
         const offsetSource = _getOffsetForSide(
             _getPathAttachmentSide(deltaY, deltaX),
-            0.5 * config.nodeRadius - 1,
-            0.5 * config.nodeRadius - 1,
-            0.5 * config.nodeRadius - 2,
+            0.5 * config.nodeProps.width - 2,
+            0.5 * config.nodeProps.height - 2,
+            0,
             normX,
             normY
         )
@@ -122,9 +121,9 @@ export function linePath(
         if (target instanceof GraphNode) {
             const offsetTarget = _getOffsetForSide(
                 _getPathAttachmentSide(-deltaY, -deltaX),
-                0.5 * config.nodeRadius - config.markerPadding - 2,
-                0.5 * config.nodeRadius - config.markerPadding - 2,
-                0.5 * config.nodeRadius - config.markerPadding,
+                0.5 * config.nodeProps.width - config.markerPadding.x + 2,
+                0.5 * config.nodeProps.height - config.markerPadding.y + 2,
+                2,
                 -normX,
                 -normY
             )
@@ -149,7 +148,7 @@ export function linePath(
  * @param config
  */
 export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfiguration): string {
-    if (config.nodeShape === NodeShape.CIRCLE) {
+    if (config.nodeProps.shape === NodeShape.CIRCLE) {
         const s = new Matrix([[source.x!, source.y!]])
         const t = new Matrix([[target.x!, target.y!]])
         const diff = Matrix.subtract(t, s)
@@ -157,22 +156,21 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
         const norm = diff.divide(dist)
         const rotation = _degreesToRadians(10)
         const start = _rotate(norm, -rotation)
-            .multiply(config.nodeRadius - 1)
+            .multiply(config.nodeProps.radius - 1)
             .add(s)
         const endNorm = Matrix.multiply(norm, -1)
         const end = _rotate(endNorm, rotation)
-            .multiply(config.nodeRadius)
+            .multiply(config.nodeProps.radius)
             .add(t)
             .add(_rotate(endNorm, rotation).multiply(2 * config.markerBoxSize))
         const arcRadius = 1.2 * dist
         return `M${start.get(0, 0)},${start.get(0, 1)}
           A${arcRadius},${arcRadius},0,0,1,${end.get(0, 0)},${end.get(0, 1)}`
-    } else if (config.nodeShape === NodeShape.RECTANGLE) {
-        //fixme radius will be adapted to width and height in the future
-        const sourceXCenter = source.x! + config.nodeRadius * 0.5
-        const sourceYCenter = source.y! + config.nodeRadius * 0.5
-        const targetXCenter = target.x! + config.nodeRadius * 0.5
-        const targetYCenter = target.y! + config.nodeRadius * 0.5
+    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+        const sourceXCenter = source.x! + config.nodeProps.width * 0.5
+        const sourceYCenter = source.y! + config.nodeProps.height * 0.5
+        const targetXCenter = target.x! + config.nodeProps.width * 0.5
+        const targetYCenter = target.y! + config.nodeProps.height * 0.5
 
         const s = new Matrix([[sourceXCenter, sourceYCenter]])
         const t = new Matrix([[targetXCenter, targetYCenter]])
@@ -183,9 +181,9 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
 
         const offsetSource = _getOffsetForSide(
             _getPathAttachmentSide(delta.get(0, 1), delta.get(0, 0)),
-            0.5 * config.nodeRadius - 1,
-            0.5 * config.nodeRadius - 1,
-            0.5 * config.nodeRadius - 2,
+            0.5 * config.nodeProps.width - 2,
+            0.5 * config.nodeProps.height - 2,
+            0,
             norm.get(0, 0),
             norm.get(0, 1)
         )
@@ -196,9 +194,9 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
 
         const offsetTarget = _getOffsetForSide(
             _getPathAttachmentSide(-delta.get(0, 1), -delta.get(0, 0)),
-            0.5 * config.nodeRadius - config.markerPadding + 4,
-            0.5 * config.nodeRadius - config.markerPadding + 4,
-            0.5 * config.nodeRadius - config.markerPadding + 6,
+            0.5 * config.nodeProps.width - config.markerPadding.x + 8,
+            0.5 * config.nodeProps.height - config.markerPadding.y + 8,
+            6,
             -norm.get(0, 0),
             -norm.get(0, 1)
         )
@@ -235,10 +233,27 @@ export function reflexivePath(
 ): string {
     const c = new Matrix([center])
 
-    if (config.nodeShape === NodeShape.RECTANGLE) {
-        //fixme radius will be adapted to width and height in the future
-        const nodeXCenter = node.x! + config.nodeRadius * 0.5
-        const nodeYCenter = node.y! + config.nodeRadius * 0.5
+    if (config.nodeProps.shape === NodeShape.CIRCLE) {
+        const n = new Matrix([[node.x!, node.y!]])
+        if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
+            c.add([[0, 1]]) // Nodes at the exact center of the Graph should have their reflexive edge above them.
+        }
+        const diff = Matrix.subtract(n, c)
+        const norm = diff.divide(diff.norm('frobenius'))
+        const rotation = _degreesToRadians(40)
+        const start = _rotate(norm, rotation)
+            .multiply(config.nodeProps.radius - 1)
+            .add(n)
+        const end = _rotate(norm, -rotation)
+            .multiply(config.nodeProps.radius)
+            .add(n)
+            .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+
+        return `M${start.get(0, 0)},${start.get(0, 1)}
+              A${config.nodeProps.radius},${config.nodeProps.radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
+    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+        const nodeXCenter = node.x! + config.nodeProps.width * 0.5
+        const nodeYCenter = node.y! + config.nodeProps.height * 0.5
 
         const n = new Matrix([[nodeXCenter, nodeYCenter]])
         if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
@@ -248,46 +263,55 @@ export function reflexivePath(
         const norm = delta.divide(delta.norm('frobenius'))
         const rotation = _degreesToRadians(45)
 
-        let pathStartsInCorner = _getAttachmentCornerForPathStartReflexiveLink(
+        let start, end
+        let arcWidthRadius = 0.5 * config.nodeProps.width
+        let arcHeightRadius = 0.5 * config.nodeProps.height
+
+        const pathStartSide = _getPathAttachmentSideReflexiveLink(
             delta.get(0, 0),
             delta.get(0, 1),
-            25
+            30
         )
 
-        let start, end
-        if (pathStartsInCorner) {
-            let m = _getPathPointsForRectReflexiveLink(pathStartsInCorner, node, config)
+        if (
+            pathStartSide === SideType.BOTTOMLEFT ||
+            pathStartSide === SideType.BOTTOMRIGHT ||
+            pathStartSide === SideType.TOPLEFT ||
+            pathStartSide === SideType.TOPRIGHT
+        ) {
+            let m = _getPathCoordinatesForRectReflexiveLink(pathStartSide, node, config)
             start = m.start
             end = m.end
-        } else {
+
+            if (config.nodeProps.width > config.nodeProps.height) {
+                if (pathStartSide === SideType.TOPLEFT || pathStartSide === SideType.BOTTOMRIGHT) {
+                    arcWidthRadius = 0.25 * config.nodeProps.width
+                }
+            } else if (config.nodeProps.height > config.nodeProps.width) {
+                if (pathStartSide === SideType.TOPRIGHT || pathStartSide === SideType.BOTTOMLEFT) {
+                    arcHeightRadius = 0.25 * config.nodeProps.height
+                }
+            }
+        } else if (pathStartSide === SideType.LEFT || pathStartSide === SideType.RIGHT) {
             start = _rotate(norm, rotation)
-                .multiply(0.5 * config.nodeRadius - 1)
+                .multiply(0.5 * config.nodeProps.width - 1)
                 .add(n)
 
             end = _rotate(norm, -rotation)
-                .multiply(0.5 * config.nodeRadius - 1)
+                .multiply(0.5 * config.nodeProps.height - 1)
+                .add(n)
+                .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+        } else {
+            start = _rotate(norm, rotation)
+                .multiply(0.5 * config.nodeProps.height - 1)
+                .add(n)
+
+            end = _rotate(norm, -rotation)
+                .multiply(0.5 * config.nodeProps.width - 1)
                 .add(n)
                 .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
         }
-        return `M${start.get(0, 0)},${start.get(0, 1)} A${0.5 * config.nodeRadius},${0.5 * config.nodeRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
-    } else if (config.nodeShape === NodeShape.CIRCLE) {
-        const n = new Matrix([[node.x!, node.y!]])
-        if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
-            c.add([[0, 1]]) // Nodes at the exact center of the Graph should have their reflexive edge above them.
-        }
-        const diff = Matrix.subtract(n, c)
-        const norm = diff.divide(diff.norm('frobenius'))
-        const rotation = _degreesToRadians(40)
-        const start = _rotate(norm, rotation)
-            .multiply(config.nodeRadius - 1)
-            .add(n)
-        const end = _rotate(norm, -rotation)
-            .multiply(config.nodeRadius)
-            .add(n)
-            .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
-
-        return `M${start.get(0, 0)},${start.get(0, 1)}
-              A${config.nodeRadius},${config.nodeRadius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
+        return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
     } else {
         return `` //should never be reached
     }
@@ -303,7 +327,7 @@ export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boo
 }
 
 /**
- * Determines on which side of a rectangular shaped node a path should be attached.
+ * Determines on which side of a rectangular shaped node a path for a non-reflexive link should be attached.
  *
  * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
  * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
@@ -332,7 +356,7 @@ function _getOffsetForSide(
     side: SideType,
     widthOffset: number,
     heightOffset: number,
-    diagonalOffset: number,
+    diagonalCorrection: number,
     normX: number,
     normY: number
 ) {
@@ -342,34 +366,60 @@ function _getOffsetForSide(
             y: heightOffset * normY
         },
         [SideType.BOTTOMRIGHT]: {
-            x: diagonalOffset,
-            y: diagonalOffset
+            x: widthOffset + diagonalCorrection,
+            y: heightOffset + diagonalCorrection
         },
         [SideType.BOTTOM]: {
             x: widthOffset * normX,
             y: heightOffset
         },
         [SideType.BOTTOMLEFT]: {
-            x: -diagonalOffset,
-            y: diagonalOffset
+            x: -widthOffset - diagonalCorrection,
+            y: heightOffset + diagonalCorrection
         },
         [SideType.LEFT]: {
             x: -widthOffset,
             y: heightOffset * normY
         },
         [SideType.TOPLEFT]: {
-            x: -diagonalOffset,
-            y: -diagonalOffset
+            x: -widthOffset - diagonalCorrection,
+            y: -heightOffset - diagonalCorrection
         },
         [SideType.TOP]: {
             x: widthOffset * normX,
             y: -heightOffset
         },
         [SideType.TOPRIGHT]: {
-            x: diagonalOffset,
-            y: -diagonalOffset
+            x: widthOffset + diagonalCorrection,
+            y: -heightOffset - diagonalCorrection
         }
     }[side]
+}
+
+/**
+ * Determines on which side of a rectangular shaped node a path for a reflexive link should be attached.
+ *
+ * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
+ * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
+ * @param threshold - The angle range (in degree) within which a direction is considered diagonal
+ * @return The determined side of the node
+ */
+function _getPathAttachmentSideReflexiveLink(
+    oppositeLegLength: number,
+    adjacentLegLength: number,
+    threshold: number = 30
+) {
+    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
+    if (angle < 0) angle += 360
+
+    if (_isAngleInRange(angle, 0, threshold)) return SideType.BOTTOMLEFT
+    else if (_isAngleInRange(angle, [0, 90], -threshold)) return SideType.BOTTOM
+    else if (_isAngleInRange(angle, 90, threshold)) return SideType.BOTTOMRIGHT
+    else if (_isAngleInRange(angle, [90, 180], -threshold)) return SideType.RIGHT
+    else if (_isAngleInRange(angle, 180, threshold)) return SideType.TOPRIGHT
+    else if (_isAngleInRange(angle, [180, 270], -threshold)) return SideType.TOP
+    else if (_isAngleInRange(angle, 270, threshold)) return SideType.TOPLEFT
+    else return SideType.LEFT
 }
 
 /**
@@ -378,32 +428,55 @@ function _getOffsetForSide(
  * @param node - The node
  * @param config - The graph config
  */
-function _getPathPointsForRectReflexiveLink(
-    side: SideType.BOTTOMRIGHT | SideType.BOTTOMLEFT | SideType.TOPLEFT | SideType.TOPRIGHT,
+function _getPathCoordinatesForRectReflexiveLink(
+    side: SideType,
     node: GraphNode,
     config: GraphConfiguration
 ) {
     const x = node.x!
     const y = node.y!
-    const widthOffset = config.nodeRadius //fixme radius will be adapted to width and height in the future
+    const widthOffset =
+        config.nodeProps.shape === NodeShape.RECTANGLE
+            ? config.nodeProps.width
+            : config.nodeProps.radius
+    const heightOffset =
+        config.nodeProps.shape === NodeShape.RECTANGLE
+            ? config.nodeProps.height
+            : config.nodeProps.radius
     const markerBoxSize = config.markerBoxSize
 
     const points = {
         [SideType.BOTTOMLEFT]: {
-            start: [x + 2, y + widthOffset - 1],
-            end: [x + widthOffset - 2 * markerBoxSize, y + widthOffset + 2 * markerBoxSize]
+            start: [x + 2, y + heightOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
+        },
+        [SideType.BOTTOM]: {
+            start: [x + 0.5 * widthOffset, y + heightOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + 0.5 * heightOffset - 2 * markerBoxSize]
         },
         [SideType.BOTTOMRIGHT]: {
-            start: [x + widthOffset - 2, y + widthOffset - 1],
+            start: [x + widthOffset - 2, y + heightOffset - 1],
             end: [x + widthOffset + 2 * markerBoxSize, y + 4]
+        },
+        [SideType.RIGHT]: {
+            start: [x + 2, y + heightOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
         },
         [SideType.TOPRIGHT]: {
             start: [x + widthOffset - 2, y + 1],
             end: [x + 4, y - 2 * markerBoxSize]
         },
+        [SideType.TOP]: {
+            start: [x + 2, y + heightOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
+        },
         [SideType.TOPLEFT]: {
             start: [x + 2, y + 1],
-            end: [x - 2 * markerBoxSize, y + widthOffset - 2 * markerBoxSize]
+            end: [x - 2 * markerBoxSize, y + heightOffset - 2 * markerBoxSize]
+        },
+        [SideType.LEFT]: {
+            start: [x + 2, y + heightOffset - 1],
+            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
         }
     }
 
@@ -411,36 +484,6 @@ function _getPathPointsForRectReflexiveLink(
     return {
         start: new Matrix([start]),
         end: new Matrix([end])
-    }
-}
-
-/**
- * Determine the corner where a reflexive link path should start for a rectangular node.
- * @param oppositeLegLength
- * @param adjacentLegLength
- * @param threshold
- * @returns The side type of the attachment corner or false if the attachment side isn't a corner.
- */
-function _getAttachmentCornerForPathStartReflexiveLink(
-    oppositeLegLength: number,
-    adjacentLegLength: number,
-    threshold: number = 2
-) {
-    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
-    if (angle < 0) {
-        angle += 360
-    }
-
-    if (_isAngleInRange(angle, 0, threshold)) {
-        return SideType.BOTTOMLEFT
-    } else if (_isAngleInRange(angle, 90, threshold)) {
-        return SideType.BOTTOMRIGHT
-    } else if (_isAngleInRange(angle, 180, threshold)) {
-        return SideType.TOPRIGHT
-    } else if (_isAngleInRange(angle, 270, threshold)) {
-        return SideType.TOPLEFT
-    } else {
-        return false
     }
 }
 

@@ -15,6 +15,7 @@
   "dependencies": {
     "bowser": "^2.11.0",
     "d3": "^7.8.5",
+    "d3-bboxCollide": "^1.0.4",
     "html-parsed-element": "^0.4.1",
     "ml-matrix": "6.7",
     "svg-path-reverse": "^1.7.0",
