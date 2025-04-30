@@ -128,8 +128,8 @@ export function setFixedLinkDistance(
             distance = config.nodeProps.radius
         } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
             config.nodeProps.width < config.nodeProps.height
-                ? (distance = config.nodeProps.width)
-                : (distance = config.nodeProps.height)
+                ? (distance = config.nodeProps.width / 2)
+                : (distance = config.nodeProps.height / 2)
         }
 
         return simulation.force(

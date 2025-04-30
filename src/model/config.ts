@@ -64,7 +64,6 @@ export class GraphConfigDefault implements GraphConfiguration {
     fixedLinkDistanceEnabled = false
 
     markerBoxSize = 4
-    private _markerPadding = this._nodeRadius + 2 * this.markerBoxSize
 
     private _markerPadding =
         this.nodeProps.shape === NodeShape.CIRCLE
