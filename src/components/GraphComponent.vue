@@ -13,7 +13,7 @@ import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
-import { generatePath, getPathType, arcPath, linePath, reflexivePath } from '@/d3/paths'
+import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
 import {
     terminate,
     triggerLabelEdited,
@@ -782,7 +782,14 @@ function _updatePathType(d: GraphLink) {
  */
 function _updateDraggableLinkPath(): void {
     const source = draggableLinkSourceNode
-    if (source !== undefined) {
+
+    const isSourceOnDeletion = d3
+        .select(
+            graphHost.value.node()!.querySelector(`#${graphHostId.value + '-node-' + source!.id}`)!
+        )
+        .classed('on-deletion')
+
+    if (source !== undefined && !isSourceOnDeletion) {
         const target = draggableLinkTargetNode
         if (target !== undefined) {
             draggableLink!.attr('d', () => {
@@ -990,10 +997,10 @@ function restart(alpha: number = 0.5): void {
 
                 if (config.nodeProps.shape === NodeShape.CIRCLE) {
                     nodeForeignObject
-                        .attr('width', config.nodeProps.radius)
-                        .attr('height', config.nodeProps.radius)
-                        .attr('x', -0.5 * config.nodeProps.radius)
-                        .attr('y', -0.5 * config.nodeProps.radius)
+                        .attr('width', 2 * config.nodeProps.radius)
+                        .attr('height', 2 * config.nodeProps.radius)
+                        .attr('x', -config.nodeProps.radius)
+                        .attr('y', -config.nodeProps.radius)
                 } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
                     nodeForeignObject
                         .attr('width', config.nodeProps.width)
@@ -1212,7 +1219,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .append('path')
             .attr('fill', 'none')
             .attr('stroke', 'black')
-            .attr('stroke-width', 2)
+            .attr('stroke-width', 4)
             .attr('opacity', '0.7')
             .attr('d', pathData)
 
@@ -1254,7 +1261,10 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
  * @param node
  */
 function _onPointerDownCreateDraggableLink(node: GraphNode): void {
-    draggableLinkEnd = [node.x!, node.y!]
+    draggableLinkEnd =
+        config.nodeProps.shape === NodeShape.CIRCLE
+            ? [node.x!, node.y!]
+            : [node.x! + 0.5 * config.nodeProps.width, node.y! + 0.5 * config.nodeProps.height]
     draggableLinkSourceNode = node
     draggableLink!
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
