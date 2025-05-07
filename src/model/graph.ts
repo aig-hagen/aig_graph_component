@@ -14,7 +14,7 @@ export default class Graph {
         importedId?: string | number,
         label?: string,
         color?: string,
-        nodeShape?: NodeShape,
+        shape?: NodeShape,
         //TODO soon there will probably also be global editability config settings, which will replace the default values
         fixedPosition: FixedAxis = { x: false, y: false },
         deletable: boolean = true,
@@ -29,7 +29,7 @@ export default class Graph {
             y,
             label,
             color,
-            nodeShape,
+            shape,
             fixedPosition,
             deletable,
             labelEditable,

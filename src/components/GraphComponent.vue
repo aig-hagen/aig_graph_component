@@ -28,8 +28,17 @@ import {
 import Graph from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
 import { PathType } from '@/model/path-type'
-import { GraphConfigDefault } from '@/model/config'
 import {
+    GraphConfigDefault,
+    type NodeCircle,
+    type NodeProps,
+    type NodeRect,
+    type NodeSize,
+    type NodeSizeCircle,
+    type NodeSizeRect
+} from '@/model/config'
+import {
+    checkForAllNecessaryKeys,
     checkForNotValidKeys,
     escapeColor,
     generateRoundedRectPath,
@@ -154,7 +163,9 @@ defineExpose({
     deleteElement,
     setLabel,
     setColor,
-    setNodeRadius,
+    setNodeSize,
+    setNodeShape,
+    setNodeProps,
     setDeletable,
     setLabelEditable,
     setNodesLinkPermission,
@@ -363,12 +374,120 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
     restart()
 }
 
-function setNodeRadius(radius: number) {
-    if (radius > 0) {
-        config.nodeRadius = radius
+/**
+ * Exposed function to set the size of nodes.
+ * Behavior depends on the type of `size` provided and the shape of the node.
+ *
+ * @param size - Either a `number` or an object defining the node size:
+ *
+ *   If a `number` is provided:
+ *   - For circular nodes: used as the radius.
+ *   - For rectangular nodes: sets the width and, if `sizeY` is not provided, also the height.
+ *
+ *   If an object is provided:
+ *   - `{ radius: number }` for circular nodes.
+ *   - `{ width: number, height: number }` for rectangular nodes.
+ *
+ * @param sizeY - Optional height for rectangular nodes, only used if `size` is a number.
+ */
+function setNodeSize(size: NodeSize, sizeY?: number) {
+    if (
+        typeof size === 'number' &&
+        typeof sizeY === 'number' &&
+        config.nodeProps.shape === NodeShape.RECTANGLE
+    ) {
+        config.nodeSize = { width: size, height: sizeY }
+    } else if (typeof size === 'number') {
+        config.nodeSize = size
+    } else if (
+        (config.nodeProps.shape === NodeShape.CIRCLE &&
+            checkForAllNecessaryKeys(['radius'], Object.keys(size), false)) ||
+        (config.nodeProps.shape === NodeShape.RECTANGLE &&
+            checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false))
+    ) {
+        config.nodeSize = size
+    } else {
+        showError(
+            'Invalid Size Object',
+            'For circular nodes: {radius: number}\n' +
+                'For rectangular nodes: {width: number, height: number}'
+        )
+    }
+    resetView()
+}
+
+/**
+ * Exposed function to set the shape of the nodes.
+ * @param shape
+ */
+function setNodeShape(shape: NodeShape | string) {
+    if (shape === 'circle') shape = NodeShape.CIRCLE
+    else if (shape === 'rect' || shape === 'rectangle') shape = NodeShape.RECTANGLE
+    else {
+        showError(
+            'Invalid Shape',
+            "For circular nodes: 'circle'\nFor rectangular nodes: 'rect' or 'rectangle'"
+        )
+        return
+    }
+    let currentSize = config.nodeSize
+
+    if (config.nodeProps.shape !== shape) {
+        if (shape === NodeShape.CIRCLE) {
+            config.nodeProps = {
+                shape: shape,
+                radius: (currentSize as NodeSizeRect).width / 2
+            }
+
+            for (let node of graph.value.nodes) {
+                node.x = node.x! + config.nodeProps.radius
+                node.y = node.y! + config.nodeProps.radius
+            }
+        } else if (shape === NodeShape.RECTANGLE) {
+            config.nodeProps = {
+                shape: shape,
+                width: (currentSize as NodeSizeCircle).radius * 2,
+                height: (currentSize as NodeSizeCircle).radius * 2,
+                cornerRadius: 4
+            }
+
+            for (let node of graph.value.nodes) {
+                node.x = node.x! - config.nodeProps.width / 2
+                node.y = node.y! - config.nodeProps.height / 2
+            }
+        }
+        resetView()
+    }
+}
+
+/**
+ * Exposed function to set the nodes properties.
+ * @param nodeProps - `{shape: 'circle', radius: number}` or `{shape: 'rect', width: number, height: number, cornerRadius: number}`
+ */
+function setNodeProps(nodeProps: NodeProps) {
+    if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
+        if (nodeProps.shape === NodeShape.CIRCLE) {
+            const nodeCircleKeys: (keyof NodeCircle)[] = ['shape', 'radius']
+
+            if (checkForAllNecessaryKeys(nodeCircleKeys, Object.keys(nodeProps), true)) {
+                config.nodeProps = nodeProps
+            }
+            checkForNotValidKeys(nodeCircleKeys, Object.keys(nodeProps), true)
+        } else if (nodeProps.shape === NodeShape.RECTANGLE) {
+            const nodeRectKeys: (keyof NodeRect)[] = ['shape', 'width', 'height', 'cornerRadius']
+
+            if (checkForAllNecessaryKeys(nodeRectKeys, Object.keys(nodeProps), true)) {
+                config.nodeProps = nodeProps
+            }
+            checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
+        }
         resetView()
     } else {
-        showError('Invalid Radius', 'The radius should be greater than zero.')
+        showError(
+            'Invalid NodeProps Object',
+            'For circular nodes: {shape: NodeShape, radius: number}\n' +
+                "For rectangular nodes: {shape: 'rect', width: number, height: number, cornerRadius: number}"
+        )
     }
 }
 
@@ -601,20 +720,25 @@ function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
     setNodeChargeAndAttraction(simulation, isEnabled, width, height)
 }
+
 function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
     setFixedLinkDistance(simulation, graph.value, config, isEnabled)
 }
+
 function toggleLinkLabels(isEnabled: boolean) {
     config.showLinkLabels = isEnabled
 }
+
 function toggleNodeLabels(isEnabled: boolean) {
     config.showNodeLabels = isEnabled
 }
+
 function toggleZoom(isEnabled: boolean) {
     config.zoomEnabled = isEnabled
     resetView()
 }
+
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
@@ -717,6 +841,7 @@ function createLink(
     }
     restart()
 }
+
 function createNode(
     x?: number,
     y?: number,
@@ -871,7 +996,7 @@ function restart(alpha: number = 0.5): void {
                 .attr('height', 1)
                 .html(
                     (d: GraphLink) =>
-                        `<div class=${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}>
+                        `<div class='${d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'}'>
                         </div>`
                 )
                 .on('click', (event: PointerEvent, d: GraphLink) => {
@@ -1272,6 +1397,7 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
         .attr('d', linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config))
     restart()
 }
+
 //endregion
 
 //region onPointerUpNode
@@ -1334,6 +1460,7 @@ function _onPointerUpCreateLink(): void {
     }
     createLink(source, target)
 }
+
 //endregion
 
 /**
@@ -1447,6 +1574,7 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
             .on('end', () => _onPointerDownDeleteLink(link))
     }
 }
+
 /**
  * Deletes the link and removes not needed color markers.
  * @param link
@@ -1494,6 +1622,7 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 
     d3.select(linkElement).classed('on-deletion', false)
 }
+
 //endregion
 
 // region labels
@@ -1714,6 +1843,7 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
             parsedNode.idImported,
             parsedNode.label,
             parsedNode.color,
+            config.nodeProps.shape,
             parsedNode.fixedPosition,
             parsedNode.deletable,
             parsedNode.labelEditable,
@@ -1742,6 +1872,7 @@ function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
         }
     }
 }
+
 /**
  Checks the links that will change color and deletes colored link markers that are then not needed anymore
  @params idArrayOfLinkColorToChanged - links that will change color
@@ -1775,6 +1906,7 @@ function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
         }
     }
 }
+
 function resetView(): void {
     simulation.stop()
     graphHost.value!.selectChildren().remove()
@@ -1882,6 +2014,7 @@ function _resetGraph(): void {
     cursor: text;
     opacity: 1;
     stroke: none;
+
     .graph-controller__link-label {
         fill: black;
         font-family: sans-serif;
@@ -1940,10 +2073,12 @@ function _resetGraph(): void {
     overflow: visible;
     cursor: text;
 }
+
 .graph-controller__node-label-container {
     overflow: visible;
     cursor: pointer;
 }
+
 .graph-controller__node-label {
     font-family: sans-serif;
     display: flex;
@@ -1967,6 +2102,7 @@ function _resetGraph(): void {
         cursor: pointer;
     }
 }
+
 .graph-controller__node-label-placeholder {
     color: dimgrey;
     font-family: sans-serif;
@@ -1992,6 +2128,7 @@ function _resetGraph(): void {
         cursor: pointer;
     }
 }
+
 .graph-controller__label-input {
     background-color: rgba(255, 255, 255, 0.9);
 }

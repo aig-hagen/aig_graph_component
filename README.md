@@ -177,7 +177,9 @@ We can change the labels of one or more existing nodes and links by their id.
 instance.setLabel("new label", [0, 1, "1-0"])
 ```
 
-#### Changing Color of Nodes and Links
+#### Change Appearance
+
+##### Changing Color of Nodes and Links
 We can change the color of one or more existing nodes or links by their id or change the color of all existing ones.
 The color can be:
 - HTML Color Name
@@ -205,11 +207,63 @@ instance.setColor("RGB(250,70,99)")
 instance.setColor("HSL(212,92%,45%,0.5)")
 ```
 
-#### Changing Size
-We may want to change the size of the displayed elements.
-For nodes this can be done by changing their radius:
+
+##### Changing Node Shape and Size
+
+For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps`.
+If we only want to update either the shape or the size individually, we can use`setNodeShape` and `setNodeSize`.
+
+The `setNodeProps` expects a node property object:
+- `{shape: 'circle', radius: number}` 
+- `{shape: 'rect', width: number, height: number, cornerRadius: number}`
+
 ```javascript
-instance.setNodeRadius(42)
+//circle 
+instance.setNodeProps(
+    {
+      shape:'circle', 
+      radius: 42
+    }
+)
+//rectangle
+instance.setNodeProps(
+    {
+      shape:'rect', 
+      width: 42, 
+      height: 24, 
+      cornerRadius:4
+    }
+)
+```
+To just change the shape of the nodes, we can use `setNodeShape(shape)`, where `shape` 
+can be either _circle_ or _rect_.
+
+```javascript
+instance.setNodeShape('circle')
+
+instance.setNodeShape('rect')
+instance.setNodeShape('rectangle')
+```
+
+To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)`
+
+The behaviour depends on the shape of the nodes and the type of `size` provided. 
+We can either use a `number` or an `object` defining the node size.
+For circular nodes if `size` is of type `number`, it is used as the _radius_, 
+for rectangular nodes it is used as the _width_ and also as the _height_ if `sizeY` is not provided.
+
+If `size` is provided as an `object` it needs to look like this
+`{ radius: number }` for circular nodes and`{ width: number, height: number }` for rectangular nodes.
+
+```javascript
+//circle
+instance.setNodeSize(42) //radius 42
+instance.setNodeSize({radius: 42})
+
+//rectangle
+instance.setNodeSize(42) //width and height length 42
+instance.setNodeSize(42,24) //width 42, height 24
+instance.setNodeSize({width: 42, height: 24})
 ```
 
 #### Editability

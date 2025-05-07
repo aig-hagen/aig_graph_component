@@ -1,5 +1,6 @@
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import type { LinkGUIEditability } from '@/model/graph-link'
+import type { NodeCircle, NodeRect } from '@/model/config'
 
 /**
  * Separates a single ID or an array of IDs into node and link IDs.
@@ -112,7 +113,13 @@ export function releaseImplicitPointerCapture(event: PointerEvent) {
  * @param showErrorMessage
  */
 export function checkForNotValidKeys(
-    allowedKeys: (keyof NodeGUIEditability | keyof LinkGUIEditability | keyof FixedAxis)[],
+    allowedKeys: (
+        | keyof NodeGUIEditability
+        | keyof LinkGUIEditability
+        | keyof FixedAxis
+        | keyof NodeCircle
+        | keyof NodeRect
+    )[],
     givenKeys: string[],
     showErrorMessage: boolean
 ): boolean {
@@ -120,7 +127,12 @@ export function checkForNotValidKeys(
     givenKeys.forEach((givenKey) => {
         if (
             !allowedKeys.includes(
-                givenKey as keyof LinkGUIEditability | keyof NodeGUIEditability | keyof FixedAxis // we actually just check if the type is keyof
+                givenKey as
+                    | keyof LinkGUIEditability
+                    | keyof NodeGUIEditability
+                    | keyof FixedAxis
+                    | keyof NodeCircle
+                    | keyof NodeRect // we actually just check if the type is keyof
             )
         ) {
             isValid = false
@@ -142,7 +154,13 @@ export function checkForNotValidKeys(
  * @param showErrorMessage
  */
 export function checkForAllNecessaryKeys(
-    allowedKeys: (keyof NodeGUIEditability | keyof LinkGUIEditability | keyof FixedAxis)[],
+    allowedKeys: (
+        | keyof NodeGUIEditability
+        | keyof LinkGUIEditability
+        | keyof FixedAxis
+        | keyof NodeCircle
+        | keyof NodeRect
+    )[],
     givenKeys: string[],
     showErrorMessage: boolean
 ): boolean {
