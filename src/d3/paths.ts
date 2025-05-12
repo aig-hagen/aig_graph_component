@@ -75,7 +75,8 @@ export function linePath(
     if (config.nodeProps.shape === NodeShape.CIRCLE) {
         const deltaX = target.x! - source.x!
         const deltaY = target.y! - source.y!
-        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        let dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        if (dist === 0) dist = Number.EPSILON
         const normX = deltaX / dist
         const normY = deltaY / dist
 
@@ -103,7 +104,8 @@ export function linePath(
 
         const deltaX = targetXCenter - sourceXCenter
         const deltaY = targetYCenter - sourceYCenter
-        const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        let dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        if (dist === 0) dist = Number.EPSILON
         const normX = deltaX / dist //cos
         const normY = deltaY / dist //sin
 
