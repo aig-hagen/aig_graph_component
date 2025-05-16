@@ -70,7 +70,7 @@ export function linePath(
     target: GraphNode | { x: number; y: number },
     config: GraphConfiguration
 ): string {
-    let sourceX, sourceY, targetX, targetY
+    let pathStart, pathEnd
 
     if (config.nodeProps.shape === NodeShape.CIRCLE) {
         const deltaX = target.x! - source.x!
@@ -80,15 +80,21 @@ export function linePath(
         const normX = deltaX / dist
         const normY = deltaY / dist
 
-        sourceX = source.x! + (config.nodeProps.radius - 1) * normX
-        sourceY = source.y! + (config.nodeProps.radius - 1) * normY
+        pathStart = {
+            x: source.x! + (config.nodeProps.radius - 1) * normX,
+            y: source.y! + (config.nodeProps.radius - 1) * normY
+        }
 
         if (target instanceof GraphNode) {
-            targetX = target.x! - config.markerPadding.x * normX
-            targetY = target.y! - config.markerPadding.y * normY
+            pathEnd = {
+                x: target.x! - (config.nodeProps.radius + config.markerPadding) * normX,
+                y: target.y! - (config.nodeProps.radius + config.markerPadding) * normY
+            }
         } else {
-            targetX = target.x!
-            targetY = target.y!
+            pathEnd = {
+                x: target.x!,
+                y: target.y!
+            }
         }
     } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
         const sourceXCenter = source.x! + config.nodeProps.width * 0.5
@@ -109,37 +115,32 @@ export function linePath(
         const normX = deltaX / dist //cos
         const normY = deltaY / dist //sin
 
-        const offsetSource = _getOffsetForSide(
-            _getPathAttachmentSide(deltaY, deltaX),
-            0.5 * config.nodeProps.width - 2,
-            0.5 * config.nodeProps.height - 2,
-            0,
+        pathStart = _getRectEdgePointForPath(
+            sourceXCenter,
+            sourceYCenter,
+            config.nodeProps.width,
+            config.nodeProps.height,
             normX,
-            normY
+            normY,
+            2
         )
-        sourceX = sourceXCenter + offsetSource.x
-        sourceY = sourceYCenter + offsetSource.y
-
         if (target instanceof GraphNode) {
-            const offsetTarget = _getOffsetForSide(
-                _getPathAttachmentSide(-deltaY, -deltaX),
-                0.5 * config.nodeProps.width - config.markerPadding.x + 2,
-                0.5 * config.nodeProps.height - config.markerPadding.y + 2,
-                2,
+            pathEnd = _getRectEdgePointForPath(
+                targetXCenter,
+                targetYCenter,
+                config.nodeProps.width,
+                config.nodeProps.height,
                 -normX,
-                -normY
+                -normY,
+                -config.markerPadding + 1
             )
-
-            targetX = targetXCenter - offsetTarget.x
-            targetY = targetYCenter - offsetTarget.y
         } else {
-            targetX = targetXCenter
-            targetY = targetYCenter
+            pathEnd = { x: targetXCenter, y: targetYCenter }
         }
     }
 
-    return `M${sourceX},${sourceY}
-          L${targetX},${targetY}`
+    return `M${pathStart!.x},${pathStart!.y}
+          L${pathEnd!.x},${pathEnd!.y}`
 }
 
 /**
@@ -181,40 +182,37 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
         const norm = delta.divide(dist)
         const rotation = _degreesToRadians(30)
 
-        const offsetSource = _getOffsetForSide(
-            _getPathAttachmentSide(delta.get(0, 1), delta.get(0, 0)),
-            0.5 * config.nodeProps.width - 2,
-            0.5 * config.nodeProps.height - 2,
-            0,
+        const pathStartPoint = _getRectEdgePointForPath(
+            sourceXCenter,
+            sourceYCenter,
+            config.nodeProps.width,
+            config.nodeProps.height,
             norm.get(0, 0),
-            norm.get(0, 1)
+            norm.get(0, 1),
+            2
         )
-        const sourceX = sourceXCenter + offsetSource.x
-        const sourceY = sourceYCenter + offsetSource.y
 
-        const start = _rotate(norm, -rotation).add([[sourceX, sourceY]])
+        const pathStart = _rotate(norm, -rotation).add([[pathStartPoint.x, pathStartPoint.y]])
 
-        const offsetTarget = _getOffsetForSide(
-            _getPathAttachmentSide(-delta.get(0, 1), -delta.get(0, 0)),
-            0.5 * config.nodeProps.width - config.markerPadding.x + 8,
-            0.5 * config.nodeProps.height - config.markerPadding.y + 8,
-            6,
+        const pathEndPoint = _getRectEdgePointForPath(
+            targetXCenter,
+            targetYCenter,
+            config.nodeProps.width,
+            config.nodeProps.height,
             -norm.get(0, 0),
             -norm.get(0, 1)
         )
-        const targetX = targetXCenter - offsetTarget.x
-        const targetY = targetYCenter - offsetTarget.y
 
         const endNorm = Matrix.multiply(norm, -1)
 
-        const end = _rotate(endNorm, rotation)
-            .add([[targetX, targetY]])
+        const pathEnd = _rotate(endNorm, rotation)
+            .add([[pathEndPoint.x, pathEndPoint.y]])
             .add(_rotate(endNorm, rotation).multiply(2 * config.markerBoxSize))
 
-        const arcRadius = 1.2 * dist
+        const arcRadius = dist
 
-        return `M${start.get(0, 0)},${start.get(0, 1)}
-          A${arcRadius},${arcRadius},0,0,1,${end.get(0, 0)},${end.get(0, 1)}`
+        return `M${pathStart.get(0, 0)},${pathStart.get(0, 1)}
+          A${arcRadius},${arcRadius},0,0,1,${pathEnd.get(0, 0)},${pathEnd.get(0, 1)}`
     } else {
         return '' //should never be reached
     }
@@ -329,73 +327,67 @@ export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boo
 }
 
 /**
- * Determines on which side of a rectangular shaped node a path for a non-reflexive link should be attached.
+ * Calculates the point where a directional vector from the center of a rectangular node intersects
+ * with the rectangles outer edge.
  *
- * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
- * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
- * @param threshold - The angle range (in degree) within which a direction is considered diagonal
- * @return The determined side of the node
+ * The directional vector points from the center of one node to the center of another node.
+ *
+ * The function returns the intersection point on the edge of the rectangular node in the given
+ * direction, needed for the path coordinates.
+ *
+ * @param centerX - x coordinate of the rectangle center
+ * @param centerY - y coordinate of the rectangle center
+ * @param width - width of the rectangle
+ * @param height - height of the rectangle
+ * @param normX - Directional vector x value
+ * @param normY - Directional vector y value
+ * @param offset
+ * @returns The intersection point on the rectangles edge in the direction of the vector
  */
-function _getPathAttachmentSide(
-    oppositeLegLength: number,
-    adjacentLegLength: number,
-    threshold: number = 2
-) {
-    let angle = _radiansToDegrees(Math.atan2(oppositeLegLength, adjacentLegLength))
-    if (angle < 0) angle += 360
-
-    if (_isAngleInRange(angle, 45, threshold)) return SideType.BOTTOMRIGHT
-    else if (_isAngleInRange(angle, [45, 135], -threshold)) return SideType.BOTTOM
-    else if (_isAngleInRange(angle, 135, threshold)) return SideType.BOTTOMLEFT
-    else if (_isAngleInRange(angle, [135, 225], -threshold)) return SideType.LEFT
-    else if (_isAngleInRange(angle, 225, threshold)) return SideType.TOPLEFT
-    else if (_isAngleInRange(angle, [225, 315], -threshold)) return SideType.TOP
-    else if (_isAngleInRange(angle, 315, threshold)) return SideType.TOPRIGHT
-    else return SideType.RIGHT
-}
-
-function _getOffsetForSide(
-    side: SideType,
-    widthOffset: number,
-    heightOffset: number,
-    diagonalCorrection: number,
+function _getRectEdgePointForPath(
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
     normX: number,
-    normY: number
+    normY: number,
+    offset = 0
 ) {
-    return {
-        [SideType.RIGHT]: {
-            x: widthOffset,
-            y: heightOffset * normY
-        },
-        [SideType.BOTTOMRIGHT]: {
-            x: widthOffset + diagonalCorrection,
-            y: heightOffset + diagonalCorrection
-        },
-        [SideType.BOTTOM]: {
-            x: widthOffset * normX,
-            y: heightOffset
-        },
-        [SideType.BOTTOMLEFT]: {
-            x: -widthOffset - diagonalCorrection,
-            y: heightOffset + diagonalCorrection
-        },
-        [SideType.LEFT]: {
-            x: -widthOffset,
-            y: heightOffset * normY
-        },
-        [SideType.TOPLEFT]: {
-            x: -widthOffset - diagonalCorrection,
-            y: -heightOffset - diagonalCorrection
-        },
-        [SideType.TOP]: {
-            x: widthOffset * normX,
-            y: -heightOffset
-        },
-        [SideType.TOPRIGHT]: {
-            x: widthOffset + diagonalCorrection,
-            y: -heightOffset - diagonalCorrection
+    const left = centerX - 0.5 * width
+    const right = centerX + 0.5 * width
+    const top = centerY - 0.5 * height
+    const bottom = centerY + 0.5 * height
+
+    if (normX === 0) normX = Number.EPSILON
+    if (normY === 0) normY = Number.EPSILON
+
+    const sideX = normX < 0 ? left : right
+    const sideY = normY < 0 ? top : bottom
+
+    // Rewritten in parametric form and set equal to the rectangle edge to find the intersection point
+    // center + lambda * norm = side
+    //                 lambda = (side - center) / norm
+    const lambdaX = (sideX - centerX) / normX
+    const lambdaY = (sideY - centerY) / normY
+
+    const lambda = Math.min(lambdaX, lambdaY)
+
+    let x = centerX + lambda * normX
+    let y = centerY + lambda * normY
+
+    if (offset !== 0) {
+        if (lambdaX < lambdaY) {
+            let factor: number
+            sideX === left ? (factor = 1) : (factor = -1)
+            x = x + offset * factor
+        } else {
+            let factor: number
+            sideY === top ? (factor = 1) : (factor = -1)
+            y = y + offset * factor
         }
-    }[side]
+    }
+
+    return { x, y }
 }
 
 /**

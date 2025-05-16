@@ -39,7 +39,7 @@ export interface GraphConfiguration {
     zoomEnabled: boolean
 
     markerBoxSize: number
-    markerPadding: { x: number; y: number }
+    markerPadding: number
     markerRef: number
     arrowPoints: [number, number][]
     markerPath: string
@@ -69,16 +69,7 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     markerBoxSize = 4
 
-    private _markerPadding =
-        this.nodeProps.shape === NodeShape.CIRCLE
-            ? {
-                  x: this.nodeProps.radius + 2 * this.markerBoxSize,
-                  y: this.nodeProps.radius + 2 * this.markerBoxSize
-              }
-            : {
-                  x: this.nodeProps.width + 2 * this.markerBoxSize,
-                  y: this.nodeProps.height + 2 * this.markerBoxSize
-              }
+    private _markerPadding = 2 * this.markerBoxSize
 
     public set nodeSize(nodeSize: NodeSize) {
         if (this.nodeProps.shape === NodeShape.CIRCLE) {
@@ -87,11 +78,6 @@ export class GraphConfigDefault implements GraphConfiguration {
             } else {
                 this.nodeProps.radius = (nodeSize as NodeSizeCircle).radius ?? 24
             }
-
-            this._markerPadding = {
-                x: this.nodeProps.radius + 2 * this.markerBoxSize,
-                y: this.nodeProps.radius + 2 * this.markerBoxSize
-            }
         } else if (this.nodeProps.shape === NodeShape.RECTANGLE) {
             if (typeof nodeSize === 'number') {
                 this.nodeProps.width = nodeSize
@@ -99,11 +85,6 @@ export class GraphConfigDefault implements GraphConfiguration {
             } else {
                 this.nodeProps.width = (nodeSize as NodeSizeRect).width ?? 48
                 this.nodeProps.height = (nodeSize as NodeSizeRect).height ?? 48
-            }
-
-            this._markerPadding = {
-                x: this.nodeProps.width + 2 * this.markerBoxSize,
-                y: this.nodeProps.height + 2 * this.markerBoxSize
             }
         }
     }
