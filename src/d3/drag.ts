@@ -2,9 +2,9 @@ import * as d3 from 'd3'
 import type { D3DragEvent } from 'd3'
 import { terminate } from '@/d3/event'
 import type { Simulation } from '@/d3/simulation'
-import type { NodeProps } from '@/model/config'
 import { GraphNode } from '@/model/graph-node'
 import { NodeShape } from '@/model/node-shape'
+import type { GraphConfiguration } from '@/model/config'
 
 export type Drag = d3.DragBehavior<SVGGElement, GraphNode, GraphNode>
 
@@ -12,8 +12,9 @@ export function createDrag(
     simulation: Simulation,
     width: number,
     height: number,
-    nodeProps: NodeProps
+    config: GraphConfiguration
 ): Drag {
+    const nodeProps = config.nodeProps
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
         .filter(
@@ -35,14 +36,18 @@ export function createDrag(
         })
         .on('drag', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (d.fixedPosition?.x !== true) {
-                if (nodeProps.shape === NodeShape.CIRCLE) {
+                if (!config.isCanvasBoundToView) {
+                    d.fx = event.x
+                } else if (nodeProps.shape === NodeShape.CIRCLE) {
                     d.fx = Math.max(nodeProps.radius, Math.min(width - nodeProps.radius, event.x))
                 } else if (nodeProps.shape === NodeShape.RECTANGLE) {
                     d.fx = Math.max(0, Math.min(width - nodeProps.width, event.x))
                 }
             }
             if (d.fixedPosition?.y !== true) {
-                if (nodeProps.shape === NodeShape.CIRCLE) {
+                if (!config.isCanvasBoundToView) {
+                    d.fy = event.y
+                } else if (nodeProps.shape === NodeShape.CIRCLE) {
                     d.fy = Math.max(nodeProps.radius, Math.min(height - nodeProps.radius, event.y))
                 } else if (nodeProps.shape === NodeShape.RECTANGLE) {
                     d.fy = Math.max(0, Math.min(height - nodeProps.height, event.y))

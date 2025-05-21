@@ -16,6 +16,7 @@ export function createCanvas(
     const canvasGroup = host
         .append('svg')
         .attr('class', 'graph-controller__graph-canvas')
+        .style('background-color', 'white')
         .on('pointermove', (event: PointerEvent) => onPointerMoved(event))
         .on('pointerup', (event: PointerEvent) => onPointerUp(event))
         .on('contextmenu', (event: MouseEvent) => terminate(event))
@@ -23,8 +24,6 @@ export function createCanvas(
         .call(zoom)
         .on('dblclick.zoom', null)
         .append('g')
-
-    canvasGroup.append('rect').attr('width', '100%').attr('height', '100%').attr('fill', 'white')
 
     return canvasGroup
 }
