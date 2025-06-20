@@ -28,6 +28,7 @@ import {
 import Graph from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
 import { PathType } from '@/model/path-type'
+import { SideType } from '@/model/side-type'
 import {
     GraphConfigDefault,
     type NodeCircle,
@@ -418,24 +419,21 @@ function setNodeSize(size: NodeSize, sizeY?: number) {
 
 /**
  * Exposed function to set the shape of the nodes.
- * @param shape
+ * @param shapeToSet
  */
-function setNodeShape(shape: NodeShape | string) {
-    if (shape === 'circle') shape = NodeShape.CIRCLE
-    else if (shape === 'rect' || shape === 'rectangle') shape = NodeShape.RECTANGLE
+function setNodeShape(shapeToSet: NodeShape | string) {
+    if (shapeToSet === 'circle') shapeToSet = NodeShape.CIRCLE
+    else if (shapeToSet === 'rect') shapeToSet = NodeShape.RECTANGLE
     else {
-        showError(
-            'Invalid Shape',
-            "For circular nodes: 'circle'\nFor rectangular nodes: 'rect' or 'rectangle'"
-        )
+        showError('Invalid Shape', "For circular nodes: 'circle'\nFor rectangular nodes: 'rect'")
         return
     }
     let currentSize = config.nodeSize
 
-    if (config.nodeProps.shape !== shape) {
-        if (shape === NodeShape.CIRCLE) {
+    if (config.nodeProps.shape !== shapeToSet) {
+        if (shapeToSet === NodeShape.CIRCLE) {
             config.nodeProps = {
-                shape: shape,
+                shape: shapeToSet,
                 radius: (currentSize as NodeSizeRect).width / 2
             }
 
@@ -443,12 +441,13 @@ function setNodeShape(shape: NodeShape | string) {
                 node.x = node.x! + config.nodeProps.radius
                 node.y = node.y! + config.nodeProps.radius
             }
-        } else if (shape === NodeShape.RECTANGLE) {
+        } else if (shapeToSet === NodeShape.RECTANGLE) {
             config.nodeProps = {
-                shape: shape,
+                shape: shapeToSet,
                 width: (currentSize as NodeSizeCircle).radius * 2,
                 height: (currentSize as NodeSizeCircle).radius * 2,
-                cornerRadius: 4
+                cornerRadius: 4,
+                reflexiveEdgeStart: 'MOVABLE'
             }
 
             for (let node of graph.value.nodes) {
@@ -462,7 +461,16 @@ function setNodeShape(shape: NodeShape | string) {
 
 /**
  * Exposed function to set the nodes properties.
- * @param nodeProps - `{shape: 'circle', radius: number}` or `{shape: 'rect', width: number, height: number, cornerRadius: number}`
+ *
+ * For rectangular properties a width-to-height ratio smaller than 1:10 is recommended.
+ *
+ * *Regarding the `reflexiveEdgeStart` property:*
+ * - *For ratios up to 1:3, both movable and fixed edges are visually fine*
+ * - *For ratios between 1:3 and 1:10 prefer using fixed edges*
+ * - *Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side.*
+ *
+ * @param nodeProps - `{shape: 'circle', radius: number}` or
+ * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
  */
 function setNodeProps(nodeProps: NodeProps) {
     if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
@@ -474,10 +482,26 @@ function setNodeProps(nodeProps: NodeProps) {
             }
             checkForNotValidKeys(nodeCircleKeys, Object.keys(nodeProps), true)
         } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-            const nodeRectKeys: (keyof NodeRect)[] = ['shape', 'width', 'height', 'cornerRadius']
+            const nodeRectKeys: (keyof NodeRect)[] = [
+                'shape',
+                'width',
+                'height',
+                'cornerRadius',
+                'reflexiveEdgeStart'
+            ]
 
             if (checkForAllNecessaryKeys(nodeRectKeys, Object.keys(nodeProps), true)) {
-                config.nodeProps = nodeProps
+                if (
+                    Object.values(SideType).includes(nodeProps.reflexiveEdgeStart as SideType) ||
+                    nodeProps.reflexiveEdgeStart === 'MOVABLE'
+                ) {
+                    config.nodeProps = nodeProps
+                } else {
+                    showError(
+                        'Invalid reflexiveEdgeStart Value',
+                        'Use RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT or MOVABLE.'
+                    )
+                }
             }
             checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
         }
@@ -486,7 +510,7 @@ function setNodeProps(nodeProps: NodeProps) {
         showError(
             'Invalid NodeProps Object',
             'For circular nodes: {shape: NodeShape, radius: number}\n' +
-                "For rectangular nodes: {shape: 'rect', width: number, height: number, cornerRadius: number}"
+                "For rectangular nodes: {shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}"
         )
     }
 }

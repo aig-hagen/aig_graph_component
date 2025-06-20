@@ -215,7 +215,15 @@ If we only want to update either the shape or the size individually, we can use`
 
 The `setNodeProps` expects a node property object:
 - `{shape: 'circle', radius: number}` 
-- `{shape: 'rect', width: number, height: number, cornerRadius: number}`
+- `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
+  - For rectangular properties a *width-to-height* ratio smaller than 1:10 is recommended
+  - The corner radius should be between 0 and 4
+  - Regarding the `reflexiveEdgeStart` property:
+    - For movable reflexive edges use `MOVABLE`
+    - An edge can also be fixed with one of the following SideType: `RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT`
+    - For ratios up to 1:3, both movable and fixed edges are visually fine
+    - For ratios between 1:3 and 1:10 prefer using fixed edges
+    - Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side
 
 ```javascript
 //circle 
@@ -231,7 +239,8 @@ instance.setNodeProps(
       shape:'rect', 
       width: 42, 
       height: 24, 
-      cornerRadius:4
+      cornerRadius: 4,
+      reflexiveEdgeStart: 'MOVABLE'
     }
 )
 ```
@@ -242,7 +251,6 @@ can be either _circle_ or _rect_.
 instance.setNodeShape('circle')
 
 instance.setNodeShape('rect')
-instance.setNodeShape('rectangle')
 ```
 
 To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)`

@@ -220,8 +220,10 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
 
 /**
  * Creates the path of a reflexive line of a node.
- * It will always be directed away from the center.
  *
+ * For circular nodes it will always be directed away from the center.
+ * For rectangular nodes this is the case if they have the `MOVABLE` option set in the `config`,
+ * otherwise they will start at the side mentioned in the configs `reflexiveEdgeStart`.
  * @param node The Node.
  * @param center The center point of the canvas.
  * @param config
@@ -252,6 +254,38 @@ export function reflexivePath(
         return `M${start.get(0, 0)},${start.get(0, 1)}
               A${config.nodeProps.radius},${config.nodeProps.radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
     } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+        if (config.nodeProps.reflexiveEdgeStart == 'MOVABLE') {
+            return _reflexiveRectPathMovable(node, config, c)
+        } else {
+            return _reflexiveRectPathFixed(node, config)
+        }
+    } else {
+        return `` //should never be reached
+    }
+}
+
+/**
+ * Determines if a path needs reversion, which is the case when the source nodes x value
+ * is bigger than the target nodes x value.
+ * This is necessary for flipping the text-path element that is used for the link labels.
+ */
+export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boolean {
+    return source.x! > target.x!
+}
+
+/**
+ * Creates the path for a reflexive link on a rectangular node.
+ * The path position adjusts dynamically when the node is moved and is always directed away from the center.
+ *
+ * **Caution**: This should only be used when the *width-to-height ratio of the node is less than or equal to 3:1*
+ * since with a higher ratio, the reflexive edges do no longer visually align well with the node.
+ *
+ * @param node The rectangular node
+ * @param config
+ * @param c The center matrix
+ */
+function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, c: Matrix) {
+    if (config.nodeProps.shape === NodeShape.RECTANGLE) {
         const nodeXCenter = node.x! + config.nodeProps.width * 0.5
         const nodeYCenter = node.y! + config.nodeProps.height * 0.5
 
@@ -313,17 +347,61 @@ export function reflexivePath(
         }
         return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
     } else {
-        return `` //should never be reached
+        return '' //should never be reached
     }
 }
 
 /**
- * Determines if a path needs reversion, which is the case when the source nodes x value
- * is bigger than the target nodes x value.
- * This is necessary for flipping the text-path element that is used for the link labels.
+ * Creates the path for a reflexive link of a rectangular node.
+ * The path is fixed and starts from the side defined by the `reflexiveEdgeStart` property of `nodeProps`
+ * in the `config`.
+ *
+ * *For width-to-height ratios above 1:10, reflexive edges from the short to the long side display with a very shallow angle.
+ * Prefer staying within this ratio or starting the edge from the longer side by specifying in the
+ * `reflexiveEdgeStart` property of `NodeProps` inside the `config`.*
+ *
+ * @param node The rectangular node
+ * @param config
  */
-export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boolean {
-    return source.x! > target.x!
+function _reflexiveRectPathFixed(node: GraphNode, config: GraphConfiguration) {
+    if (
+        config.nodeProps.shape === NodeShape.RECTANGLE &&
+        config.nodeProps.reflexiveEdgeStart !== 'MOVABLE'
+    ) {
+        let start, end
+        let arcWidthRadius = 0.5 * config.nodeProps.width
+        let arcHeightRadius = 0.5 * config.nodeProps.height
+
+        if (config.nodeProps.width > config.nodeProps.height) {
+            if (
+                config.nodeProps.reflexiveEdgeStart === SideType.TOPLEFT ||
+                config.nodeProps.reflexiveEdgeStart === SideType.BOTTOMRIGHT
+            ) {
+                arcWidthRadius =
+                    config.nodeProps.width / config.nodeProps.height + config.nodeProps.height
+            }
+        } else if (config.nodeProps.height > config.nodeProps.width) {
+            if (
+                config.nodeProps.reflexiveEdgeStart === SideType.TOPRIGHT ||
+                config.nodeProps.reflexiveEdgeStart === SideType.BOTTOMLEFT
+            ) {
+                arcHeightRadius =
+                    config.nodeProps.height / config.nodeProps.width + config.nodeProps.width
+            }
+        }
+
+        let m = _getPathCoordinatesForRectReflexiveLink(
+            config.nodeProps.reflexiveEdgeStart,
+            node,
+            config
+        )
+        start = m.start
+        end = m.end
+
+        return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+    } else {
+        return '' //should never be reached
+    }
 }
 
 /**
@@ -393,8 +471,8 @@ function _getRectEdgePointForPath(
 /**
  * Determines on which side of a rectangular shaped node a path for a reflexive link should be attached.
  *
- * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and its target node
- * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and its target node
+ * @param oppositeLegLength - The vertical distance (delta y) between the node whose side is being determined and the canvas center point
+ * @param adjacentLegLength - The horizontal distance (delta x) between the node whose side is being determined and the canvas center point
  * @param threshold - The angle range (in degree) within which a direction is considered diagonal
  * @return The determined side of the node
  */
@@ -418,7 +496,7 @@ function _getPathAttachmentSideReflexiveLink(
 
 /**
  * Gets the start and end coordinates for a path required for a reflexive link on a rectangular node.
- * @param side - The corner of the rect node on which the path should start
+ * @param side - The side of the rect node on which the path should start
  * @param node - The node
  * @param config - The graph config
  */
@@ -446,31 +524,31 @@ function _getPathCoordinatesForRectReflexiveLink(
         },
         [SideType.BOTTOM]: {
             start: [x + 0.5 * widthOffset, y + heightOffset - 1],
-            end: [x + widthOffset - 2 * markerBoxSize, y + 0.5 * heightOffset - 2 * markerBoxSize]
+            end: [x + widthOffset + 2 * markerBoxSize, y + 0.5 * heightOffset]
         },
         [SideType.BOTTOMRIGHT]: {
             start: [x + widthOffset - 2, y + heightOffset - 1],
-            end: [x + widthOffset + 2 * markerBoxSize, y + 4]
+            end: [x + widthOffset + 2 * markerBoxSize, y + 2 * markerBoxSize]
         },
         [SideType.RIGHT]: {
-            start: [x + 2, y + heightOffset - 1],
-            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
+            start: [x + widthOffset - 1, y + 0.5 * heightOffset],
+            end: [x + 0.5 * widthOffset, y - 2 * markerBoxSize]
         },
         [SideType.TOPRIGHT]: {
             start: [x + widthOffset - 2, y + 1],
-            end: [x + 4, y - 2 * markerBoxSize]
+            end: [x + 2 * markerBoxSize, y - 2 * markerBoxSize]
         },
         [SideType.TOP]: {
-            start: [x + 2, y + heightOffset - 1],
-            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
+            start: [x + 0.5 * widthOffset, y + 1],
+            end: [x - 2 * markerBoxSize, y + 0.5 * heightOffset]
         },
         [SideType.TOPLEFT]: {
             start: [x + 2, y + 1],
             end: [x - 2 * markerBoxSize, y + heightOffset - 2 * markerBoxSize]
         },
         [SideType.LEFT]: {
-            start: [x + 2, y + heightOffset - 1],
-            end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
+            start: [x + 1, y + 0.5 * heightOffset],
+            end: [x + 0.5 * widthOffset, y + heightOffset + 2 * markerBoxSize]
         }
     }
 
