@@ -54,6 +54,7 @@ export interface GraphConfiguration {
     markerRef: number
     arrowPoints: [number, number][]
     markerPath: string
+    readonly isCanvasBoundToView: boolean
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
@@ -74,7 +75,7 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     isGraphEditableInGUI = true
 
-    zoomEnabled = false
+    zoomEnabled = true
 
     showLinkLabels = true
     fixedLinkDistanceEnabled = false
@@ -140,5 +141,12 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     public get markerPath() {
         return [0, 0, this.markerBoxSize, this.markerBoxSize].join(',')
+    }
+
+    public get isCanvasBoundToView() {
+        // The canvas is bound to the view if zoom is disabled.
+        // When zoom (and panning) is enabled, we don't need bounds because the user can navigate to nodes outside the view.
+        // When zoom is disabled, bounds are used to ensure all nodes are accessible to the user.
+        return !this.zoomEnabled
     }
 }

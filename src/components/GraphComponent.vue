@@ -121,11 +121,11 @@ onBeforeMount(() => {
 
 onMounted(() => {
     initData()
-    window.addEventListener('resize', handleResize)
+    window.addEventListener('resize', handleWindowResize)
 })
 
 onUnmounted(() => {
-    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('resize', handleWindowResize)
 })
 
 const browser = Bowser.getParser(window.navigator.userAgent)
@@ -830,7 +830,7 @@ function initData() {
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
-    drag = createDrag(simulation, width, height, config.nodeProps)
+    drag = createDrag(simulation, width, height, config)
     restart()
 }
 
@@ -1948,14 +1948,16 @@ function resetView(): void {
     initData()
 }
 
-/**
- * Handles window resize, except when triggered by the appearance of the on-screen keyboard on touch devices,
- * though detection of whether the keyboard is truly open may not be 100% accurate.
- */
-function handleResize() {
-    if (!isVirtualKeyboardProbablyOpen) {
-        resetView()
+function handleWindowResize() {
+    if (!config.isCanvasBoundToView) {
+        return
     }
+    // Do not resize view when triggered by the appearance of the on-screen keyboard on touch devices
+    // Detection of whether the keyboard is truly open may not be 100% accurate.
+    if (isVirtualKeyboardProbablyOpen) {
+        return
+    }
+    resetView()
 }
 
 function _resetGraph(): void {

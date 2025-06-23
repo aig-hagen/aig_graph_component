@@ -23,7 +23,9 @@ export function createSimulation(
 
     simulation = setCollide(simulation, config)
 
-    simulation = updateBounds(graph, simulation, width, height, config)
+    if (config.isCanvasBoundToView) {
+        simulation = updateBounds(graph, simulation, width, height, config)
+    }
 
     simulation = setFixedLinkDistance(simulation, graph, config, config.fixedLinkDistanceEnabled)
     simulation = setNodeChargeAndAttraction(simulation, config.nodePhysicsEnabled, width, height)
