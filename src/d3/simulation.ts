@@ -89,7 +89,7 @@ export function updateBounds(
 }
 
 /**
- * Sets the charge force so nodes are attracted towards the middle of the canvas and they repel each other.
+ * Sets the charge force so nodes are attracted towards the middle of the canvas, and they repel each other.
  * @param simulation
  * @param setForces
  * @param width

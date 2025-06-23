@@ -143,10 +143,12 @@ export class GraphConfigDefault implements GraphConfiguration {
         return [0, 0, this.markerBoxSize, this.markerBoxSize].join(',')
     }
 
+    /**
+     * The canvas is bound to the view if zoom is disabled.
+     * When zoom (and panning) is enabled, we don't need bounds because the user can navigate to nodes outside the view.
+     * When zoom is disabled, bounds are used to ensure all nodes accessible to the user.
+     */
     public get isCanvasBoundToView() {
-        // The canvas is bound to the view if zoom is disabled.
-        // When zoom (and panning) is enabled, we don't need bounds because the user can navigate to nodes outside the view.
-        // When zoom is disabled, bounds are used to ensure all nodes are accessible to the user.
         return !this.zoomEnabled
     }
 }

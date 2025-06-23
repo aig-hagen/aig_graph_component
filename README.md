@@ -396,13 +396,15 @@ we can use the following:
 instance.toggleGraphEditingInGUI(false)
 ```
 
-A force-directed automatic graph-layout can be enabled.
+A force-directed automatic graph-layout can be enabled, where nodes repel each other and are attracted 
+towards the initial center *(before any zooming or panning)* of the canvas.
+
 
 ```javascript
 instance.toggleNodePhysics(true)
 ```
 
-The lenght links can can be fixed.
+There is a fixed distance for links.
 
 ```javascript
 instance.toggleFixedLinkDistance(true)
@@ -410,10 +412,9 @@ instance.toggleFixedLinkDistance(true)
 
 Also zoom can be enabled.
 
-> [!NOTE] 
-> When zoom is disabled nodes can only be placed inside the view.
->
-> When zoom is enabled the user can change the view resulting in nodes being located outside the view. Enabling zoom is usefull editors for potentially big graphs.
+*When zoom is disabled nodes can only be placed inside the view.
+When zoom is enabled the user can change the view resulting in nodes being 
+located outside the view, which can be useful for bigger graphs.*
 
 ```javascript
 instance.toggleZoom(false)
@@ -425,7 +426,7 @@ After zooming we can reset the canvas to its default position.
 instance.resetView()
 ```
 
-You can also toggle if the nodes and links should have labels.
+We can also toggle if the nodes and links should have labels.
 ```javascript
 instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
