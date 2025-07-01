@@ -1419,7 +1419,6 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
         .classed('hidden', false)
         .attr('d', linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config))
-    restart()
 }
 
 //endregion
