@@ -107,6 +107,30 @@ export function releaseImplicitPointerCapture(event: PointerEvent) {
 }
 
 /**
+ * Determines whether a pointer interaction was probably a click, based on how close
+ * the pointer down and pointer up positions are.
+ *
+ * This is relevant for touch devices, where we can't distinguish a pointer down event like we can with mouse buttons.
+
+ * Actions like creating a link (triggered on pointer up) should not be executed when the user actually intended to click
+ * (edit a node label). Since the click event fires after pointer up, using this check can help to avoid triggering both
+ * actions on touch devices.
+ *
+ * @param pointerDownPos - The position where the pointer went down on a node
+ * @param pointerUpPos - The position where the pointer went up
+ * @param clickPosThreshold - Maximum allowed distance between down and up positions to still count as a click.
+ */
+export function isProbablyClick(
+    pointerDownPos: { x: number; y: number },
+    pointerUpPos: { x: number; y: number },
+    clickPosThreshold = 2
+) {
+    const dx = Math.abs(pointerDownPos.x - pointerUpPos.x)
+    const dy = Math.abs(pointerDownPos.y - pointerUpPos.y)
+    return dx < clickPosThreshold && dy < clickPosThreshold
+}
+
+/**
  * Checks if given keys contains any not valid key options
  * @param allowedKeys
  * @param givenKeys

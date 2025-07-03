@@ -43,6 +43,7 @@ import {
     checkForNotValidKeys,
     escapeColor,
     generateRoundedRectPath,
+    isProbablyClick,
     releaseImplicitPointerCapture,
     separateNodeAndLinkIds,
     setAndValFixedNodePosition,
@@ -134,6 +135,9 @@ const platformType = browser.getPlatformType(true)
 /* Set to true, when the label input fields opens and to false when it blurs
  * -> this may not be accurate for all cases. */
 let isVirtualKeyboardProbablyOpen = false
+
+/* Stores the position where the last pointer down occurred on a node.*/
+let lastPointerDownOnNodePosition: { x: number; y: number } = { x: -100000, y: -100000 }
 
 const graph = ref(new Graph())
 const graphHasNodes = ref(false)
@@ -1436,7 +1440,20 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
     if (node) {
         _onPointerUpCancelDeleteAnimationNode(node)
     }
-    _onPointerUpCreateLink()
+
+    if (event.pointerType === 'mouse') {
+        _onPointerUpCreateLink()
+    } else if (
+        (event.pointerType === 'touch' || event.pointerType === 'pen') &&
+        !isProbablyClick(
+            { x: lastPointerDownOnNodePosition.x, y: lastPointerDownOnNodePosition.y },
+            { x: event.x, y: event.y }
+        )
+    ) {
+        _onPointerUpCreateLink()
+    } else {
+        _resetDraggableLink()
+    }
 }
 
 /**
