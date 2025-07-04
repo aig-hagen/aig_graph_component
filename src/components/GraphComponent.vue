@@ -1115,6 +1115,7 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
+                        lastPointerDownOnNodePosition = { x: event.x, y: event.y }
                         if (config.isGraphEditableInGUI) {
                             onPointerDownNode(event, d)
                         }
