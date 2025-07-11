@@ -2,7 +2,7 @@ import { NodeShape } from '@/model/node-shape'
 import { SideType } from '@/model/side-type'
 
 export type NodeProps = NodeCircle | NodeRect
-export type NodeSize = NodeSizeCircle | NodeSizeRect | number
+export type NodeSize = NodeSizeCircle | NodeSizeRect
 
 export type NodeCircle = {
     shape: NodeShape.CIRCLE
@@ -84,7 +84,7 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     private _markerPadding = 2 * this.markerBoxSize
 
-    public set nodeSize(nodeSize: NodeSize) {
+    public set nodeSize(nodeSize: NodeSize | number) {
         if (this.nodeProps.shape === NodeShape.CIRCLE) {
             if (typeof nodeSize === 'number') {
                 this.nodeProps.radius = nodeSize
@@ -110,10 +110,10 @@ export class GraphConfigDefault implements GraphConfiguration {
         }
     }
 
-    public set nodeProps(props) {
+    public set nodeProps(props: NodeProps) {
         this._nodeProps = props
         if (props.shape === NodeShape.CIRCLE) {
-            this.nodeSize = props.radius
+            this.nodeSize = { radius: props.radius }
         } else if (props.shape === NodeShape.RECTANGLE) {
             this.nodeSize = { width: props.width, height: props.height }
         }
