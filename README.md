@@ -490,6 +490,7 @@ graphHost.addEventListener('nodeclicked', function(e){
 ```
 
 ## Development
+
 ### Project Setup
 
 #### Install required Dependencies
@@ -500,6 +501,26 @@ npm install
 #### Compile and Hot-Reload for Development
 ```sh
 npm run dev
+```
+
+#### Run Component Tests with Playwright
+
+When running for the first time, browsers need to be installed by Playwright:
+
+```sh
+npx playwright install chromium firefox
+```
+
+After that the tests can be run with the following command:
+
+```sh
+npm run test-ct
+```
+
+To update the screenshots while running the tests, the following command can be used:
+
+```sh
+npm run test-ct:update-snapshots
 ```
 
 #### Type-Check and Compile for Production
