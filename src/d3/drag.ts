@@ -14,7 +14,6 @@ export function createDrag(
     height: number,
     config: GraphConfiguration
 ): Drag {
-    const nodeProps = config.nodeProps
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
         .filter(
@@ -38,19 +37,25 @@ export function createDrag(
             if (d.fixedPosition?.x !== true) {
                 if (!config.isCanvasBoundToView) {
                     d.fx = event.x
-                } else if (nodeProps.shape === NodeShape.CIRCLE) {
-                    d.fx = Math.max(nodeProps.radius, Math.min(width - nodeProps.radius, event.x))
-                } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-                    d.fx = Math.max(0, Math.min(width - nodeProps.width, event.x))
+                } else if (d.props.shape === NodeShape.CIRCLE) {
+                    d.fx = Math.max(d.props.radius, Math.min(width - d.props.radius, event.x))
+                } else if (d.props.shape === NodeShape.RECTANGLE) {
+                    d.fx = Math.max(
+                        0.5 * d.props.width,
+                        Math.min(width - 0.5 * d.props.width, event.x)
+                    )
                 }
             }
             if (d.fixedPosition?.y !== true) {
                 if (!config.isCanvasBoundToView) {
                     d.fy = event.y
-                } else if (nodeProps.shape === NodeShape.CIRCLE) {
-                    d.fy = Math.max(nodeProps.radius, Math.min(height - nodeProps.radius, event.y))
-                } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-                    d.fy = Math.max(0, Math.min(height - nodeProps.height, event.y))
+                } else if (d.props.shape === NodeShape.CIRCLE) {
+                    d.fy = Math.max(d.props.radius, Math.min(height - d.props.radius, event.y))
+                } else if (d.props.shape === NodeShape.RECTANGLE) {
+                    d.fy = Math.max(
+                        0.5 * d.props.height,
+                        Math.min(height - 0.5 * d.props.height, event.y)
+                    )
                 }
             }
         })

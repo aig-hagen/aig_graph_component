@@ -68,16 +68,16 @@ export function generateRoundedRectPath(
     cornerRadius: number
 ): string {
     return `
-        M 0,${cornerRadius}
-        A ${cornerRadius},${cornerRadius} 0 0 1 ${cornerRadius},0
-        H ${width - cornerRadius}
-        A ${cornerRadius},${cornerRadius} 0 0 1 ${width},${cornerRadius}
-        V ${height - cornerRadius}
-        A ${cornerRadius},${cornerRadius} 0 0 1 ${width - cornerRadius},${height}
-        H ${cornerRadius}
-        A ${cornerRadius},${cornerRadius} 0 0 1 0,${height - cornerRadius}
-        Z
-    `
+    M ${-0.5 * width}, ${-0.5 * height + cornerRadius}
+    A ${cornerRadius},${cornerRadius} 0 0 1 ${-0.5 * width + cornerRadius}, ${-0.5 * height}
+    H ${0.5 * width - cornerRadius}
+    A ${cornerRadius},${cornerRadius} 0 0 1 ${0.5 * width}, ${-0.5 * height + cornerRadius}
+    V ${0.5 * height - cornerRadius}
+    A ${cornerRadius},${cornerRadius} 0 0 1 ${0.5 * width - cornerRadius}, ${0.5 * height}
+    H ${-0.5 * width + cornerRadius}
+    A ${cornerRadius},${cornerRadius} 0 0 1 ${-0.5 * width}, ${0.5 * height - cornerRadius}
+    Z
+`
 }
 
 /**

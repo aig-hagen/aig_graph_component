@@ -13,7 +13,7 @@ export interface D3Node extends SimulationNodeDatum {
 
 export interface NodeAppearance {
     color?: string
-    nodeProps?: NodeProps
+    props?: NodeProps
 }
 
 export interface NodeGUIEditability {
@@ -36,10 +36,10 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
 
     /**
      * @param id - The internal ID which is used for node referencing.
-     * @param nodeProps - The nodeProps of the node
+     * @param props - The props of the node
      * @param idImported - The external ID provided for imported nodes (solely used for the purpose of imported node creation).
-     * @param x - The nodes x position
-     * @param y - The nodes y position
+     * @param x - The x coordinate of the node's center
+     * @param y - The y coordinate of the node's center
      * @param label - The nodes label
      * @param color - The color of the node which was set (for default color this is empty)
      * @param fixedPosition - A fixed node can't be dragged via GUI and isn't influenced by the simulation forces
@@ -50,7 +50,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
      */
     public constructor(
         public readonly id: number,
-        public nodeProps: NodeProps,
+        public props: NodeProps,
         public idImported?: string | number,
         public x?: number,
         public y?: number,

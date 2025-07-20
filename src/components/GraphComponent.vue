@@ -815,19 +815,11 @@ function initData() {
         (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
         (event) => {
             if (config.isGraphEditableInGUI) {
-                if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                    createNode(
-                        { ...config.nodeProps },
-                        d3.pointer(event, canvas!.node())[0] - 0.5 * config.nodeProps.width,
-                        d3.pointer(event, canvas!.node())[1] - 0.5 * config.nodeProps.height
-                    )
-                } else {
-                    createNode(
-                        { ...config.nodeProps },
-                        d3.pointer(event, canvas!.node())[0],
-                        d3.pointer(event, canvas!.node())[1]
-                    )
-                }
+                createNode(
+                    { ...config.nodeProps },
+                    d3.pointer(event, canvas!.node())[0],
+                    d3.pointer(event, canvas!.node())[1]
+                )
             }
         }
     )
@@ -873,7 +865,7 @@ function createLink(
 }
 
 function createNode(
-    nodeProps: NodeProps,
+    props: NodeProps,
     x?: number,
     y?: number,
     importedId?: string | number,
@@ -887,7 +879,7 @@ function createNode(
     allowOutgoingLinks: boolean = true
 ): void {
     let newNode = graph.value.createNode(
-        nodeProps,
+        props,
         x ?? width / 2,
         y ?? height / 2,
         importedId,
@@ -1130,23 +1122,25 @@ function restart(alpha: number = 0.5): void {
 
                 //shape circle
                 nodeGroup
-                    .filter((d) => d.nodeProps.shape === NodeShape.CIRCLE)
+                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
                     .append(NodeShape.CIRCLE)
                     .classed('graph-controller__node', true)
                     .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('r', (d) => (d.nodeProps as NodeCircle).radius)
+                    .attr('r', (d) => (d.props as NodeCircle).radius)
                     .style('fill', (d) => (d.color ? d.color : ''))
 
                 //shape rect
                 nodeGroup
-                    .filter((d) => d.nodeProps.shape === NodeShape.RECTANGLE)
+                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
                     .append(NodeShape.RECTANGLE)
                     .classed('graph-controller__node', true)
                     .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('width', (d) => (d.nodeProps as NodeRect)?.width)
-                    .attr('height', (d) => (d.nodeProps as NodeRect)?.height)
-                    .attr('rx', (d) => (d.nodeProps as NodeRect)?.cornerRadius)
-                    .attr('ry', (d) => (d.nodeProps as NodeRect)?.cornerRadius)
+                    .attr('width', (d) => (d.props as NodeRect)?.width)
+                    .attr('height', (d) => (d.props as NodeRect)?.height)
+                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+                    .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+                    .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
                     .style('fill', (d) => (d.color ? d.color : ''))
 
                 //label
@@ -1156,16 +1150,18 @@ function restart(alpha: number = 0.5): void {
                     .attr('xmlns', 'http://www.w3.org/2000/svg')
 
                 nodeForeignObject
-                    .filter((d) => d.nodeProps.shape === NodeShape.CIRCLE)
-                    .attr('width', (d) => 2 * (d.nodeProps as NodeCircle).radius)
-                    .attr('height', (d) => 2 * (d.nodeProps as NodeCircle).radius)
-                    .attr('x', (d) => -(d.nodeProps as NodeCircle).radius)
-                    .attr('y', (d) => -(d.nodeProps as NodeCircle).radius)
+                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
+                    .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
+                    .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
+                    .attr('x', (d) => -(d.props as NodeCircle).radius)
+                    .attr('y', (d) => -(d.props as NodeCircle).radius)
 
                 nodeForeignObject
-                    .filter((d) => d.nodeProps.shape === NodeShape.RECTANGLE)
-                    .attr('width', (d) => (d.nodeProps as NodeRect)?.width)
-                    .attr('height', (d) => (d.nodeProps as NodeRect)?.height)
+                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+                    .attr('width', (d) => (d.props as NodeRect)?.width)
+                    .attr('height', (d) => (d.props as NodeRect)?.height)
+                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
 
                 nodeForeignObject
                     .append('xhtml:div')
@@ -1186,16 +1182,18 @@ function restart(alpha: number = 0.5): void {
             (update) => {
                 update
                     .selectChild('.graph-controller__node')
-                    .filter((d) => d.nodeProps.shape === NodeShape.CIRCLE)
-                    .attr('r', (d) => (d.nodeProps as NodeCircle).radius)
+                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
+                    .attr('r', (d) => (d.props as NodeCircle).radius)
 
                 update
                     .selectChild('.graph-controller__node')
-                    .filter((d) => d.nodeProps.shape === NodeShape.RECTANGLE)
-                    .attr('width', (d) => (d.nodeProps as NodeRect)?.width)
-                    .attr('height', (d) => (d.nodeProps as NodeRect)?.height)
-                    .attr('rx', (d) => (d.nodeProps as NodeRect)?.cornerRadius)
-                    .attr('ry', (d) => (d.nodeProps as NodeRect)?.cornerRadius)
+                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+                    .attr('width', (d) => (d.props as NodeRect)?.width)
+                    .attr('height', (d) => (d.props as NodeRect)?.height)
+                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+                    .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+                    .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
 
                 update
                     .selectChild('foreignObject')
@@ -1341,11 +1339,11 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
 
     let nodeContainer = d3.select(nodeElement.parentElement)
 
-    if (node.nodeProps.shape === NodeShape.CIRCLE) {
+    if (node.props.shape === NodeShape.CIRCLE) {
         let arcGenerator = d3
                 .arc()
-                .outerRadius((node.nodeProps as NodeCircle).radius + 4)
-                .innerRadius((node.nodeProps as NodeCircle).radius),
+                .outerRadius((node.props as NodeCircle).radius + 4)
+                .innerRadius((node.props as NodeCircle).radius),
             startArc = [{ startAngle: 0, endAngle: 0 }]
 
         let path = nodeContainer
@@ -1371,11 +1369,11 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
                 }
             })
             .on('end', () => _onPointerDownDeleteNode(node))
-    } else if (node.nodeProps.shape === NodeShape.RECTANGLE) {
+    } else if (node.props.shape === NodeShape.RECTANGLE) {
         const pathData = generateRoundedRectPath(
-            (node.nodeProps as NodeRect).width,
-            (node.nodeProps as NodeRect).height,
-            (node.nodeProps as NodeRect).cornerRadius
+            (node.props as NodeRect).width,
+            (node.props as NodeRect).height,
+            (node.props as NodeRect).cornerRadius
         )
 
         let nodePath = nodeContainer
@@ -1387,7 +1385,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .attr('d', pathData)
 
         let nodePathLength =
-            2 * (node.nodeProps as NodeRect).width + 2 * (node.nodeProps as NodeRect).height
+            2 * (node.props as NodeRect).width + 2 * (node.props as NodeRect).height
 
         nodePath
             .attr('stroke-dasharray', nodePathLength)
@@ -1425,10 +1423,7 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
  * @param node
  */
 function _onPointerDownCreateDraggableLink(node: GraphNode): void {
-    draggableLinkEnd =
-        node.nodeProps.shape === NodeShape.CIRCLE
-            ? [node.x!, node.y!]
-            : [node.x! + 0.5 * node.nodeProps.width, node.y! + 0.5 * node.nodeProps.height]
+    draggableLinkEnd = [node.x!, node.y!]
     draggableLinkSourceNode = node
     draggableLink!
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
@@ -1478,18 +1473,18 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeElement = d3.select(nodeById)
     let nodeContainer = d3.select(nodeById.parentElement)
 
-    if (node.nodeProps.shape === NodeShape.CIRCLE) {
+    if (node.props.shape === NodeShape.CIRCLE) {
         nodeElement.classed('on-deletion', false)
         nodeContainer.select('g.arc').select('path.arc').interrupt().remove()
         nodeContainer.select('g.arc').remove()
-    } else if (node.nodeProps.shape === NodeShape.RECTANGLE) {
+    } else if (node.props.shape === NodeShape.RECTANGLE) {
         if (nodeElement.classed('on-deletion')) {
             let nodePath = nodeContainer.select('path')
             nodePath
-                .attr('stroke-dasharray', 2 * node.nodeProps.width + 2 * node.nodeProps.height)
+                .attr('stroke-dasharray', 2 * node.props.width + 2 * node.props.height)
                 .attr('stroke-dashoffset', 0)
                 .transition()
-                .attr('stroke-dashoffset', 2 * node.nodeProps.width + 2 * node.nodeProps.height)
+                .attr('stroke-dashoffset', 2 * node.props.width + 2 * node.props.height)
                 .on('end', () => {
                     nodeContainer.select('path').remove()
                 })
@@ -1686,14 +1681,7 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
     terminate(event)
     if (node.labelEditable) {
-        let position =
-            node.nodeProps.shape === NodeShape.CIRCLE
-                ? ([node.x!, node.y!] as [number, number])
-                : ([
-                      node.x! + 0.5 * (node.nodeProps as NodeRect).width,
-                      node.y! + 0.5 * (node.nodeProps as NodeRect).height
-                  ] as [number, number])
-        handleInputForLabel(node, position)
+        handleInputForLabel(node, [node.x!, node.y!])
     }
 }
 
