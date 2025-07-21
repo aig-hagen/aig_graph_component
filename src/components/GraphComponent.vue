@@ -12,7 +12,12 @@ import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
-import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
+import {
+    createSimulation,
+    setFixedLinkDistance,
+    setNodeChargeAndAttraction,
+    updateCollide
+} from '@/d3/simulation'
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
 import {
     terminate,
@@ -892,6 +897,7 @@ function createNode(
         allowOutgoingLinks
     )
     triggerNodeCreated(newNode, graphHost.value)
+    updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
     restart()
 }
@@ -1411,6 +1417,7 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
             removedLinks.forEach((link) => {
                 triggerLinkDeleted(link, graphHost.value)
             })
+            updateCollide(simulation, graph.value, config)
         }
         graphHasNodes.value = graph.value.nodes.length > 0
         _resetDraggableLink()

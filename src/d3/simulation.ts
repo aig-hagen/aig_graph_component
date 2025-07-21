@@ -1,5 +1,5 @@
 import * as d3 from 'd3'
-import type { GraphConfiguration } from '@/model/config'
+import type { GraphConfiguration, NodeCircle } from '@/model/config'
 import Graph from '@/model/graph'
 import { GraphLink } from '@/model/graph-link'
 import { GraphNode } from '@/model/graph-node'
@@ -21,10 +21,10 @@ export function createSimulation(
         .forceSimulation<GraphNode, GraphLink>(graph!.nodes)
         .on('tick', () => onTick())
 
-    simulation = setCollide(simulation, config)
+    simulation = updateCollide(simulation, graph, config)
 
     if (config.isCanvasBoundToView) {
-        simulation = updateBounds(graph, simulation, width, height, config)
+        simulation = updateBounds(simulation, graph, width, height)
     }
 
     simulation = setFixedLinkDistance(simulation, graph, config, config.fixedLinkDistanceEnabled)
@@ -34,24 +34,48 @@ export function createSimulation(
 }
 
 /**
- * Sets the collision force to avoid the overlapping of nodes.
+ * Sets the collision force depending on the node shape to avoid overlapping of nodes.
  * @param simulation
+ * @param graph
  * @param config
  */
-function setCollide(simulation: Simulation, config: GraphConfiguration): Simulation {
-    if (config.nodeProps.shape === NodeShape.CIRCLE) {
-        return simulation.force(
-            'collision',
-            d3.forceCollide<GraphNode>().radius(config.nodeProps.radius)
-        )
-    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-        let rectCollide = bboxCollide([
-            [-0.5 * config.nodeProps.width, -0.5 * config.nodeProps.height],
-            [0.5 * config.nodeProps.width, 0.5 * config.nodeProps.height]
-        ])
-        return simulation.force('collision', rectCollide)
+export function updateCollide(
+    simulation: Simulation,
+    graph: UnwrapRef<Graph> | Graph,
+    config: GraphConfiguration
+): Simulation {
+    const justCircles =
+        !graph.nodes || graph.nodes.length === 0
+            ? config.nodeProps.shape === NodeShape.CIRCLE
+            : graph.nodes.every((node) => node.props.shape === NodeShape.CIRCLE)
+
+    if (justCircles) {
+        return simulation
+            .force(
+                'collideCircle',
+                d3.forceCollide<GraphNode>().radius((d) => (d.props as NodeCircle).radius)
+            )
+            .force('collideBox', null)
+    } else {
+        return simulation
+            .force(
+                'collideBox',
+                bboxCollide((d: GraphNode) => {
+                    if (d.props.shape === NodeShape.CIRCLE) {
+                        return [
+                            [-d.props.radius, -d.props.radius],
+                            [d.props.radius, d.props.radius]
+                        ]
+                    } else if (d.props.shape === NodeShape.RECTANGLE) {
+                        return [
+                            [-0.5 * d.props.width, -0.5 * d.props.height],
+                            [0.5 * d.props.width, 0.5 * d.props.height]
+                        ]
+                    }
+                })
+            )
+            .force('collideCircle', null)
     }
-    return simulation
 }
 
 /**
@@ -60,29 +84,27 @@ function setCollide(simulation: Simulation, config: GraphConfiguration): Simulat
  * @param simulation
  * @param width
  * @param height
- * @param config
  */
 export function updateBounds(
-    graph: UnwrapRef<Graph> | Graph,
     simulation: Simulation,
+    graph: UnwrapRef<Graph> | Graph,
     width: number,
-    height: number,
-    config: GraphConfiguration
+    height: number
 ): Simulation {
     return simulation.force('bounds', () => {
-        for (const node of graph!.nodes) {
-            if (config.nodeProps.shape === NodeShape.CIRCLE) {
+        for (const node of graph.nodes) {
+            if (node.props.shape === NodeShape.CIRCLE) {
+                node.x = Math.max(node.props.radius, Math.min(width - node.props.radius, node.x!))
+                node.y = Math.max(node.props.radius, Math.min(height - node.props.radius, node.y!))
+            } else if (node.props.shape === NodeShape.RECTANGLE) {
                 node.x = Math.max(
-                    config.nodeProps.radius,
-                    Math.min(width - config.nodeProps.radius, node.x!)
+                    0.5 * node.props.width,
+                    Math.min(width - 0.5 * node.props.width, node.x!)
                 )
                 node.y = Math.max(
-                    config.nodeProps.radius,
-                    Math.min(height - config.nodeProps.radius, node.y!)
+                    0.5 * node.props.height,
+                    Math.min(height - 0.5 * node.props.height, node.y!)
                 )
-            } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                node.x = Math.max(0, Math.min(width - config.nodeProps.width, node.x!))
-                node.y = Math.max(0, Math.min(height - config.nodeProps.height, node.y!))
             }
         }
     })
