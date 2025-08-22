@@ -1,5 +1,6 @@
 import type { SimulationNodeDatum } from 'd3'
-import type { NodeProps } from '@/model/config'
+import type { GraphConfiguration, NodeCircle, NodeProps, NodeRect } from '@/model/config'
+import { NodeShape } from '@/model/node-shape'
 
 export interface D3Node extends SimulationNodeDatum {
     id: number
@@ -74,5 +75,30 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
 
     public get fixedPosition(): FixedAxis | undefined {
         return this._fixedPosition
+    }
+
+    public setShape(shape: NodeShape, config: GraphConfiguration) {
+        if (shape === NodeShape.CIRCLE) {
+            let radius =
+                (config.nodeProps as NodeCircle).radius ?? 0.5 * (this.props as NodeRect).width
+            this.props = {
+                shape: NodeShape.CIRCLE,
+                radius: radius
+            }
+        } else if (shape === NodeShape.RECTANGLE) {
+            let width =
+                (config.nodeProps as NodeRect).width ?? 2 * (this.props as NodeCircle).radius
+            let height = (config.nodeProps as NodeRect).height ?? (this.props as NodeCircle).radius
+            let cornerRadius = (config.nodeProps as NodeRect).cornerRadius ?? 4
+            let reflexiveEdgeStart = (config.nodeProps as NodeRect).reflexiveEdgeStart ?? 'MOVABLE'
+
+            this.props = {
+                shape: NodeShape.RECTANGLE,
+                width: width,
+                height: height,
+                cornerRadius: cornerRadius,
+                reflexiveEdgeStart: reflexiveEdgeStart
+            }
+        }
     }
 }

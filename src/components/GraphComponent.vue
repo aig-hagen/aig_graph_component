@@ -174,6 +174,7 @@ defineExpose({
     setLabel,
     setColor,
     setNodeSize,
+    setNodeShapeDefault,
     setNodeShape,
     setNodeProps,
     setDeletable,
@@ -424,13 +425,34 @@ function setNodeSize(size: NodeSize, sizeY?: number) {
         )
     }
     resetView()
+function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    if (d.props.shape !== shape) {
+                        d.setShape(shape, config)
+                    }
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            if (d.props.shape !== shape) {
+                d.setShape(shape, config)
+            }
+        })
+    }
+    restart()
 }
 
 /**
- * Exposed function to set the shape of the nodes.
+ * Exposed function to set the default shape of the nodes. Affects all nodes created after the change.
  * @param shapeToSet
  */
-function setNodeShape(shapeToSet: NodeShape | string) {
+function setNodeShapeDefault(shapeToSet: NodeShape | string) {
     if (shapeToSet === 'circle') shapeToSet = NodeShape.CIRCLE
     else if (shapeToSet === 'rect') shapeToSet = NodeShape.RECTANGLE
     else {
@@ -445,26 +467,16 @@ function setNodeShape(shapeToSet: NodeShape | string) {
                 shape: shapeToSet,
                 radius: (currentSize as NodeSizeRect).width / 2
             }
-
-            for (let node of graph.value.nodes) {
-                node.x = node.x! + config.nodeProps.radius
-                node.y = node.y! + config.nodeProps.radius
-            }
         } else if (shapeToSet === NodeShape.RECTANGLE) {
             config.nodeProps = {
                 shape: shapeToSet,
                 width: (currentSize as NodeSizeCircle).radius * 2,
-                height: (currentSize as NodeSizeCircle).radius * 2,
+                height: (currentSize as NodeSizeCircle).radius,
                 cornerRadius: 4,
                 reflexiveEdgeStart: 'MOVABLE'
             }
-
-            for (let node of graph.value.nodes) {
-                node.x = node.x! - config.nodeProps.width / 2
-                node.y = node.y! - config.nodeProps.height / 2
-            }
         }
-        resetView()
+        restart()
     }
 }
 
@@ -963,6 +975,7 @@ function _updateDraggableLinkPath(): void {
     }
 }
 
+//region restart
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
@@ -1103,7 +1116,7 @@ function restart(alpha: number = 0.5): void {
         .data(graph.value.nodes, (d) => d.id)
         .join(
             (enter) => {
-                const nodeGroup = enter
+                const nodeContainerGroup = enter
                     .append('g')
                     .classed('graph-controller__node-container', true)
                     .call(drag!)
@@ -1126,90 +1139,52 @@ function restart(alpha: number = 0.5): void {
                         }
                     })
 
-                //shape circle
-                nodeGroup
-                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
-                    .append(NodeShape.CIRCLE)
-                    .classed('graph-controller__node', true)
-                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('r', (d) => (d.props as NodeCircle).radius)
-                    .style('fill', (d) => (d.color ? d.color : ''))
-
-                //shape rect
-                nodeGroup
-                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-                    .append(NodeShape.RECTANGLE)
-                    .classed('graph-controller__node', true)
-                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .attr('width', (d) => (d.props as NodeRect)?.width)
-                    .attr('height', (d) => (d.props as NodeRect)?.height)
-                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
-                    .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
-                    .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
-                    .style('fill', (d) => (d.color ? d.color : ''))
-
-                //label
-                const nodeForeignObject = nodeGroup
-                    .append('foreignObject')
-                    .classed('graph-controller__node-label-container', true)
-                    .attr('xmlns', 'http://www.w3.org/2000/svg')
-
-                nodeForeignObject
-                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
-                    .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
-                    .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
-                    .attr('x', (d) => -(d.props as NodeCircle).radius)
-                    .attr('y', (d) => -(d.props as NodeCircle).radius)
-
-                nodeForeignObject
-                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-                    .attr('width', (d) => (d.props as NodeRect)?.width)
-                    .attr('height', (d) => (d.props as NodeRect)?.height)
-                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
-
-                nodeForeignObject
-                    .append('xhtml:div')
-                    .on('click', (event: PointerEvent, d: GraphNode) => {
-                        if (config.isGraphEditableInGUI) {
-                            onNodeLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
-                    .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
-                    .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
-
-                return nodeGroup
+                return _appendNodeShapeAndLabel(nodeContainerGroup)
             },
             (update) => {
-                update
-                    .selectChild('.graph-controller__node')
-                    .filter((d) => d.props.shape === NodeShape.CIRCLE)
-                    .attr('r', (d) => (d.props as NodeCircle).radius)
+                update.each(function (d) {
+                    const nodeContainer = d3.select<SVGGElement, GraphNode>(this)
+                    const currentShape = nodeContainer.selectChild('.graph-controller__node')
 
-                update
-                    .selectChild('.graph-controller__node')
-                    .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-                    .attr('width', (d) => (d.props as NodeRect)?.width)
-                    .attr('height', (d) => (d.props as NodeRect)?.height)
-                    .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-                    .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
-                    .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
-                    .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+                    if (
+                        (d.props.shape === NodeShape.CIRCLE &&
+                            (currentShape.node() as SVGElement).tagName !== 'circle') ||
+                        (d.props.shape === NodeShape.RECTANGLE &&
+                            (currentShape.node() as SVGElement).tagName !== 'rect')
+                    ) {
+                        currentShape.remove()
+                        nodeContainer
+                            .selectChild('.graph-controller__node-label-container')
+                            .remove()
 
-                update
-                    .selectChild('foreignObject')
-                    .selectChild('div')
-                    .classed(
-                        'hidden',
-                        (d) => !config.showNodeLabels || (!d.label && !d.labelEditable)
-                    )
-                    .classed('not-editable', !config.isGraphEditableInGUI)
+                        _appendNodeShapeAndLabel(nodeContainer)
+                        updateCollide(simulation, graph.value, config)
+                    } else {
+                        update
+                            .selectChild('.graph-controller__node')
+                            .filter((d) => d.props.shape === NodeShape.CIRCLE)
+                            .attr('r', (d) => (d.props as NodeCircle).radius)
 
+                        update
+                            .selectChild('.graph-controller__node')
+                            .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+                            .attr('width', (d) => (d.props as NodeRect)?.width)
+                            .attr('height', (d) => (d.props as NodeRect)?.height)
+                            .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+                            .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+                            .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+                            .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+
+                        update
+                            .selectChild('foreignObject')
+                            .selectChild('div')
+                            .classed(
+                                'hidden',
+                                (d) => !config.showNodeLabels || (!d.label && !d.labelEditable)
+                            )
+                            .classed('not-editable', !config.isGraphEditableInGUI)
+                    }
+                })
                 return update
             }
         )
@@ -1231,6 +1206,73 @@ function restart(alpha: number = 0.5): void {
     }
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
+}
+
+/**
+ * Appends the necessary elements for the node selections node shape and label inside each node container.
+ * @param nodeContainerGroup - D3 Selection of node containers, from the enter or update phase, to which they are appended
+ */
+function _appendNodeShapeAndLabel(
+    nodeContainerGroup: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    //shape circle
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .append(NodeShape.CIRCLE)
+        .classed('graph-controller__node', true)
+        .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
+        .attr('r', (d) => (d.props as NodeCircle).radius)
+        .style('fill', (d) => (d.color ? d.color : ''))
+
+    //shape rect
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .append(NodeShape.RECTANGLE)
+        .classed('graph-controller__node', true)
+        .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
+        .attr('width', (d) => (d.props as NodeRect)?.width)
+        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+        .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+        .style('fill', (d) => (d.color ? d.color : ''))
+
+    //label
+    const nodeForeignObject = nodeContainerGroup
+        .append('foreignObject')
+        .classed('graph-controller__node-label-container', true)
+        .attr('xmlns', 'http://www.w3.org/2000/svg')
+
+    nodeForeignObject
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
+        .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
+        .attr('x', (d) => -(d.props as NodeCircle).radius)
+        .attr('y', (d) => -(d.props as NodeCircle).radius)
+
+    nodeForeignObject
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .attr('width', (d) => (d.props as NodeRect)?.width)
+        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+
+    nodeForeignObject
+        .append('xhtml:div')
+        .on('click', (event: PointerEvent, d: GraphNode) => {
+            if (config.isGraphEditableInGUI) {
+                onNodeLabelClicked(event, d)
+            }
+        })
+        .on('dblclick', (event: PointerEvent) => {
+            //a double click on a label, should not create a new node
+            terminate(event)
+        })
+        .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
+        .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
+
+    return nodeContainerGroup
 }
 
 /**
@@ -1306,6 +1348,7 @@ function _updateLinkMjxPosition() {
                 .attr('y', y)
         })
 }
+//endregion
 
 // region onNodePointerDown
 

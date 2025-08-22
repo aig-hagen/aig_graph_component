@@ -211,7 +211,7 @@ instance.setColor("HSL(212,92%,45%,0.5)")
 ##### Changing Node Shape and Size
 
 For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps`.
-If we only want to update either the shape or the size individually, we can use`setNodeShape` and `setNodeSize`.
+If we only want to update either the shape or the size individually, we can use `setNodeShape`, `setNodeShapeDefault` and `setNodeSizeDefault`.
 
 The `setNodeProps` expects a node property object:
 - `{shape: 'circle', radius: number}` 
@@ -244,16 +244,19 @@ instance.setNodeProps(
     }
 )
 ```
-To just change the shape of the nodes, we can use `setNodeShape(shape)`, where `shape` 
+To just change the shape of the nodes, we can use `setNodeShapeDefault(shape)`, where `shape` 
 can be either _circle_ or _rect_.
 
 ```javascript
-instance.setNodeShape('circle')
+//affects the default behaviour and therefore all nodes created after the change
+instance.setNodeShapeDefault('circle')
+instance.setNodeShapeDefault('rect')
 
-instance.setNodeShape('rect')
+//affects the nodes with id 0 and 1
+instance.setNodeShape('rect', [0,1])
 ```
 
-To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)`
+To change the **size** of the nodes, we can use `setNodeSizeDefault(size, sizeY?)`
 
 The behaviour depends on the shape of the nodes and the type of `size` provided. 
 We can either use a `number` or an `object` defining the node size.
@@ -265,13 +268,13 @@ If `size` is provided as an `object` it needs to look like this
 
 ```javascript
 //circle
-instance.setNodeSize(42) //radius 42
-instance.setNodeSize({radius: 42})
+instance.setNodeSizeDefault(42) //radius 42
+instance.setNodeSizeDefault({radius: 42})
 
 //rectangle
-instance.setNodeSize(42) //width and height length 42
-instance.setNodeSize(42,24) //width 42, height 24
-instance.setNodeSize({width: 42, height: 24})
+instance.setNodeSizeDefault(42) //width and height length 42
+instance.setNodeSizeDefault(42,24) //width 42, height 24
+instance.setNodeSizeDefault({width: 42, height: 24})
 ```
 
 #### Editability
