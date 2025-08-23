@@ -173,6 +173,7 @@ defineExpose({
     deleteElement,
     setLabel,
     setColor,
+    setNodeSizeDefault,
     setNodeSize,
     setNodeShapeDefault,
     setNodeShape,
@@ -386,7 +387,8 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
 }
 
 /**
- * Exposed function to set the size of nodes.
+ * Exposed function to set the default size of nodes.
+ * Affects all nodes created after the change.
  * Behavior depends on the type of `size` provided and the shape of the node.
  *
  * @param size - Either a `number` or an object defining the node size:
@@ -401,7 +403,7 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
  *
  * @param sizeY - Optional height for rectangular nodes, only used if `size` is a number.
  */
-function setNodeSize(size: NodeSize, sizeY?: number) {
+function setNodeSizeDefault(size: NodeSize | number, sizeY?: number) {
     if (
         typeof size === 'number' &&
         typeof sizeY === 'number' &&
@@ -409,7 +411,7 @@ function setNodeSize(size: NodeSize, sizeY?: number) {
     ) {
         config.nodeSize = { width: size, height: sizeY }
     } else if (typeof size === 'number') {
-        config.nodeSize = size
+        config.nodeSize = { radius: size }
     } else if (
         (config.nodeProps.shape === NodeShape.CIRCLE &&
             checkForAllNecessaryKeys(['radius'], Object.keys(size), false)) ||
@@ -424,7 +426,76 @@ function setNodeSize(size: NodeSize, sizeY?: number) {
                 'For rectangular nodes: {width: number, height: number}'
         )
     }
-    resetView()
+    restart()
+}
+
+/**
+ * Exposed function to set the size of individual nodes via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes
+ * (but does not affect nodes created in the future).
+ * Behavior depends on the type of `size` provided and the shape of the node.
+ *
+ * @param size - Either a `number` or an object defining the node size:
+ *
+ *   If a `number` is provided:
+ *   - For circular nodes: used as the radius.
+ *   - For rectangular nodes: sets the width and the height.
+ *
+ *   If an object is provided:
+ *   - `{ radius: number }` for circular nodes.
+ *   - `{ width: number, height: number }` for rectangular nodes.
+ *
+ * @param ids
+ */
+function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each((d) => {
+                    if (typeof size === 'number') {
+                        d.setSize(size, config)
+                    } else if (
+                        d.props.shape === NodeShape.CIRCLE &&
+                        checkForAllNecessaryKeys(['radius'], Object.keys(size), true)
+                    ) {
+                        d.setSize(size, config)
+                    } else if (
+                        d.props.shape === NodeShape.RECTANGLE &&
+                        checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), true)
+                    ) {
+                        d.setSize(size, config)
+                    }
+                })
+        }
+    } else {
+        nodeSelection!.each((d) => {
+            if (typeof size === 'number') {
+                d.setSize(size, config)
+            } else if (
+                d.props.shape === NodeShape.CIRCLE &&
+                checkForAllNecessaryKeys(['radius'], Object.keys(size), false)
+            ) {
+                d.setSize(size, config)
+            } else if (
+                d.props.shape === NodeShape.RECTANGLE &&
+                checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false)
+            ) {
+                d.setSize(size, config)
+            }
+        })
+    }
+    restart()
+}
+
+/**
+ * Exposed function to set the individual node shape via id.
+ * If no ids are provided, it is set for all currently existing nodes.
+ * @param shape
+ * @param ids
+ */
 function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
     if (ids !== undefined) {
         const [nodeIds, _] = separateNodeAndLinkIds(ids)
@@ -1116,6 +1187,7 @@ function restart(alpha: number = 0.5): void {
         .data(graph.value.nodes, (d) => d.id)
         .join(
             (enter) => {
+                //node container
                 const nodeContainerGroup = enter
                     .append('g')
                     .classed('graph-controller__node-container', true)
@@ -1138,57 +1210,27 @@ function restart(alpha: number = 0.5): void {
                             onPointerUpNode(event, d)
                         }
                     })
-
+                //node shape, size and label
                 return _appendNodeShapeAndLabel(nodeContainerGroup)
             },
             (update) => {
                 update.each(function (d) {
                     const nodeContainer = d3.select<SVGGElement, GraphNode>(this)
-                    const currentShape = nodeContainer.selectChild('.graph-controller__node')
+                    const currentShape = nodeContainer
+                        .selectChild('.graph-controller__node')
+                        .node() as SVGCircleElement | SVGRectElement
 
-                    if (
-                        (d.props.shape === NodeShape.CIRCLE &&
-                            (currentShape.node() as SVGElement).tagName !== 'circle') ||
-                        (d.props.shape === NodeShape.RECTANGLE &&
-                            (currentShape.node() as SVGElement).tagName !== 'rect')
-                    ) {
-                        currentShape.remove()
-                        nodeContainer
-                            .selectChild('.graph-controller__node-label-container')
-                            .remove()
-
-                        _appendNodeShapeAndLabel(nodeContainer)
+                    if (_hasShapeChange(d, currentShape)) {
+                        _replaceNodeShapeAndLabel(currentShape, nodeContainer)
                         updateCollide(simulation, graph.value, config)
-                    } else {
-                        update
-                            .selectChild('.graph-controller__node')
-                            .filter((d) => d.props.shape === NodeShape.CIRCLE)
-                            .attr('r', (d) => (d.props as NodeCircle).radius)
-
-                        update
-                            .selectChild('.graph-controller__node')
-                            .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-                            .attr('width', (d) => (d.props as NodeRect)?.width)
-                            .attr('height', (d) => (d.props as NodeRect)?.height)
-                            .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-                            .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
-                            .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
-                            .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
-
-                        update
-                            .selectChild('foreignObject')
-                            .selectChild('div')
-                            .classed(
-                                'hidden',
-                                (d) => !config.showNodeLabels || (!d.label && !d.labelEditable)
-                            )
-                            .classed('not-editable', !config.isGraphEditableInGUI)
+                    } else if (_hasSizeChange(d, currentShape)) {
+                        _replaceNodeShapeAndLabel(currentShape, nodeContainer)
                     }
                 })
                 return update
             }
         )
-
+    //node label visibility and editability
     nodeSelection
         .selectChild('foreignObject')
         .selectChild('div')
@@ -1196,6 +1238,7 @@ function restart(alpha: number = 0.5): void {
             d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
         )
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
+        .classed('not-editable', !config.isGraphEditableInGUI)
         .text((d) => (d.label ? d.label : 'add label'))
 
     //version will only be injected until MathJax is initialized
@@ -1209,8 +1252,55 @@ function restart(alpha: number = 0.5): void {
 }
 
 /**
- * Appends the necessary elements for the node selections node shape and label inside each node container.
- * @param nodeContainerGroup - D3 Selection of node containers, from the enter or update phase, to which they are appended
+ * Checks whether the node's shape prop differs from the currently rendered shape.
+ * @param node - GraphNode bound data
+ * @param nodeShapeElement - The currently rendered SVG shape element
+ * @returns True if the shape type differs from the node's data
+ */
+function _hasShapeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | SVGRectElement) {
+    return (
+        (node.props.shape === NodeShape.CIRCLE && nodeShapeElement.tagName !== 'circle') ||
+        (node.props.shape === NodeShape.RECTANGLE && nodeShapeElement.tagName !== 'rect')
+    )
+}
+
+/**
+ * Checks whether the node's size prop differ from the currently rendered size.
+ * @param node - GraphNode bound data
+ * @param nodeShapeElement - The currently rendered SVG shape element
+ * @returns True if the radius of a circle or the width/height of a rect element differ from the node's data
+ */
+function _hasSizeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | SVGRectElement) {
+    if (node.props.shape === NodeShape.CIRCLE && nodeShapeElement instanceof SVGCircleElement) {
+        return node.props.radius !== nodeShapeElement.r.baseVal.value
+    } else if (
+        node.props.shape === NodeShape.RECTANGLE &&
+        nodeShapeElement instanceof SVGRectElement
+    ) {
+        const rect = node.props as NodeRect
+        return (
+            rect.width !== nodeShapeElement.width.baseVal.value ||
+            rect.height !== nodeShapeElement.height.baseVal.value
+        )
+    }
+}
+
+/**
+ * Replaces the current node shape and its label container with new ones based on the node's data.
+ * @param nodeShapeElement - The currently rendered SVG node shape element to be replaced
+ * @param nodeContainer - D3 Selection of the node container
+ */
+function _replaceNodeShapeAndLabel(
+    nodeShapeElement: SVGCircleElement | SVGRectElement,
+    nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    nodeShapeElement.remove()
+    nodeContainer.selectChild('.graph-controller__node-label-container').remove()
+    _appendNodeShapeAndLabel(nodeContainer)
+}
+/**
+ * Appends the necessary elements for the node selections node shape and label inside the node container.
+ * @param nodeContainerGroup - D3 Selection of the node container, from the enter or update phase, to which it is appended
  */
 function _appendNodeShapeAndLabel(
     nodeContainerGroup: d3.Selection<SVGGElement, GraphNode, any, any>
@@ -1348,6 +1438,7 @@ function _updateLinkMjxPosition() {
                 .attr('y', y)
         })
 }
+
 //endregion
 
 // region onNodePointerDown
