@@ -196,18 +196,20 @@ defineExpose({
 //region functions that are solely used as exposed ones
 function getGraph(
     format: string = 'json',
+    includeNodePosition: boolean = true,
+    includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includePosition: boolean = true,
     includeEditability: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         return JSON.parse(
             graph.value.toJSON(
+                includeNodePosition,
+                config.showNodeLabels,
                 config.showLinkLabels,
-                config.showLinkLabels,
+                includeNodeProps,
                 includeColor,
                 includeColor,
-                includePosition,
                 includeEditability,
                 includeEditability
             )
@@ -229,18 +231,20 @@ function setGraph(graphToSet: string | jsonGraph | undefined) {
 
 function printGraph(
     format: string = 'json',
+    includeNodePosition: boolean = true,
+    includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includePosition: boolean = true,
     includeEditability: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         console.log(
             graph.value.toJSON(
+                includeNodePosition,
+                config.showNodeLabels,
                 config.showLinkLabels,
-                config.showLinkLabels,
+                includeNodeProps,
                 includeColor,
                 includeColor,
-                includePosition,
                 includeEditability,
                 includeEditability
             )
@@ -2100,7 +2104,7 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
     }
 
     _resetGraph()
-    _parsedToGraph(nodes, links)
+    _parseToGraph(nodes, links)
 }
 
 /**
@@ -2108,10 +2112,10 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
  * @param nodes - parsed nodes
  * @param links - parsed links
  */
-function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
+function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(
-            { ...config.nodeProps },
+            parsedNode.props ?? config.nodeProps,
             parsedNode.x,
             parsedNode.y,
             parsedNode.idImported,

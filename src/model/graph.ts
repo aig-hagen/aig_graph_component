@@ -206,20 +206,22 @@ export default class Graph {
     }
 
     /** Formats the graph in a json like graph format.
+     * @param includeNodePosition if position should be included
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
+     * @param includeNodeProps if node props should be included
      * @param includeNodeColor if node color should be included
      * @param includeLinkColor if link color should be included
-     * @param includeNodePosition if position should be included
      * @param includeNodeEditability if editability of node via GUI should be included
      * @param includeLinkEditability if editability of link via GUI should be included
      * @returns The graph in JSON format*/
     public toJSON(
+        includeNodePosition: boolean = true,
         includeNodeLabels: boolean = true,
         includeLinkLabels: boolean = true,
+        includeNodeProps: boolean = true,
         includeNodeColor: boolean = true,
         includeLinkColor: boolean = true,
-        includeNodePosition: boolean = true,
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true
     ): string {
@@ -228,9 +230,10 @@ export default class Graph {
                 Object.entries(node).filter(([key]) => {
                     return (
                         key === 'id' ||
-                        (includeNodeLabels && key === 'label') ||
-                        (includeNodeColor && key === 'color') ||
                         (includeNodePosition && (key === 'x' || key === 'y')) ||
+                        (includeNodeLabels && key === 'label') ||
+                        (includeNodeProps && key === 'props') ||
+                        (includeNodeColor && key === 'color') ||
                         (includeNodeEditability &&
                             [
                                 'fixedPosition',

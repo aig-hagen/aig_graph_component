@@ -1,4 +1,4 @@
-import type { NodeGUIEditability } from '@/model/graph-node'
+import type { NodeAppearance, NodeGUIEditability } from '@/model/graph-node'
 import type { LinkGUIEditability } from '@/model/graph-link'
 
 export type parsedNode = {
@@ -6,8 +6,8 @@ export type parsedNode = {
     x?: number
     y?: number
     label?: string
-    color?: string
-} & NodeGUIEditability
+} & NodeGUIEditability &
+    NodeAppearance
 
 export type parsedLink = {
     sourceIdImported: string | number
@@ -21,8 +21,8 @@ export type jsonNode = {
     x?: number
     y?: number
     label?: string
-    color?: string
-} & NodeGUIEditability
+} & NodeGUIEditability &
+    NodeAppearance
 export type jsonLink = {
     sourceId: number
     targetId: number
@@ -112,6 +112,7 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             x: node.x,
             y: node.y,
             label: node.label,
+            props: node.props,
             color: node.color,
             fixedPosition: node.fixedPosition,
             deletable: node.deletable,

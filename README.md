@@ -107,29 +107,30 @@ instance.setGraph()
 Get the graph that is currently displayed in the graph component instance with `getGraph()`.
 
 Optionally, we can pass the following parameters to determine in which format and
-how detailed we want to get the graph:
+how detailed we want to get the graph (where details are just available in `json` format):
 - format 
   - `"tgf" | "json"` 
   - default: `"json"`
+- includeNodePosition
+  - `boolean`
+  - default: true
+- includeNodeProps
+  - `boolean` 
+  - default: true
 - includeColor 
   - `boolean`
   - default: true
-- includePosition
-  - `boolean`
-  - default: true
-  - only available in json like format
 - includeEditability
   - `boolean`
   - default: true
-  - only available in json like format
 
 
 ```javascript
 // get graph in json format
 let graphFromInstance = instance.getGraph()
 
-// get graph without node color, position and without node and link editability values
-instance.getGraph('json', false, false, false)
+// get graph with node position, but without node props, color and without node and link editability values
+instance.getGraph('json', true, false, false, false)
 
 ```
 
@@ -143,8 +144,8 @@ For a graph assigned to a variable we use a simple `console.log()`.
 // log the currently displayed graph in JSON like format on the console
 instance.printGraph()
 
-// log in json like format but exclude colors and editability but include position.
-instance.printGraph('json', false, true, false)
+// log in JSON like format but exclude props and colors but include position and editability.
+instance.printGraph('json', true, false, false, true)
 
 // log a graph assigned to a variable to the console
 console.log(graphAsTgf)
