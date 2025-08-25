@@ -177,6 +177,7 @@ defineExpose({
     setNodeSize,
     setNodeShapeDefault,
     setNodeShape,
+    setNodePropsDefault,
     setNodeProps,
     setDeletable,
     setLabelEditable,
@@ -520,7 +521,7 @@ function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
 }
 
 /**
- * Exposed function to set the default shape of the nodes. Affects all nodes created after the change.
+ * Exposed function to set the default shape of the nodes. Affects nodes created after the change.
  * @param shapeToSet
  */
 function setNodeShapeDefault(shapeToSet: NodeShape | string) {
@@ -552,7 +553,7 @@ function setNodeShapeDefault(shapeToSet: NodeShape | string) {
 }
 
 /**
- * Exposed function to set the nodes properties.
+ * Exposed function to set the default node properties. Affects nodes created after the change.
  *
  * For rectangular properties a width-to-height ratio smaller than 1:10 is recommended.
  *
@@ -564,7 +565,7 @@ function setNodeShapeDefault(shapeToSet: NodeShape | string) {
  * @param nodeProps - `{shape: 'circle', radius: number}` or
  * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
  */
-function setNodeProps(nodeProps: NodeProps) {
+function setNodePropsDefault(nodeProps: NodeProps) {
     if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
         if (nodeProps.shape === NodeShape.CIRCLE) {
             const nodeCircleKeys: (keyof NodeCircle)[] = ['shape', 'radius']
@@ -597,7 +598,96 @@ function setNodeProps(nodeProps: NodeProps) {
             }
             checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
         }
-        resetView()
+        restart()
+    } else {
+        showError(
+            'Invalid NodeProps Object',
+            'For circular nodes: {shape: NodeShape, radius: number}\n' +
+                "For rectangular nodes: {shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}"
+        )
+    }
+}
+
+/**
+ * Exposed function to set the individual nodes properties.
+ *
+ * For rectangular properties a width-to-height ratio smaller than 1:10 is recommended.
+ *
+ * *Regarding the `reflexiveEdgeStart` property:*
+ * - *For ratios up to 1:3, both movable and fixed edges are visually fine*
+ * - *For ratios between 1:3 and 1:10 prefer using fixed edges*
+ * - *Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side.*
+ *
+ * @param nodeProps - `{shape: 'circle', radius: number}` or
+ * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
+ * @param ids
+ */
+function setNodeProps(
+    nodeProps: NodeProps,
+    ids: string[] | number[] | string | number | undefined
+) {
+    if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
+        let nodeIds
+
+        ids !== undefined ? ([nodeIds] = separateNodeAndLinkIds(ids)) : (nodeIds = undefined)
+
+        if (nodeProps.shape === NodeShape.CIRCLE) {
+            const nodeCircleKeys: (keyof NodeCircle)[] = ['shape', 'radius']
+
+            if (checkForAllNecessaryKeys(nodeCircleKeys, Object.keys(nodeProps), true)) {
+                if (nodeIds !== undefined) {
+                    for (const id of nodeIds) {
+                        nodeSelection!
+                            .filter((d) => d.id === id)
+                            .each((d) => {
+                                d.props = nodeProps
+                            })
+                    }
+                } else {
+                    nodeSelection!.each((d) => {
+                        d.props = nodeProps
+                    })
+                }
+            }
+            checkForNotValidKeys(nodeCircleKeys, Object.keys(nodeProps), true)
+        } else if (nodeProps.shape === NodeShape.RECTANGLE) {
+            const nodeRectKeys: (keyof NodeRect)[] = [
+                'shape',
+                'width',
+                'height',
+                'cornerRadius',
+                'reflexiveEdgeStart'
+            ]
+
+            if (checkForAllNecessaryKeys(nodeRectKeys, Object.keys(nodeProps), true)) {
+                if (
+                    Object.values(SideType).includes(nodeProps.reflexiveEdgeStart as SideType) ||
+                    nodeProps.reflexiveEdgeStart === 'MOVABLE'
+                ) {
+                    if (nodeIds !== undefined) {
+                        for (const id of nodeIds) {
+                            nodeSelection!
+                                .filter((d) => d.id === id)
+                                .each((d) => {
+                                    d.props = nodeProps
+                                })
+                        }
+                    } else {
+                        nodeSelection!.each((d) => {
+                            d.props = nodeProps
+                        })
+                    }
+                }
+            } else {
+                showError(
+                    'Invalid reflexiveEdgeStart Value',
+                    'Use RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT or MOVABLE.'
+                )
+            }
+            checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
+        }
+
+        restart()
     } else {
         showError(
             'Invalid NodeProps Object',
@@ -1280,7 +1370,9 @@ function _hasSizeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | SV
         const rect = node.props as NodeRect
         return (
             rect.width !== nodeShapeElement.width.baseVal.value ||
-            rect.height !== nodeShapeElement.height.baseVal.value
+            rect.height !== nodeShapeElement.height.baseVal.value ||
+            rect.cornerRadius !== nodeShapeElement.rx.baseVal.value ||
+            rect.cornerRadius !== nodeShapeElement.ry.baseVal.value
         )
     }
 }
@@ -1298,6 +1390,7 @@ function _replaceNodeShapeAndLabel(
     nodeContainer.selectChild('.graph-controller__node-label-container').remove()
     _appendNodeShapeAndLabel(nodeContainer)
 }
+
 /**
  * Appends the necessary elements for the node selections node shape and label inside the node container.
  * @param nodeContainerGroup - D3 Selection of the node container, from the enter or update phase, to which it is appended

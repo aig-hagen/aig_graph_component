@@ -210,7 +210,7 @@ instance.setColor("HSL(212,92%,45%,0.5)")
 
 ##### Changing Node Shape and Size
 
-For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps`.
+For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps` or `setNodePropsDefault`.
 If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
 for individual nodes or `setNodeShapeDefault` and `setNodeSizeDefault` 
 for the default behaviour *(all nodes created after the change)*.
@@ -228,14 +228,16 @@ The `setNodeProps` expects a node property object:
     - Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side
 
 ```javascript
-//circle 
-instance.setNodeProps(
+//circle
+//default
+instance.setNodePropsDefault( 
     {
       shape:'circle', 
       radius: 42
     }
 )
 //rectangle
+//individual nodes with id 0, 1 and 2
 instance.setNodeProps(
     {
       shape:'rect', 
@@ -243,7 +245,7 @@ instance.setNodeProps(
       height: 24, 
       cornerRadius: 4,
       reflexiveEdgeStart: 'MOVABLE'
-    }
+    }, [0,1,2]
 )
 ```
 To just change the shape of the nodes, we can use `setNodeShape(shape)` or `setNodeShapeDefault(shape)`, where `shape` 
