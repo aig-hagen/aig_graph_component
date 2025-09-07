@@ -39,6 +39,7 @@ export interface GraphConfiguration {
     hasToolbar: boolean
 
     nodeProps: NodeProps
+    nodeAutoResizeToLabelSize: boolean
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
 
@@ -69,6 +70,15 @@ export class GraphConfigDefault implements GraphConfiguration {
         cornerRadius: 4,
         reflexiveEdgeStart: 'MOVABLE'
     }
+
+    /**
+     * If set to true, the node resizes dynamically to match the label's width and height.
+     * Words in the label will stay on a single line (no horizontal wrapping).
+     *
+     * If set to false, the node has a fixed size, and label words may wrap to the next line
+     * or potentially overflow.
+     */
+    nodeAutoResizeToLabelSize = true
 
     showNodeLabels = true
     nodePhysicsEnabled = false

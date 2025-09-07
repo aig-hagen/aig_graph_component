@@ -164,6 +164,7 @@ let yOffset = 0
 let scale = 1
 let longRightClickTimerNode: number
 let longRightClickTimerLink: number
+let nodeLabelResizeObserver: ResizeObserver
 
 //exposing for API
 defineExpose({
@@ -1011,6 +1012,7 @@ function initData() {
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config)
+    nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
 }
 
@@ -1317,20 +1319,28 @@ function restart(alpha: number = 0.5): void {
                     if (_hasShapeChange(d, currentShape)) {
                         _replaceNodeShapeAndLabel(currentShape, nodeContainer)
                         updateCollide(simulation, graph.value, config)
-                    } else if (_hasSizeChange(d, currentShape)) {
-                        _replaceNodeShapeAndLabel(currentShape, nodeContainer)
+                    } else {
+                        _updateNodeAndLabelSize(nodeContainer)
                     }
                 })
                 return update
             }
         )
-    //node label visibility and editability
+    //node label visibility, editability and behaviour
     nodeSelection
         .selectChild('foreignObject')
         .selectChild('div')
-        .attr('class', (d) =>
-            d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
-        )
+        .attr('class', (d) => {
+            if (d.label) {
+                if (config.nodeAutoResizeToLabelSize) {
+                    return 'graph-controller__node-label controls-node-size'
+                } else {
+                    return 'graph-controller__node-label'
+                }
+            } else {
+                return 'graph-controller__node-label-placeholder'
+            }
+        })
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
         .classed('not-editable', !config.isGraphEditableInGUI)
         .text((d) => (d.label ? d.label : 'add label'))
@@ -1341,6 +1351,11 @@ function restart(alpha: number = 0.5): void {
             _handleLinkMathJax()
         })
     }
+
+    if (config.nodeAutoResizeToLabelSize) {
+        updateNodeLabelResizeObserverSelection()
+    }
+
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
 }
@@ -1359,29 +1374,6 @@ function _hasShapeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | S
 }
 
 /**
- * Checks whether the node's size prop differ from the currently rendered size.
- * @param node - GraphNode bound data
- * @param nodeShapeElement - The currently rendered SVG shape element
- * @returns True if the radius of a circle or the width/height of a rect element differ from the node's data
- */
-function _hasSizeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | SVGRectElement) {
-    if (node.props.shape === NodeShape.CIRCLE && nodeShapeElement instanceof SVGCircleElement) {
-        return node.props.radius !== nodeShapeElement.r.baseVal.value
-    } else if (
-        node.props.shape === NodeShape.RECTANGLE &&
-        nodeShapeElement instanceof SVGRectElement
-    ) {
-        const rect = node.props as NodeRect
-        return (
-            rect.width !== nodeShapeElement.width.baseVal.value ||
-            rect.height !== nodeShapeElement.height.baseVal.value ||
-            rect.cornerRadius !== nodeShapeElement.rx.baseVal.value ||
-            rect.cornerRadius !== nodeShapeElement.ry.baseVal.value
-        )
-    }
-}
-
-/**
  * Replaces the current node shape and its label container with new ones based on the node's data.
  * @param nodeShapeElement - The currently rendered SVG node shape element to be replaced
  * @param nodeContainer - D3 Selection of the node container
@@ -1390,6 +1382,9 @@ function _replaceNodeShapeAndLabel(
     nodeShapeElement: SVGCircleElement | SVGRectElement,
     nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
 ) {
+    nodeLabelResizeObserver.unobserve(
+        <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
+    )
     nodeShapeElement.remove()
     nodeContainer.selectChild('.graph-controller__node-label-container').remove()
     _appendNodeShapeAndLabel(nodeContainer)
@@ -1417,12 +1412,12 @@ function _appendNodeShapeAndLabel(
         .append(NodeShape.RECTANGLE)
         .classed('graph-controller__node', true)
         .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-        .attr('width', (d) => (d.props as NodeRect)?.width)
-        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('width', (d) => (d.props as NodeRect).width)
+        .attr('height', (d) => (d.props as NodeRect).height)
         .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
         .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
-        .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
-        .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+        .attr('rx', (d) => (d.props as NodeRect).cornerRadius)
+        .attr('ry', (d) => (d.props as NodeRect).cornerRadius)
         .style('fill', (d) => (d.color ? d.color : ''))
 
     //label
@@ -1440,8 +1435,8 @@ function _appendNodeShapeAndLabel(
 
     nodeForeignObject
         .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-        .attr('width', (d) => (d.props as NodeRect)?.width)
-        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('width', (d) => (d.props as NodeRect).width)
+        .attr('height', (d) => (d.props as NodeRect).height)
         .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
         .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
 
@@ -1460,6 +1455,50 @@ function _appendNodeShapeAndLabel(
         .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
 
     return nodeContainerGroup
+}
+
+/**
+ * Updates the size of nodes as well as the size and position of their labels.
+ * This is used, when the node's shape does not change (when it changes `_replaceNodeShapeAndLabel` is needed).
+ * @param nodeContainerGroup - D3 Selection of the node container
+ */
+function _updateNodeAndLabelSize(
+    nodeContainerGroup: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    //circle
+    nodeContainerGroup
+        .selectChild('.graph-controller__node')
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .attr('r', (d) => (d.props as NodeCircle).radius)
+
+    //circle label
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .selectChild('.graph-controller__node-label-container')
+        .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
+        .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
+        .attr('x', (d) => -(d.props as NodeCircle).radius)
+        .attr('y', (d) => -(d.props as NodeCircle).radius)
+
+    //rect
+    nodeContainerGroup
+        .selectChild('.graph-controller__node')
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .attr('width', (d) => (d.props as NodeRect)?.width)
+        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+        .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+
+    //rect label
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .selectChild('.graph-controller__node-label-container')
+        .attr('width', (d) => (d.props as NodeRect)?.width)
+        .attr('height', (d) => (d.props as NodeRect)?.height)
+        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
+        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
 }
 
 /**
@@ -2359,17 +2398,30 @@ function _resetGraph(): void {
 }
 
 .graph-controller__node-label {
-    font-family: sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1rem;
-    opacity: 1;
-    text-align: center;
-    pointer-events: all;
-    cursor: pointer;
     width: 100%;
     height: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all;
+    font-family: sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+
+    &.controls-node-size {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        display: inline-block;
+        text-align: center;
+        width: auto;
+        height: auto;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
 
     &.hidden {
         visibility: hidden;
@@ -2383,19 +2435,18 @@ function _resetGraph(): void {
 }
 
 .graph-controller__node-label-placeholder {
-    color: dimgrey;
-    font-family: sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-style: oblique;
-    font-size: 0.85rem;
-    opacity: 1;
-    text-align: center;
-    pointer-events: all;
-    cursor: pointer;
     width: 100%;
     height: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all;
+    font-family: sans-serif;
+    font-style: oblique;
+    font-size: 0.85rem;
+    color: dimgrey;
+    cursor: pointer;
 
     &.hidden {
         visibility: hidden;
