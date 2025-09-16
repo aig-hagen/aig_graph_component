@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 //component
 import GraphControls from '@/components/GraphControls.vue'
 //d3
@@ -120,10 +120,6 @@ const graphHostId = computed(() => {
 
     let id = parent.getAttribute('id')
     return id ? id : 'gc'
-})
-
-onBeforeMount(() => {
-    initFromLocalStorage()
 })
 
 onMounted(() => {
@@ -2260,7 +2256,6 @@ function resetView(): void {
     nodeSelection = undefined
     simulation = undefined
     _resetDraggableLink()
-    initFromLocalStorage()
     initData()
 }
 
