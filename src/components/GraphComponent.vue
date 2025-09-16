@@ -168,6 +168,7 @@ let nodeLabelResizeObserver: ResizeObserver
 
 //exposing for API
 defineExpose({
+    setDefaults,
     getGraph,
     setGraph,
     printGraph,
@@ -193,6 +194,57 @@ defineExpose({
     toggleGraphEditingInGUI,
     resetView
 })
+
+type GraphConfigurationInput = Partial<
+    Pick<
+        GraphConfiguration,
+        | 'isGraphEditableInGUI'
+        | 'zoomEnabled'
+        | 'nodePhysicsEnabled'
+        | 'fixedLinkDistanceEnabled'
+        | 'showNodeLabels'
+        | 'showLinkLabels'
+        | 'nodeAutoResizeToLabelSize'
+        | 'nodeProps'
+    > // > & {
+>
+
+function setDefaults(configInput: GraphConfigurationInput) {
+    //region graph-level
+    // editability
+    if (configInput.isGraphEditableInGUI !== undefined) {
+        toggleGraphEditingInGUI(configInput.isGraphEditableInGUI)
+    }
+    // zoom
+    if (configInput.zoomEnabled !== undefined) {
+        toggleZoom(configInput.zoomEnabled)
+    }
+    // simulation
+    if (configInput.nodePhysicsEnabled !== undefined) {
+        toggleNodePhysics(configInput.nodePhysicsEnabled)
+    }
+    if (configInput.fixedLinkDistanceEnabled !== undefined) {
+        toggleFixedLinkDistance(configInput.fixedLinkDistanceEnabled)
+    }
+    //labels and auto resize
+    if (configInput.showNodeLabels !== undefined) {
+        toggleNodeLabels(configInput.showNodeLabels)
+    }
+    if (configInput.showLinkLabels !== undefined) {
+        toggleLinkLabels(configInput.showLinkLabels)
+    }
+    config.nodeAutoResizeToLabelSize =
+        configInput.nodeAutoResizeToLabelSize ?? config.nodeAutoResizeToLabelSize
+
+    //endregion
+
+    //region individual element level
+    //nodes
+    config.nodeProps = configInput.nodeProps ?? config.nodeProps
+    //endregion
+
+    restart()
+}
 
 //region functions that are solely used as exposed ones
 function getGraph(
