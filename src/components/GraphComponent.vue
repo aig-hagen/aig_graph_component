@@ -36,6 +36,7 @@ import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
 import {
     GraphConfigDefault,
+    type GraphConfiguration,
     type NodeCircle,
     type NodeProps,
     type NodeRect,
@@ -235,7 +236,6 @@ function setDefaults(configInput: GraphConfigurationInput) {
     }
     config.nodeAutoResizeToLabelSize =
         configInput.nodeAutoResizeToLabelSize ?? config.nodeAutoResizeToLabelSize
-
     //endregion
 
     //region individual element level
@@ -1007,34 +1007,6 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
 }
 
 //endregion
-
-/**
- * Inits the graph configuration with the settings from the local storage.
- */
-function initFromLocalStorage() {
-    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
-
-    //config
-    if (localStorage.showNodeLabels) {
-        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
-    }
-    if (localStorage.enableNodePhysics) {
-        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
-    }
-    if (localStorage.showLinkLabels) {
-        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
-    }
-    if (localStorage.enableFixedLinkDistance) {
-        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
-    }
-    if (localStorage.enableZoom) {
-        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
-    }
-
-    if (localStorage.persistSettings) {
-        config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
-    }
-}
 
 function initData() {
     width = graphHost.value.node()!.clientWidth

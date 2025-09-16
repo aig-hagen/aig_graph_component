@@ -35,26 +35,28 @@ export type NodeSizeCircle = {
 }
 
 export interface GraphConfiguration {
-    persistSettingsLocalStorage: boolean
-    hasToolbar: boolean
-
-    nodeProps: NodeProps
+    // nodes
+    nodeProps: NodeProps //also individual element option
     nodeAutoResizeToLabelSize: boolean
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
 
+    // links
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
 
-    isGraphEditableInGUI: boolean
-
+    // graph
+    isGraphEditableInGUI: boolean //also individual element option (more fine granular)
     zoomEnabled: boolean
 
+    // marker
     markerBoxSize: number
     markerPadding: number
     markerRef: number
     arrowPoints: [number, number][]
     markerPath: string
+
+    //canvas
     readonly isCanvasBoundToView: boolean
 }
 
