@@ -3,6 +3,45 @@ import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
 import type { NodeProps } from '@/model/config'
 
+interface ExportedNode {
+    id: number
+    x?: number
+    y?: number
+    label?: string
+    props?: NodeProps
+    color?: string
+    idImported?: string | number
+    fixedPosition?: FixedAxis
+    deletable?: boolean
+    labelEditable?: boolean
+    allowIncomingLinks?: boolean
+    allowOutgoingLinks?: boolean
+}
+
+interface ExportedNode {
+    id: number
+    x?: number
+    y?: number
+    label?: string
+    props?: NodeProps
+    color?: string
+    idImported?: string | number
+    fixedPosition?: FixedAxis
+    deletable?: boolean
+    labelEditable?: boolean
+    allowIncomingLinks?: boolean
+    allowOutgoingLinks?: boolean
+}
+
+interface ExportedLink {
+    sourceId: number
+    targetId: number
+    label?: string
+    color?: string
+    deletable?: boolean
+    labelEditable?: boolean
+}
+
 export default class Graph {
     private nodeIdCounter: number = 0
     public readonly nodes: GraphNode[] = []
@@ -226,56 +265,56 @@ export default class Graph {
         includeLinkEditability: boolean = true,
         includeIdImported: boolean = true
     ): string {
-        let nodes = this.nodes.map((node) => {
-            return Object.fromEntries(
-                Object.entries(node).filter(([key]) => {
-                    return (
-                        key === 'id' ||
-                        (includeNodePosition && (key === 'x' || key === 'y')) ||
-                        (includeNodeLabels && key === 'label') ||
-                        (includeNodeProps && key === 'props') ||
-                        (includeNodeColor && key === 'color') ||
-                        (includeIdImported && key === 'idImported') ||
-                        (includeNodeEditability &&
-                            [
-                                'fixedPosition',
-                                'deletable',
-                                'labelEditable',
-                                'allowIncomingLinks',
-                                'allowOutgoingLinks'
-                            ].includes(key))
-                    )
-                })
-            )
+        const nodes = this.nodes.map((node) => {
+            const exportedNode: ExportedNode = {
+                id: node.id
+            }
+
+            if (includeNodePosition) {
+                exportedNode.x = node.x
+                exportedNode.y = node.y
+            }
+            if (includeNodeLabels) {
+                exportedNode.label = node.label
+            }
+            if (includeNodeProps) {
+                exportedNode.props = node.props
+            }
+            if (includeNodeColor) {
+                exportedNode.color = node.color
+            }
+            if (includeIdImported) {
+                exportedNode.idImported = node.idImported
+            }
+            if (includeNodeEditability) {
+                exportedNode.fixedPosition = node.fixedPosition
+                exportedNode.deletable = node.deletable
+                exportedNode.labelEditable = node.labelEditable
+                exportedNode.allowIncomingLinks = node.allowIncomingLinks
+                exportedNode.allowOutgoingLinks = node.allowOutgoingLinks
+            }
+
+            return exportedNode
         })
 
-        let links = this.links.map((link: GraphLink) => {
-            return Object.fromEntries(
-                Object.entries(this._convertToJSONLink(link)).filter(([key]) => {
-                    return (
-                        key === 'sourceId' ||
-                        key === 'targetId' ||
-                        (includeLinkLabels && key === 'label') ||
-                        (includeLinkColor && key === 'color') ||
-                        (includeLinkEditability && ['deletable', 'labelEditable'].includes(key))
-                    )
-                })
-            )
+        const links = this.links.map((link: GraphLink) => {
+            const exportedLink: ExportedLink = {
+                sourceId: link.source.id,
+                targetId: link.target.id
+            }
+            if (includeLinkLabels) {
+                exportedLink.label = link.label
+            }
+            if (includeLinkColor) {
+                exportedLink.color = link.color
+            }
+            if (includeLinkEditability) {
+                exportedLink.deletable = link.deletable
+                exportedLink.labelEditable = link.labelEditable
+            }
+            return exportedLink
         })
 
         return JSON.stringify({ nodes, links }, null, 4)
-    }
-
-    private _convertToJSONLink(link: GraphLink): jsonLink {
-        let parts = link.id.split('-')
-
-        return {
-            sourceId: Number(parts[0]),
-            targetId: Number(parts[1]),
-            label: link.label,
-            color: link.color,
-            deletable: link.deletable,
-            labelEditable: link.labelEditable
-        }
     }
 }
