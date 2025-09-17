@@ -501,12 +501,13 @@ const graphHost = document.getElementById('gc1').querySelector('.graph-controlle
 graphHost.addEventListener('nodeclicked', function(e){
     if(e.detail.button === 0){
         //change the color on left click
-        instance.setNodeColor('#8FBC8F', e.detail.node.id)
+        instance.setColor('#8FBC8F', e.detail.node.id)
     }
 })
 ```
 
 ## Development
+
 ### Project Setup
 
 #### Install required Dependencies
@@ -519,6 +520,26 @@ npm install
 npm run dev
 ```
 
+#### Run Component Tests with Playwright
+
+When running for the first time, browsers need to be installed by Playwright:
+
+```sh
+npx playwright install chromium firefox
+```
+
+After that the tests can be run with the following command:
+
+```sh
+npm run test-ct
+```
+
+To update the screenshots while running the tests, the following command can be used:
+
+```sh
+npm run test-ct:update-snapshots
+```
+
 #### Type-Check and Compile for Production
 
 ```sh
@@ -529,7 +550,7 @@ For more commands refer to the scripts section in [package.json](./package.json)
 
 Depending on whether you want to build the **Custom Element** with *LaTeX* support
 or without it, you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
-To choose between inline style or an external style.css file *(current default)*,
+To choose between inline style or an external graph-component.css file *(current default)*,
 you have the option for *custom element mode* in [vite.config.ts](vite.config.ts).
 
 

@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <link rel="icon" href='./favicon.ico' />
-        <link rel="stylesheet" href='./style.css' />
+        <link rel="stylesheet" href='./graph-component.css' />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Graph Editor</title>
         <!-- MathJax for TeX notation -->
@@ -77,19 +77,19 @@
 
         // change the color of existing nodes and links by their id
         // this color can be a html color name (https://www.w3schools.com/colors/colors_names.asp), hexadecimal, rgb or hsl-color-model format
-        inst1.setNodeColor("bisque", [0,1])
+        inst1.setColor("bisque", [0,1])
         // change the color of all existing nodes by just providing a color without providing ids
-        inst2.setNodeColor("HSL(212,92%,45%,0.5)")
-        inst2.setNodeColor("RGB(250,70,99)")
-        inst2.setNodeColor("#8FBC8F")
+        inst2.setColor("HSL(212,92%,45%,0.5)")
+        inst2.setColor("RGB(250,70,99)")
+        inst2.setColor("#8FBC8F")
         //the same for links
-        inst2.setLinkColor("orangered", ["0-1", "2-2"])
+        inst2.setColor("orangered", ["0-1", "2-2"])
 
         // delete nodes or links by their id
         // delete link that origins in node with id 0 and points to node with id 1
-        inst2.deleteLink("0-1")
+        inst2.deleteElement("0-1")
         // delete node with id 0 and id 1
-        inst2.deleteNode([0, 1])
+        inst2.deleteElement([0, 1])
 
         // turning ability on for zooming, that nodes repel each other and that there is a fixed link distance
         inst2.toggleZoom(true)
