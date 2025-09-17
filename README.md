@@ -123,6 +123,9 @@ how detailed we want to get the graph (where details are just available in `json
 - includeEditability
   - `boolean`
   - default: true
+- includeIdImported
+  - `boolean`
+  - default: true
 
 
 ```javascript

@@ -223,7 +223,8 @@ export default class Graph {
         includeNodeColor: boolean = true,
         includeLinkColor: boolean = true,
         includeNodeEditability: boolean = true,
-        includeLinkEditability: boolean = true
+        includeLinkEditability: boolean = true,
+        includeIdImported: boolean = true
     ): string {
         let nodes = this.nodes.map((node) => {
             return Object.fromEntries(
@@ -234,6 +235,7 @@ export default class Graph {
                         (includeNodeLabels && key === 'label') ||
                         (includeNodeProps && key === 'props') ||
                         (includeNodeColor && key === 'color') ||
+                        (includeIdImported && key === 'idImported') ||
                         (includeNodeEditability &&
                             [
                                 'fixedPosition',

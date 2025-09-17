@@ -248,7 +248,8 @@ function getGraph(
     includeNodePosition: boolean = true,
     includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includeEditability: boolean = true
+    includeEditability: boolean = true,
+    includeIdImported: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         return JSON.parse(
@@ -260,7 +261,8 @@ function getGraph(
                 includeColor,
                 includeColor,
                 includeEditability,
-                includeEditability
+                includeEditability,
+                includeIdImported
             )
         )
     } else if (format.toLowerCase() === 'tgf') {
@@ -283,7 +285,8 @@ function printGraph(
     includeNodePosition: boolean = true,
     includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includeEditability: boolean = true
+    includeEditability: boolean = true,
+    includeIdImported: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         console.log(
@@ -295,7 +298,8 @@ function printGraph(
                 includeColor,
                 includeColor,
                 includeEditability,
-                includeEditability
+                includeEditability,
+                includeIdImported
             )
         )
     } else {
