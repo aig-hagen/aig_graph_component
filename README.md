@@ -39,7 +39,8 @@ const instance = document.getElementById('gc1')._instance.exposed
 // when you run the component in development mode
 const instance = document.getElementById('app').__vue_app__._instance.exposed
 ``` 
->[!NOTE] When you run the app in development mode, this does not work after a hot-reload.
+>[!NOTE] 
+> When you run the app in development mode, this does not work after a hot-reload.
 It only works correctly on the initial run or after refreshing the site.
 
 ### Setting Defaults
@@ -51,7 +52,8 @@ A detailed description, what every prop does, will be provided in the following 
 
 There are props set at graph level, and some at an individual level.
 
->[!IMPORTANT] Props that are set at graph level apply to all elements, regardless of when they were created.
+>[!IMPORTANT] 
+> Props that are set at graph level apply to all elements, regardless of when they were created.
 >
 >For props that can also be set individually, the default behaviour will only apply
 to elements created after the default settings are set, and only if those elements do not have their own 
@@ -257,7 +259,8 @@ If the id parameter is skipped, it applies to all currently existing elements
 
 We can change the labels of existing nodes and links via their id with `setLabel`.
 
->[!NOTE] To use **LaTeX** inside labels you can enclose it in math delimiters `$$`.
+>[!NOTE] 
+> To use **LaTeX** inside labels you can enclose it in math delimiters `$$`.
 *(Use only one pair of delimiters per label).*
 
 
@@ -315,9 +318,9 @@ instance.deleteElement()
 #### Editability
 We have precise control over **what can be edited through the GUI** using the IDs of the specific nodes and links.
 
->[!NOTE] If any of this is set for an element, 
+>[!NOTE] 
+> If any of this is set for an element, 
 this overrides the default behaviour set with `isGraphEditableInGUI`for this specific element.
--> Should be like this in the future, but isnt currentlu todo
 
 ##### Deletion and Label Editing
 We can set whether nodes or links can be **deleted** with `setDeletable` and whether labels of nodes or links can be 
