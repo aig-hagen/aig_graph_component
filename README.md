@@ -1,31 +1,35 @@
 # Graph-Component
 
 > A simple tool that lets you quickly and interactively **create**, **modify** and **display graphs**.
-> 
+>
 > The focus lies on smaller graphs and manual creation.
 > Available as a standalone editor or as a component to integrate into your own project.
 >
-> https://graphtool.aig.fernuni-hagen.de/
-> 
+> https://graphtool.aig.fernuni-hagen.de/ (_currently V2.0_)
+>
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 ![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
 
-
 ## Usage
-The graph component is directly available as a **[webpage](https://graphtool.aig.fernuni-hagen.de)** (_currently V3.0, will be kept up-to-date starting from version 3.3._)
-and also as a **custom element**,
+
+The graph component is available as a **custom element**
 allowing easy embedding into an HTML-file using the `<graph-component/>` tag.
+Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory for integration examples.
 
-You can create your graph using the [GUI](#gui), or interact with it 
-and customize its behaviour [programmatically](#programmatically).
+You can create your graph using the GUI, or interact with it
+and customize its behaviour [via the API](#API).
 
-Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory.
+## API
 
-### GUI
-*TODO (งツ)ว*
-### Programmatically
-#### Preparation
-To be able to call the following functions, we need to get the graph-components instance.
+How the initial behaviour of the component is set, is described in 
+[setting defaults](#setting-defaults). This is the default behaviour of the graph
+and its elements that takes place, if no individual properties for graph nodes and links is set.
+
+Some properties can also be set for [individual elements](#individual-elements). 
+
+### Preparation
+
+To be able to call the following functions, we need to get the graph-components instance first.
 ```javascript
 // when it is included as a custom element in an html file (<graph-component id='gc1'>)
 const instance = document.getElementById('gc1')._instance.exposed
@@ -35,14 +39,69 @@ const instance = document.getElementById('gc1')._instance.exposed
 // when you run the component in development mode
 const instance = document.getElementById('app').__vue_app__._instance.exposed
 ``` 
-_Note that when you run the app in development mode, this does not work after a hot-reload. 
-It only works correctly on the initial run or after refreshing the site._
+>[!NOTE] When you run the app in development mode, this does not work after a hot-reload.
+It only works correctly on the initial run or after refreshing the site.
 
-#### Setting the default behaviour
-TODO
+### Setting Defaults
 
-#### Manually write a Graph
-We can write a graph manually using a _JSON-like_ format or a string in _Trivial Graph Format (TGF)_ to later pass it to the component.
+We can configure the default behaviour of the graph component and its elements.
+A detailed description, what every prop does, will be provided in the following sections.
+
+#### Global vs. Individual Setting
+
+There are props set at graph level, and some at an individual level.
+
+>[!IMPORTANT] Props that are set at graph level apply to all elements, regardless of when they were created.
+>
+>For props that can also be set individually, the default behaviour will only apply
+to elements created after the default settings are set, and only if those elements do not have their own 
+individual settings specified.
+
+#### Graph-Level Props
+- `isGraphEditableInGUI`
+  - whether nodes and links are *deletable* and their *label is editable*
+  - regardless of this, nodes can still be dragged  
+  - for more fine granular editing options, configure it on [individual element level](#editability-1)
+- `zoomEnabled`
+- `nodePhysicsEnabled`
+- `fixedLinkDistanceEnabled`
+- `showNodeLabels`
+- `showLinkLabels`
+- `nodeAutoResizeToLabelSize`
+  - if set to true, the nodes resize dynamically to match the labels width and height and words in the label will stay on a single line (no horizontal wrapping)
+  - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
+
+#### Individual-Element-Level Props
+- `nodeProps`
+
+
+#### Example of a full config input object
+```typescript 
+instance.setDefaults(
+    {
+        isGraphEditableInGUI: true,
+        zoomEnabled: false,
+        nodePhysicsEnabled: false,
+        fixedLinkDistanceEnabled: false,
+        showNodeLabels: true,
+        showLinkLabels: true,
+        nodeAutoResizeToLabelSize: false,
+        nodeProps: {
+            shape: 'rect',
+            width: 42,
+            height: 24,
+            cornerRadius: 4,
+            reflexiveEdgeStart: 'MOVABLE'
+        }
+    }
+)
+```
+
+
+### Graph and Component
+
+#### Graph Object
+A graph that is displayed in the component can be represented as a **graph object** in _JSON-like_ format or a string in _Trivial Graph Format (TGF)_.
 
 ##### JSON
 ```javascript
@@ -59,7 +118,7 @@ let graphAsObject = {
   ]
 }
 ```
-In _JSON-like_ format the individual [editability options](#editability) can be directly passed in.
+In _JSON-like_ format the individual [editability options](#editability-1) can be directly passed in.
 ```javascript
 // graph as object with some added editability options
 let graphAsObjectWithEditability = {
@@ -77,110 +136,139 @@ let graphAsObjectWithEditability = {
 
 ##### TGF
 ```javascript
-//graph as tgf with optional normal and LaTeX label and color
-let graphAsTgf = "0 $a_0$\n 1 b /COLOR:/lavenderblush\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
+//graph as tgf with optional normal and LaTeX label
+let graphAsTgf = "0 $a_0$\n 1 b\n 2 c\n#\n 0 1 \text{$a_0 to b$}\n 2 2 c to c"
 ```
-*In standard TGF, color encoding is not supported. However, you can use it in this Graph-Component as demonstrated.
-Positioning and the editability options are only available with the object notation.*
-
-##### Using LaTeX in Labels
-We can also use LaTeX input for labels by enclosing them in math delimiters `$$` or `\(\)`.
-
-It is recommended to use only one pair of delimiters per label. 
-If a space is required between expressions use `\\` before the space
-(_for GUI Input it is just one backslash_) or `\text()`.
+*Positioning and the editability options are only available in the object notation.*
 
 
-#### Display a Graph in the Component
-To actually display a graph in the graph component, we call ```setGraph()```.
+
+#### Display a Graph
+To actually display a graph in the graph component, we use ```setGraph```.
 
 ```javascript
 instance.setGraph(graphAsObject)
 instance.setGraph(graphAsTgf)
 instance.setGraph(graphFromInstance)
 
-//if you call it without arguments, it will clear the graph component
+//if you call it without arguments, it will delete the graph currently displayed in the component
 instance.setGraph()
 ```
 
-#### Getting a Graph
-Get the graph that is currently displayed in the graph component instance with `getGraph()`.
+#### Getting a displayed graph
+Get the graph that is currently displayed in the graph component instance with `getGraph` either as **JSON** or **TGF**.
 
-Optionally, we can pass the following parameters to determine in which format and
-how detailed we want to get the graph (where details are just available in `json` format):
-- format 
-  - `"tgf" | "json"` 
-  - default: `"json"`
+As a default behaviour the graph is received in **JSON** format containing all available information.
+
+- format: `'json'` or `'tgf'`
+
+In the JSON format (not available for TGF), you can pass additional parameters to control how much additional information
+is included.
+
 - includeNodePosition
-  - `boolean`
-  - default: true
 - includeNodeProps
-  - `boolean` 
-  - default: true
-- includeColor 
-  - `boolean`
-  - default: true
+- includeColor
 - includeEditability
-  - `boolean`
-  - default: true
 
 
 ```javascript
 // get graph in json format
 let graphFromInstance = instance.getGraph()
-
-// get graph with node position, but without node props, color and without node and link editability values
+// get graph with node position, but without node props, color and node and link editability values
 instance.getGraph('json', true, false, false, false)
-
 ```
 
-#### Print a Graph
-If we want to print the currently displayed graph we call `printGraph()` on the instance.
-Similar to [getting a graph](#getting-a-graph), we can pass optional parameters to determine how detailed the print should be.
+#### Printing a graph
 
-For a graph assigned to a variable we use a simple `console.log()`.
+You can also log the currently displayed graph at the console with `printGraph` or just use `console.log`.
+Similar to [getting a graph](#getting-a-displayed-graph), we can pass optional parameters to determine how detailed this should be.
 
 ```javascript
 // log the currently displayed graph in JSON like format on the console
 instance.printGraph()
-
 // log in JSON like format but exclude props and colors but include position and editability.
 instance.printGraph('json', true, false, false, true)
-
 // log a graph assigned to a variable to the console
 console.log(graphAsTgf)
 ```
 
-#### Delete Nodes and Links
-We can delete one or multiple **nodes** and **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
+
+#### Canvas and Zooming
+When zoom is disabled nodes can only be placed inside the view.
+When zoom is enabled the user can change the view resulting in nodes being
+located outside the view, which can be useful for bigger graphs.
+
 ```javascript
-// delete node with id 0
-instance.deleteElement(0)
-
-// delete node with id 4 and node with id 2
-instance.deleteElement([4,2])
-
-// delete link that goes from node id 0 to node id 1
-instance.deleteElement("0-1")
-
-// delete node with id 0 and the link that goes from node id 1 to node id 2
-instance.deleteElement([0, "1-2"])
-
-// delete all currently existing nodes and links
-instance.deleteElement()
+instance.toggleZoom(true)
 ```
 
-#### Changing Labels of Nodes and Links
-We can change the labels of one or more existing nodes and links by their id.
+After zooming we can reset the canvas to its default position with `resetView`.
+```javascript
+instance.resetView()
+```
+
+#### Labels and Auto Resize
+We can set if nodes and links should have labels.
+```javascript
+instance.toggleNodeLabels(true)
+instance.toggleLinkLabels(false)
+```
+
+- nodeAutoResizeToLabelSize
+hier vllt using latex
+
+#### Editability
+If we want to embed the component and only display the graph without
+allowing users to add or remove nodes or links, or edit labels via the GUI 
+*(dragging is still allowed and editing options via API remain available)*,
+we can use `toggleGraphEditingInGUI`.
+
+```javascript
+instance.toggleGraphEditingInGUI(false)
+```
+More fine-granular editability options are also available at [individual element level](#editability-1).
+
+#### Simulation Behaviour
+
+A force-directed automatic graph-layout can be enabled.
+When setting `toggleNodePhysics`, nodes repel each other and are attracted
+towards the initial center of the canvas *(before any zooming or panning)*.
+
+Additionally, links can be configured to maintain a fixed distance by setting `toggleFixedLinkDistance`,
+ensuring that all links have the same length between the center points of the connected nodes.
+
+```javascript
+instance.toggleNodePhysics(true)
+instance.toggleFixedLinkDistance(true)
+```
+
+
+
+### Individual Elements
+
+The general behaviour of the following functions is that you can set options based on ids.
+You can pass no ids, one, or muliple ids.
+If the id parameter is skipped, it applies to all currently existing elements
+(but not ones that are created in the future - for that, you should change default behaviour).
+
+#### Actions
+
+##### Labels and LaTeX
+
+We can change the labels of existing nodes and links via their id with `setLabel`.
+
+>[!NOTE] To use **LaTeX** inside labels you can enclose it in math delimiters `$$`.
+*(Use only one pair of delimiters per label).*
+
 
 ```javascript
 //setting a new label for the nodes with id 0 and 1 and the link between it
 instance.setLabel("new label", [0, 1, "1-0"])
+//setting node with id 2 with a latex label
+instance.setLabel("$\text{this is }g_2$")
 ```
 
-#### Change Appearance
-
-##### Changing Color of Nodes and Links
+##### Changing Color
 We can change the color of one or more existing nodes or links by their id or change the color of all existing ones.
 The color can be:
 - HTML Color Name
@@ -188,7 +276,7 @@ The color can be:
 - RGB
 - HSL / HSLA
 
-_This will not influence the color of nodes or links created in the future. 
+_This will not influence the color of nodes or links created in the future.
 If you wish to do this, you need to change the corresponding CSS-classes._
 
 For changing the color of nodes and links, we use `setColor(color, id(s))`.
@@ -208,117 +296,54 @@ instance.setColor("RGB(250,70,99)")
 instance.setColor("HSL(212,92%,45%,0.5)")
 ```
 
+##### Delete Elements
 
-##### Changing Node Shape and Size
-
-For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps` or `setNodePropsDefault`.
-If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
-for individual nodes or `setNodeShapeDefault` and `setNodeSizeDefault` 
-for the default behaviour *(all nodes created after the change)*.
-
-The `setNodeProps` expects a node property object:
-- `{shape: 'circle', radius: number}` 
-- `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
-  - For rectangular properties a *width-to-height* ratio smaller than 1:10 is recommended
-  - The corner radius should be between 0 and 4
-  - Regarding the `reflexiveEdgeStart` property:
-    - For movable reflexive edges use `MOVABLE`
-    - An edge can also be fixed with one of the following SideType: `RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT`
-    - For ratios up to 1:3, both movable and fixed edges are visually fine
-    - For ratios between 1:3 and 1:10 prefer using fixed edges
-    - Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side
-
+We can delete **nodes** and **links** by their id. A links id consists of the source nodes and target nodes id, joined by a hyphen.
 ```javascript
-//circle
-//default
-instance.setNodePropsDefault( 
-    {
-      shape:'circle', 
-      radius: 42
-    }
-)
-//rectangle
-//individual nodes with id 0, 1 and 2
-instance.setNodeProps(
-    {
-      shape:'rect', 
-      width: 42, 
-      height: 24, 
-      cornerRadius: 4,
-      reflexiveEdgeStart: 'MOVABLE'
-    }, [0,1,2]
-)
-```
-To just change the shape of the nodes, we can use `setNodeShape(shape)` or `setNodeShapeDefault(shape)`, where `shape` 
-can be either _circle_ or _rect_.
-
-```javascript
-//affects the default behaviour and therefore all nodes created after the change
-instance.setNodeShapeDefault('circle')
-instance.setNodeShapeDefault('rect')
-
-//affects the nodes with id 0 and 1
-instance.setNodeShape('rect', [0,1])
-```
-
-To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)` or `setNodeSizeDefault(size, sizeY?)`
-
-The behaviour depends on the shape of the nodes and the type of `size` provided. 
-We can either use a `number` or an `object` defining the node size.
-For circular nodes if `size` is of type `number`, it is used as the _radius_, 
-for rectangular nodes it is used as the _width_ and also as the _height_ if `sizeY` is not provided.
-
-If `size` is provided as an `object` it needs to look like this
-`{ radius: number }` for circular nodes and`{ width: number, height: number }` for rectangular nodes.
-
-```javascript
-//circle
-//affects the default behaviour and therefore all nodes created after the change
-instance.setNodeSizeDefault(42) //radius 42
-instance.setNodeSizeDefault({radius: 42})
-//affects the node with id 2
-instance.setNodeSize(42, 2)
-
-//rectangle
-//default
-instance.setNodeSizeDefault(42) //width and height length 42
-instance.setNodeSizeDefault(42,24) //width 42, height 24
-instance.setNodeSizeDefault({width: 42, height: 24})
-//individual
-instance.setNodeSize({width: 42, height:24}, [0,2])
+// delete node with id 0
+instance.deleteElement(0)
+// delete node with id 4 and node with id 2
+instance.deleteElement([4,2])
+// delete link that goes from node id 0 to node id 1
+instance.deleteElement("0-1")
+// delete node with id 0 and the link that goes from node id 1 to node id 2
+instance.deleteElement([0, "1-2"])
+// delete all currently existing nodes and links
+instance.deleteElement()
 ```
 
 #### Editability
-We also have precise control over what can be edited through the GUI 
-using the ids of the specific nodes and links
- - [Deletion](#deletion)
- - [Label Editing](#label-editable)
- - [Node Position Locking](#fixed-position)
- - [Nodes Link Permission](#incoming-and-outgoing-links)
+We have precise control over **what can be edited through the GUI** using the IDs of the specific nodes and links.
 
-##### Deletion
-We can set whether nodes or links can be deleted with `setDeletable()`.
+>[!NOTE] If any of this is set for an element, 
+this overrides the default behaviour set with `isGraphEditableInGUI`for this specific element.
+-> Should be like this in the future, but isnt currentlu todo
+
+##### Deletion and Label Editing
+We can set whether nodes or links can be **deleted** with `setDeletable` and whether labels of nodes or links can be 
+**edited** using `setLabelEditable`.
 ```javascript
 // prohibit deletion via GUI for node 0 and 1 and the two edges connecting them
 instance.setDeletable(false, [0, 1, "0-1", "1-0"])
-
 // allow deletion via GUI for all currently existing nodes and links
 instance.setDeletable(true)
 ```
-##### Label Editable
-We can set whether labels of nodes and links can be edited using `setLabelEditable()`.
+
 ```javascript
 // prohibit label editing via GUI for the node with id 3 and the edge with the id 2-3
 instance.setLabelEditable(false, [3, "2-3"])
-
 // prohibit label editing via GUI for all currently existing nodes and links
 instance.setLabelEditable(false)
 ```
-##### Fixed Position
-For nodes, it is also possible to set whether they should have a fixed position.
-Meaning that they cannot be dragged via the GUI and are unaffected by the simulation forces.
-Fixed positions can be configured separately for the x- and y-axes using
+
+##### Nodes fixed position and incoming/outgoing links
+Specifically for nodes we can set if they have a **fixed position** and if they are allowed to have 
+**incoming and outgoing links**.
+
+The node that has a fixed position cannot be dragged via the GUI and is unaffected by the simulation forces.
+This can be configured separately for the x- and y-axes using
 `setNodesFixedPosition({x: bool, y: bool}, id(s))`.
+
 ```javascript
 // fix node 1 in x direction
 instance.setNodesFixedPosition({x: true, y: false}, 1)
@@ -330,8 +355,8 @@ instance.setNodesFixedPosition({x:false, y:true}, [0,2])
 instance.setNodesFixedPosition({x: true, y: true})
 instance.setNodesFixedPosition(true)
 ```
-##### Incoming and Outgoing Links
-Additionally, we can control whether certain nodes are allowed to have incoming and/or
+
+Additionally, we can control whether certain nodes are allowed to have incoming and
 outgoing links with `setNodesLinkPermission(bool, bool)`.
 
 ```javascript
@@ -342,10 +367,9 @@ instance.setNodesLinkPermission(true, false, [2,3])
 instance.setNodesLinkPermission(false, false)
 ```
 
-##### Convenience Function
+##### Editability Convenience Function
 To set all the editability parameter at once, we can use `setEditability(editabilityObject, id(s))`
-with an editability-object and the specific ids as parameters. 
-If no ids are specified, it is set for all currently existing nodes and links.
+with an editability-object and the specific ids as parameters.
 
 - Nodes editability object:`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`
 - Links editability object:`{deletable, labelEditable}`
@@ -400,57 +424,80 @@ whereas fixedPosition will only be applied to nodes.*/
 ```
 
 
+#### Appearance
+##### Shape and Size
 
-#### Miscellaneous
-If we want to embed the component and only display the graph without 
-allowing users to add or remove nodes or links, or edit labels via the GUI *(dragging is still allowed and editing options via API remain available)*,
-we can use the following: 
+For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps`.
 
-```javascript
-instance.toggleGraphEditingInGUI(false)
-```
+If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
+for individual nodes.
 
-A force-directed automatic graph-layout can be enabled, where nodes repel each other and are attracted 
-towards the initial center *(before any zooming or panning)* of the canvas.
+The `setNodeProps` expects a node property object:
+- `{shape: 'circle', radius: number}`
+- `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
+    - For rectangular properties a *width-to-height* ratio smaller than 1:10 is recommended
+    - The corner radius should be between 0 and 4
+    - Regarding the `reflexiveEdgeStart` property:
+        - For movable reflexive edges use `MOVABLE`
+        - An edge can also be fixed with one of the following SideType: `RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT`
+        - For ratios up to 1:3, both movable and fixed edges are visually fine
+        - For ratios between 1:3 and 1:10 prefer using fixed edges
+        - Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side
 
-
-```javascript
-instance.toggleNodePhysics(true)
-```
-
-There is a fixed distance for links.
-
-```javascript
-instance.toggleFixedLinkDistance(true)
-```
-
-Also zoom can be enabled.
-
-*When zoom is disabled nodes can only be placed inside the view.
-When zoom is enabled the user can change the view resulting in nodes being 
-located outside the view, which can be useful for bigger graphs.*
 
 ```javascript
-instance.toggleZoom(false)
+//set node props for id 0, 1 and 2
+instance.setNodeProps(
+    {
+        shape:'rect',
+        width: 42,
+        height: 24,
+        cornerRadius: 4,
+        reflexiveEdgeStart: 'MOVABLE'
+    }, [0,1,2]
+)
 ```
 
-After zooming we can reset the canvas to its default position.
+To just change the shape of the nodes, we can use `setNodeShape(shape)`, where shape
+can be either `'circle'` or `'rect'`.
+
+
+To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)`.
+The behaviour depends on the shape of the nodes and the type of `size` provided.
+We can either use a `number` or an `object` defining the node size.
+For circular nodes if `size` is of type `number`, it is used as the _radius_,
+for rectangular nodes it is used as the _width_ and also as the _height_ if `sizeY` is not provided.
+
+If `size` is provided as an `object` it is
+`{ radius: number }` for circular nodes and`{ width: number, height: number }` for rectangular nodes.
+
 
 ```javascript
-instance.resetView()
+//circle
+instance.setNodeShape('circle')
+instance.setNodeSize({radius: 42}, 2)
+instance.setNodeSize(42, 2)
+//rectangle
+instance.setNodeShape('rect', [0,1])
+instance.setNodeSize({width: 42, height:24}, [0,2])
 ```
 
-We can also toggle if the nodes and links should have labels.
-```javascript
-instance.toggleNodeLabels(true)
-instance.toggleLinkLabels(false)
-```
 
-#### Custom Events
+
+##### Miscellaneous
+If labels should be shown at all 
+and if nodes should be auto sized by the label size 
+is a configuration on graph level and not per individual element (see [Graph and Component/Labels](#labels)).
+As well as if links should have a fixed distance and if
+node should have physics (see [Graph and Component/Simulation Behaviour](#simulation-behaviour)).
+
+
+
+### Custom Events
 Various events are triggered by different interactions with the graph.
 
-##### Create and Delete
-Event Names: 
+#### Create and Delete
+Event Names:
 - `nodecreated`
 - `nodedeleted`
 - `linkcreated`
@@ -464,10 +511,10 @@ This includes `id` and `label` for both, with nodes also providing position deta
     - `x`
     - `y`
 - `detail.link`
-  - `id`
-  - `label`
+    - `id`
+    - `label`
 
-##### Click
+#### Click
 Event Names:
 - `nodeclicked`
 - `linkclicked`
@@ -476,25 +523,25 @@ In addition to the details provided for creation and deletion events,
 the click events also include `detail.button`, indicating the button used for the click.
 
 
-
-
-##### Labels
+#### Labels
 Event Name: `labeledited`
 
-For label editing events, additional information available includes the ID of the parent of the edited label 
-via `detail.parent.id`, and the newly added label via `detail.label`.
+For label editing events, the following details are available:
+- `detail.parent.id` : the ID of the node or link element whose label was edited
+- `detail.label`: the updated label text
 
 
-##### Listening for Events
+#### Listening for Events
 Events are fired from the graph host. This is where we attach the event listener.
 
 ```javascript
 // get the graph host
 // w/o shadow root
 const graphHost = document.getElementById('gc1').querySelector('.graph-controller__graph-host')
-// with shadow root: document.getElementById('gc1').shadowRoot.querySelector('.graph-controller__graph-host')
+// with shadow root
+//document.getElementById('gc1').shadowRoot.querySelector('.graph-controller__graph-host')
 
-// add event listener for right click on node
+// add event listener for click on node
 graphHost.addEventListener('nodeclicked', function(e){
     if(e.detail.button === 0){
         //change the color on left click
@@ -504,29 +551,36 @@ graphHost.addEventListener('nodeclicked', function(e){
 ```
 
 ## Development
+
 ### Project Setup
 
 #### Install required Dependencies
 ```sh
-npm install
+  npm install
 ```
 
 #### Compile and Hot-Reload for Development
 ```sh
-npm run dev
+  npm run dev
 ```
+
+
+#### Run Component Tests with Playwright
 
 #### Type-Check and Compile for Production
 
 ```sh
-npm run build
+  npm run build
 ```
 For more commands refer to the scripts section in [package.json](./package.json).
 
+### Build Configuration
 
+#### Custom Element and LaTeX
 Depending on whether you want to build the **Custom Element** with *LaTeX* support
 or without it, you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
+
+#### Styles
 To choose between inline style or an external style.css file *(current default)*,
 you have the option for *custom element mode* in [vite.config.ts](vite.config.ts).
-
 
