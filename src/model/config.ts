@@ -61,9 +61,6 @@ export interface GraphConfiguration {
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
-    persistSettingsLocalStorage = false
-    hasToolbar = false
-
     // private _nodeProps: NodeProps = { shape: NodeShape.CIRCLE, radius: 48 }
     private _nodeProps: NodeProps = {
         shape: NodeShape.RECTANGLE,
