@@ -230,8 +230,9 @@ function setDefaults(configInput: GraphConfigurationInput) {
     if (configInput.showLinkLabels !== undefined) {
         toggleLinkLabels(configInput.showLinkLabels)
     }
-    config.nodeAutoResizeToLabelSize =
-        configInput.nodeAutoResizeToLabelSize ?? config.nodeAutoResizeToLabelSize
+    if (configInput.nodeAutoResizeToLabelSize !== undefined) {
+        toggleNodeAutoResize(configInput.nodeAutoResizeToLabelSize)
+    }
     //endregion
 
     //region individual element level
@@ -1000,6 +1001,10 @@ function toggleZoom(isEnabled: boolean) {
 
 function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
+}
+
+function toggleNodeAutoResize(isEnabled: boolean) {
+    config.nodeAutoResizeToLabelSize = isEnabled
 }
 
 //endregion

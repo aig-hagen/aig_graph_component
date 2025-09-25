@@ -74,10 +74,10 @@ export class GraphConfigDefault implements GraphConfiguration {
     }
 
     /**
-     * If set to true, the node resizes dynamically to match the label's width and height.
+     * If set to true, the nodes resizes dynamically to match the labels width and height.
      * Words in the label will stay on a single line (no horizontal wrapping).
      *
-     * If set to false, the node has a fixed size, and label words may wrap to the next line
+     * If set to false, the nodes have a fixed size, and label words may wrap to the next line
      * or potentially overflow.
      */
     nodeAutoResizeToLabelSize = true

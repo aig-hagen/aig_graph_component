@@ -115,7 +115,7 @@ let graphAsObject = {
     {id: 2, label: "c"}
   ],
   links: [
-    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$"},
+    {sourceId: 0, targetId: 1, label: "$\text{a_0 to b}$"},
     {sourceId: 2, targetId: 2, label: "c to c"}
   ]
 }
@@ -130,7 +130,7 @@ let graphAsObjectWithEditability = {
     {id: 2, label: "c", deletable: false, allowIncomingLinks: false, allowOutgoingLinks: false}
   ],
   links: [
-    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$", deletable: true},
+    {sourceId: 0, targetId: 1, label: "$\text{a_0 to b}$", deletable: true},
     {sourceId: 2, targetId: 2, label: "c to c", labelEditable: false}
   ]
 }
@@ -216,8 +216,13 @@ instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
 ```
 
-- nodeAutoResizeToLabelSize
-hier vllt using latex
+Also, there is the possibility that the **nodes resize dynamically** to match the labels width and height.
+If this is set, words in the label will also stay on a single line (no horizontal wrapping takes places).
+If it is unset, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow.
+
+```javascript
+instance.toggleNodeAutoResize(true)
+```
 
 #### Editability
 If we want to embed the component and only display the graph without
