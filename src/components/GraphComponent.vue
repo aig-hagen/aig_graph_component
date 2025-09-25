@@ -40,9 +40,7 @@ import {
     type NodeCircle,
     type NodeProps,
     type NodeRect,
-    type NodeSize,
-    type NodeSizeCircle,
-    type NodeSizeRect
+    type NodeSize
 } from '@/model/config'
 import {
     checkForAllNecessaryKeys,
@@ -172,11 +170,8 @@ defineExpose({
     deleteElement,
     setLabel,
     setColor,
-    setNodeSizeDefault,
     setNodeSize,
-    setNodeShapeDefault,
     setNodeShape,
-    setNodePropsDefault,
     setNodeProps,
     setDeletable,
     setLabelEditable,
@@ -443,49 +438,6 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
 }
 
 /**
- * Exposed function to set the default size of nodes.
- * Affects all nodes created after the change.
- * Behavior depends on the type of `size` provided and the shape of the node.
- *
- * @param size - Either a `number` or an object defining the node size:
- *
- *   If a `number` is provided:
- *   - For circular nodes: used as the radius.
- *   - For rectangular nodes: sets the width and, if `sizeY` is not provided, also the height.
- *
- *   If an object is provided:
- *   - `{ radius: number }` for circular nodes.
- *   - `{ width: number, height: number }` for rectangular nodes.
- *
- * @param sizeY - Optional height for rectangular nodes, only used if `size` is a number.
- */
-function setNodeSizeDefault(size: NodeSize | number, sizeY?: number) {
-    if (
-        typeof size === 'number' &&
-        typeof sizeY === 'number' &&
-        config.nodeProps.shape === NodeShape.RECTANGLE
-    ) {
-        config.nodeSize = { width: size, height: sizeY }
-    } else if (typeof size === 'number') {
-        config.nodeSize = { radius: size }
-    } else if (
-        (config.nodeProps.shape === NodeShape.CIRCLE &&
-            checkForAllNecessaryKeys(['radius'], Object.keys(size), false)) ||
-        (config.nodeProps.shape === NodeShape.RECTANGLE &&
-            checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false))
-    ) {
-        config.nodeSize = size
-    } else {
-        showError(
-            'Invalid Size Object',
-            'For circular nodes: {radius: number}\n' +
-                'For rectangular nodes: {width: number, height: number}'
-        )
-    }
-    restart()
-}
-
-/**
  * Exposed function to set the size of individual nodes via their IDs.
  * If no IDs are provided, it is set for all currently existing nodes
  * (but does not affect nodes created in the future).
@@ -573,94 +525,6 @@ function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
         })
     }
     restart()
-}
-
-/**
- * Exposed function to set the default shape of the nodes. Affects nodes created after the change.
- * @param shapeToSet
- */
-function setNodeShapeDefault(shapeToSet: NodeShape | string) {
-    if (shapeToSet === 'circle') shapeToSet = NodeShape.CIRCLE
-    else if (shapeToSet === 'rect') shapeToSet = NodeShape.RECTANGLE
-    else {
-        showError('Invalid Shape', "For circular nodes: 'circle'\nFor rectangular nodes: 'rect'")
-        return
-    }
-    let currentSize = config.nodeSize
-
-    if (config.nodeProps.shape !== shapeToSet) {
-        if (shapeToSet === NodeShape.CIRCLE) {
-            config.nodeProps = {
-                shape: shapeToSet,
-                radius: (currentSize as NodeSizeRect).width / 2
-            }
-        } else if (shapeToSet === NodeShape.RECTANGLE) {
-            config.nodeProps = {
-                shape: shapeToSet,
-                width: (currentSize as NodeSizeCircle).radius * 2,
-                height: (currentSize as NodeSizeCircle).radius,
-                cornerRadius: 4,
-                reflexiveEdgeStart: 'MOVABLE'
-            }
-        }
-        restart()
-    }
-}
-
-/**
- * Exposed function to set the default node properties. Affects nodes created after the change.
- *
- * For rectangular properties a width-to-height ratio smaller than 1:10 is recommended.
- *
- * *Regarding the `reflexiveEdgeStart` property:*
- * - *For ratios up to 1:3, both movable and fixed edges are visually fine*
- * - *For ratios between 1:3 and 1:10 prefer using fixed edges*
- * - *Avoid higher ratios, if you still need to use them, use fixed edges and avoid placing them from the short to the long side.*
- *
- * @param nodeProps - `{shape: 'circle', radius: number}` or
- * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
- */
-function setNodePropsDefault(nodeProps: NodeProps) {
-    if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
-        if (nodeProps.shape === NodeShape.CIRCLE) {
-            const nodeCircleKeys: (keyof NodeCircle)[] = ['shape', 'radius']
-
-            if (checkForAllNecessaryKeys(nodeCircleKeys, Object.keys(nodeProps), true)) {
-                config.nodeProps = nodeProps
-            }
-            checkForNotValidKeys(nodeCircleKeys, Object.keys(nodeProps), true)
-        } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-            const nodeRectKeys: (keyof NodeRect)[] = [
-                'shape',
-                'width',
-                'height',
-                'cornerRadius',
-                'reflexiveEdgeStart'
-            ]
-
-            if (checkForAllNecessaryKeys(nodeRectKeys, Object.keys(nodeProps), true)) {
-                if (
-                    Object.values(SideType).includes(nodeProps.reflexiveEdgeStart as SideType) ||
-                    nodeProps.reflexiveEdgeStart === 'MOVABLE'
-                ) {
-                    config.nodeProps = nodeProps
-                } else {
-                    showError(
-                        'Invalid reflexiveEdgeStart Value',
-                        'Use RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT or MOVABLE.'
-                    )
-                }
-            }
-            checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
-        }
-        restart()
-    } else {
-        showError(
-            'Invalid NodeProps Object',
-            'For circular nodes: {shape: NodeShape, radius: number}\n' +
-                "For rectangular nodes: {shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}"
-        )
-    }
 }
 
 /**
