@@ -1041,6 +1041,47 @@ function initData() {
     restart()
 }
 
+function createNodeLabelResizeObserver() {
+    return new ResizeObserver((entries) => {
+        let needRestart = false
+        for (let entry of entries) {
+            const nodeLabel = entry
+            if (nodeLabel) {
+                const newWidth = nodeLabel.borderBoxSize[0].inlineSize
+                const newHeight = nodeLabel.borderBoxSize[0].blockSize
+                const newRadius = newWidth > newHeight ? newWidth / 2 : newHeight / 2
+
+                const nodeLabelContainer = d3.select(nodeLabel.target)
+                const nodeData = nodeLabelContainer.datum() as GraphNode
+
+                const labelFitsNode =
+                    (newWidth === (nodeData.props as NodeRect).width &&
+                        newHeight === (nodeData.props as NodeRect).height) ||
+                    newRadius === (nodeData.props as NodeCircle).radius
+
+                if (!labelFitsNode) {
+                    if (nodeData.props.shape === NodeShape.CIRCLE) {
+                        nodeData.props.radius = newRadius
+                        needRestart = true
+                    } else if (nodeData.props.shape === NodeShape.RECTANGLE) {
+                        nodeData.props.width = newWidth
+                        nodeData.props.height = newHeight
+                        needRestart = true
+                    }
+                }
+            }
+        }
+        if (needRestart) {
+            restart()
+        }
+    })
+}
+
+function updateNodeLabelResizeObserverSelection() {
+    const nodeLabels = graphHost.value.node()!.querySelectorAll('.graph-controller__node-label')
+    nodeLabels.forEach((label) => nodeLabelResizeObserver.observe(label))
+}
+
 function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
     if (isEnabled) {
         xOffset = event.transform.x
@@ -1410,6 +1451,11 @@ function _replaceNodeShapeAndLabel(
     nodeLabelResizeObserver.unobserve(
         <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
     )
+    if (config.nodeAutoResizeToLabelSize) {
+        nodeLabelResizeObserver.unobserve(
+            <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
+        )
+    }
     nodeShapeElement.remove()
     nodeContainer.selectChild('.graph-controller__node-label-container').remove()
     _appendNodeShapeAndLabel(nodeContainer)
