@@ -189,6 +189,7 @@ defineExpose({
     toggleNodePhysics,
     toggleFixedLinkDistance,
     toggleGraphEditingInGUI,
+    toggleNodeAutoResize,
     resetView
 })
 
@@ -1005,6 +1006,7 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
 
 function toggleNodeAutoResize(isEnabled: boolean) {
     config.nodeAutoResizeToLabelSize = isEnabled
+    isEnabled ? restart() : nodeLabelResizeObserver.disconnect()
 }
 
 //endregion
@@ -1448,9 +1450,6 @@ function _replaceNodeShapeAndLabel(
     nodeShapeElement: SVGCircleElement | SVGRectElement,
     nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
 ) {
-    nodeLabelResizeObserver.unobserve(
-        <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
-    )
     if (config.nodeAutoResizeToLabelSize) {
         nodeLabelResizeObserver.unobserve(
             <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
