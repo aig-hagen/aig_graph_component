@@ -75,6 +75,7 @@ individual settings specified.
 
 #### Individual-Element-Level Props
 - `nodeProps`
+  - expects a [node property object](#shape-and-size) with a different structure recarding the chosen shape
 
 
 #### Example of a full config input object
@@ -440,7 +441,7 @@ For changing both the shape and the size of nodes, we can use the convenience fu
 If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
 for individual nodes.
 
-The `setNodeProps` expects a node property object:
+The `setNodeProps` expects a **node property object**:
 - `{shape: 'circle', radius: number}`
 - `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
     - For rectangular properties a *width-to-height* ratio smaller than 1:10 is recommended
@@ -466,19 +467,14 @@ instance.setNodeProps(
 )
 ```
 
-To just change the shape of the nodes, we can use `setNodeShape(shape)`, where shape
+To just change the shape of the nodes, we can use `setNodeShape(shape, ids?)`, where shape
 can be either `'circle'` or `'rect'`.
 
 
-To change the **size** of the nodes, we can use `setNodeSize(size, sizeY?)`.
-The behaviour depends on the shape of the nodes and the type of `size` provided.
-We can either use a `number` or an `object` defining the node size.
-For circular nodes if `size` is of type `number`, it is used as the _radius_,
-for rectangular nodes it is used as the _width_ and also as the _height_ if `sizeY` is not provided.
-
-If `size` is provided as an `object` it is
-`{ radius: number }` for circular nodes and`{ width: number, height: number }` for rectangular nodes.
-
+To change the **size** of the nodes, we can use `setNodeSize(size, ids?)`,
+where size can either be a `number` or an `object` with the following structure:
+- `{radius: number}` for circular nodes
+- `{width: number, height: number}` for rectangular nodes
 
 ```javascript
 //circle
@@ -486,8 +482,9 @@ instance.setNodeShape('circle')
 instance.setNodeSize({radius: 42}, 2)
 instance.setNodeSize(42, 2)
 //rectangle
-instance.setNodeShape('rect', [0,1])
+instance.setNodeShape('rect', [0,1,2])
 instance.setNodeSize({width: 42, height:24}, [0,2])
+instance.setNodeSize(42, 1) //width and height will be set to 42 in this case
 ```
 
 
