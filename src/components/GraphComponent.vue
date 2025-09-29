@@ -184,7 +184,7 @@ defineExpose({
     toggleNodePhysics,
     toggleFixedLinkDistance,
     toggleGraphEditingInGUI,
-    toggleNodeAutoResize,
+    toggleNodeAutoGrow,
     resetView
 })
 
@@ -197,7 +197,7 @@ type GraphConfigurationInput = Partial<
         | 'fixedLinkDistanceEnabled'
         | 'showNodeLabels'
         | 'showLinkLabels'
-        | 'nodeAutoResizeToLabelSize'
+        | 'nodeAutoGrowToLabelSize'
         | 'nodeProps'
     > // > & {
 >
@@ -226,8 +226,8 @@ function setDefaults(configInput: GraphConfigurationInput) {
     if (configInput.showLinkLabels !== undefined) {
         toggleLinkLabels(configInput.showLinkLabels)
     }
-    if (configInput.nodeAutoResizeToLabelSize !== undefined) {
-        toggleNodeAutoResize(configInput.nodeAutoResizeToLabelSize)
+    if (configInput.nodeAutoGrowToLabelSize !== undefined) {
+        toggleNodeAutoGrow(configInput.nodeAutoGrowToLabelSize)
     }
     //endregion
 
@@ -868,8 +868,8 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
 
-function toggleNodeAutoResize(isEnabled: boolean) {
-    config.nodeAutoResizeToLabelSize = isEnabled
+function toggleNodeAutoGrow(isEnabled: boolean) {
+    config.nodeAutoGrowToLabelSize = isEnabled
     isEnabled ? restart() : nodeLabelResizeObserver.disconnect()
 }
 
@@ -909,40 +909,50 @@ function initData() {
 
 function createNodeLabelResizeObserver() {
     return new ResizeObserver((entries) => {
-        let needRestart = false
+        let sizeChange = false
         for (let entry of entries) {
             const nodeLabel = entry
             if (nodeLabel) {
-                const newWidth = nodeLabel.borderBoxSize[0].inlineSize
-                const newHeight = nodeLabel.borderBoxSize[0].blockSize
-                const newRadius = newWidth > newHeight ? newWidth / 2 : newHeight / 2
+                const labelWidth = nodeLabel.borderBoxSize[0].inlineSize
+                const labelHeight = nodeLabel.borderBoxSize[0].blockSize
+                const labelRadius = labelWidth > labelHeight ? labelWidth / 2 : labelHeight / 2
+
+                const newWidth =
+                    labelWidth > config.nodeSize.width ? labelWidth : config.nodeSize.width
+                const newHeight =
+                    labelHeight > config.nodeSize.height ? labelHeight : config.nodeSize.height
+                const newRadius =
+                    labelRadius > config.nodeSize.radius ? labelRadius : config.nodeSize.radius
 
                 const nodeLabelContainer = d3.select(nodeLabel.target)
                 const nodeData = nodeLabelContainer.datum() as GraphNode
 
-                const labelFitsNode =
-                    (newWidth === (nodeData.props as NodeRect).width &&
-                        newHeight === (nodeData.props as NodeRect).height) ||
-                    newRadius === (nodeData.props as NodeCircle).radius
-
-                if (!labelFitsNode) {
-                    if (nodeData.props.shape === NodeShape.CIRCLE) {
+                if (nodeData.props.shape === NodeShape.CIRCLE) {
+                    if (nodeData.props.radius !== newRadius) {
                         nodeData.props.radius = newRadius
-                        needRestart = true
-                    } else if (nodeData.props.shape === NodeShape.RECTANGLE) {
+                        sizeChange = true
+                    }
+                } else if (nodeData.props.shape === NodeShape.RECTANGLE) {
+                    if (nodeData.props.width !== newWidth) {
                         nodeData.props.width = newWidth
+                        sizeChange = true
+                    }
+                    if (nodeData.props.height !== newHeight) {
                         nodeData.props.height = newHeight
-                        needRestart = true
+                        sizeChange = true
                     }
                 }
             }
         }
-        if (needRestart) {
+        if (sizeChange) {
             restart()
         }
     })
 }
 
+/**
+ * Sets the node selection observed by the node label resize observer.
+ */
 function updateNodeLabelResizeObserverSelection() {
     const nodeLabels = graphHost.value.node()!.querySelectorAll('.graph-controller__node-label')
     nodeLabels.forEach((label) => nodeLabelResizeObserver.observe(label))
@@ -1264,7 +1274,7 @@ function restart(alpha: number = 0.5): void {
         .selectChild('div')
         .attr('class', (d) => {
             if (d.label) {
-                if (config.nodeAutoResizeToLabelSize) {
+                if (config.nodeAutoGrowToLabelSize) {
                     return 'graph-controller__node-label controls-node-size'
                 } else {
                     return 'graph-controller__node-label'
@@ -1284,7 +1294,7 @@ function restart(alpha: number = 0.5): void {
         })
     }
 
-    if (config.nodeAutoResizeToLabelSize) {
+    if (config.nodeAutoGrowToLabelSize) {
         updateNodeLabelResizeObserverSelection()
     }
 
@@ -1314,7 +1324,7 @@ function _replaceNodeShapeAndLabel(
     nodeShapeElement: SVGCircleElement | SVGRectElement,
     nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
 ) {
-    if (config.nodeAutoResizeToLabelSize) {
+    if (config.nodeAutoGrowToLabelSize) {
         nodeLabelResizeObserver.unobserve(
             <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
         )

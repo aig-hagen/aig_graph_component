@@ -37,7 +37,7 @@ export type NodeSizeCircle = {
 export interface GraphConfiguration {
     // nodes
     nodeProps: NodeProps //also individual element option
-    nodeAutoResizeToLabelSize: boolean
+    nodeAutoGrowToLabelSize: boolean
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
 
@@ -71,14 +71,14 @@ export class GraphConfigDefault implements GraphConfiguration {
     }
 
     /**
-     * If set to true, the nodes resizes dynamically to match the labels width and height.
+     * If this is set to true, the nodes can grow dynamically to match the width and height
+     * of the labels, provided they exceed the size set in the node props.
      * Words in the label will stay on a single line (no horizontal wrapping).
      *
      * If set to false, the nodes have a fixed size, and label words may wrap to the next line
      * or potentially overflow.
      */
-    nodeAutoResizeToLabelSize = true
-
+    nodeAutoGrowToLabelSize = true
     showNodeLabels = true
     nodePhysicsEnabled = false
 
@@ -111,11 +111,22 @@ export class GraphConfigDefault implements GraphConfiguration {
         }
     }
 
-    public get nodeSize(): NodeSize {
+    public get nodeSize(): NodeSizeRect & NodeSizeCircle {
+        let w, h, r
         if (this.nodeProps.shape === NodeShape.CIRCLE) {
-            return { radius: this.nodeProps.radius }
+            r = this.nodeProps.radius
+            w = 2 * r
+            h = 2 * r
         } else {
-            return { width: this.nodeProps.width, height: this.nodeProps.height }
+            w = this.nodeProps.width
+            h = this.nodeProps.height
+            r = w / 2
+        }
+
+        return {
+            width: w,
+            height: h,
+            radius: r
         }
     }
 
