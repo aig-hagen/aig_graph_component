@@ -69,13 +69,15 @@ individual settings specified.
 - `fixedLinkDistanceEnabled`
 - `showNodeLabels`
 - `showLinkLabels`
-- `nodeAutoResizeToLabelSize`
-  - if set to true, the nodes resize dynamically to match the labels width and height and words in the label will stay on a single line (no horizontal wrapping)
+- `nodeAutoGrowToLabelSize`
+  - if set to true, the *nodes can grow dynamically* to match the labels size
+    - words in the label will stay on a single line (no horizontal wrapping)
+    - the *minimal size* is the one set in the *default nodeProps* (this has also priority over the [individual size](#shape-and-size) you can set)
   - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
 
 #### Individual-Element-Level Props
 - `nodeProps`
-  - expects a [node property object](#shape-and-size) with a different structure recarding the chosen shape
+  - expects a [node property object](#shape-and-size) with a different structure regarding the chosen shape
 
 
 #### Example of a full config input object
@@ -88,7 +90,7 @@ instance.setDefaults(
         fixedLinkDistanceEnabled: false,
         showNodeLabels: true,
         showLinkLabels: true,
-        nodeAutoResizeToLabelSize: false,
+        nodeAutoGrowToLabelSize: false,
         nodeProps: {
             shape: 'rect',
             width: 42,
@@ -217,12 +219,14 @@ instance.toggleNodeLabels(true)
 instance.toggleLinkLabels(false)
 ```
 
-Also, there is the possibility that the **nodes resize dynamically** to match the labels width and height.
-If this is set, words in the label will also stay on a single line (no horizontal wrapping takes places).
+Also, there is the possibility that the **nodes can grow dynamically** to match the labels size,
+if the label exceeds the size of the node.
+If this is set, words in the label will stay on a single line (no horizontal wrapping takes places) and the minimal size 
+will be the ones set in the `nodeProps`.
 If it is unset, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow.
 
 ```javascript
-instance.toggleNodeAutoResize(true)
+instance.toggleNodeAutoGrow(true)
 ```
 
 #### Editability
@@ -487,6 +491,9 @@ instance.setNodeSize({width: 42, height:24}, [0,2])
 instance.setNodeSize(42, 1) //width and height will be set to 42 in this case
 ```
 
+>[!NOTE]
+> If the global option [node auto grow to label size](#labels-and-auto-resize) is set, the size may change again on the
+> next label edit, since with this configuration, the default node size is taken as the minimal node size.
 
 
 ##### Miscellaneous
