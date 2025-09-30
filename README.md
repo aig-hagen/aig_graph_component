@@ -72,7 +72,7 @@ individual settings specified.
 - `nodeAutoGrowToLabelSize`
   - if set to true, the *nodes can grow dynamically* to match the labels size
     - words in the label will stay on a single line (no horizontal wrapping)
-    - the *minimal size* is the one set in the *default nodeProps* (this has also priority over the [individual size](#shape-and-size) you can set)
+    - the *minimal size* is the set node size ([individual node size](#shape-and-size))
   - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
 
 #### Individual-Element-Level Props
@@ -490,10 +490,6 @@ instance.setNodeShape('rect', [0,1,2])
 instance.setNodeSize({width: 42, height:24}, [0,2])
 instance.setNodeSize(42, 1) //width and height will be set to 42 in this case
 ```
-
->[!NOTE]
-> If the global option [node auto grow to label size](#labels-and-auto-resize) is set, the size may change again on the
-> next label edit, since with this configuration, the default node size is taken as the minimal node size.
 
 
 ##### Miscellaneous

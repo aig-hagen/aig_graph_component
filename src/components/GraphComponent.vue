@@ -917,22 +917,23 @@ function createNodeLabelResizeObserver() {
                 const labelHeight = nodeLabel.borderBoxSize[0].blockSize
                 const labelRadius = labelWidth > labelHeight ? labelWidth / 2 : labelHeight / 2
 
-                const newWidth =
-                    labelWidth > config.nodeSize.width ? labelWidth : config.nodeSize.width
-                const newHeight =
-                    labelHeight > config.nodeSize.height ? labelHeight : config.nodeSize.height
-                const newRadius =
-                    labelRadius > config.nodeSize.radius ? labelRadius : config.nodeSize.radius
-
                 const nodeLabelContainer = d3.select(nodeLabel.target)
                 const nodeData = nodeLabelContainer.datum() as GraphNode
 
                 if (nodeData.props.shape === NodeShape.CIRCLE) {
+                    const newRadius =
+                        labelRadius > nodeData.props.radius ? labelRadius : nodeData.props.radius
+
                     if (nodeData.props.radius !== newRadius) {
                         nodeData.props.radius = newRadius
                         sizeChange = true
                     }
                 } else if (nodeData.props.shape === NodeShape.RECTANGLE) {
+                    const newWidth =
+                        labelWidth > nodeData.props.width ? labelWidth : nodeData.props.width
+                    const newHeight =
+                        labelHeight > nodeData.props.height ? labelHeight : nodeData.props.height
+
                     if (nodeData.props.width !== newWidth) {
                         nodeData.props.width = newWidth
                         sizeChange = true
