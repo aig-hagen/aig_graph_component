@@ -40,7 +40,9 @@ import {
     type NodeCircle,
     type NodeProps,
     type NodeRect,
-    type NodeSize
+    type NodeSize,
+    type NodeSizeCircle,
+    type NodeSizeRect
 } from '@/model/config'
 import {
     checkForAllNecessaryKeys,
@@ -917,12 +919,16 @@ function createNodeLabelResizeObserver() {
                 const labelHeight = nodeLabel.borderBoxSize[0].blockSize
                 const labelRadius = labelWidth > labelHeight ? labelWidth / 2 : labelHeight / 2
 
+                const labelSize = {
+                    width: labelWidth,
+                    height: labelHeight,
+                    radius: labelRadius
+                }
+
                 const nodeLabelContainer = d3.select(nodeLabel.target)
                 const nodeData = nodeLabelContainer.datum() as GraphNode
 
-                if (nodeData.props.shape === NodeShape.CIRCLE) {
-                    const newRadius =
-                        labelRadius > nodeData.props.radius ? labelRadius : nodeData.props.radius
+                sizeChange = nodeData.setRenderedSize(labelSize)
 
                     if (nodeData.props.radius !== newRadius) {
                         nodeData.props.radius = newRadius
@@ -1348,7 +1354,7 @@ function _appendNodeShapeAndLabel(
         .append(NodeShape.CIRCLE)
         .classed('graph-controller__node', true)
         .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-        .attr('r', (d) => (d.props as NodeCircle).radius)
+        .attr('r', (d) => (d.renderedSize as NodeSizeCircle).radius)
         .style('fill', (d) => (d.color ? d.color : ''))
 
     //shape rect
@@ -1357,10 +1363,10 @@ function _appendNodeShapeAndLabel(
         .append(NodeShape.RECTANGLE)
         .classed('graph-controller__node', true)
         .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-        .attr('width', (d) => (d.props as NodeRect).width)
-        .attr('height', (d) => (d.props as NodeRect).height)
-        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
         .attr('rx', (d) => (d.props as NodeRect).cornerRadius)
         .attr('ry', (d) => (d.props as NodeRect).cornerRadius)
         .style('fill', (d) => (d.color ? d.color : ''))
@@ -1373,17 +1379,17 @@ function _appendNodeShapeAndLabel(
 
     nodeForeignObject
         .filter((d) => d.props.shape === NodeShape.CIRCLE)
-        .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
-        .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
-        .attr('x', (d) => -(d.props as NodeCircle).radius)
-        .attr('y', (d) => -(d.props as NodeCircle).radius)
+        .attr('width', (d) => 2 * (d.renderedSize as NodeSizeCircle).radius)
+        .attr('height', (d) => 2 * (d.renderedSize as NodeSizeCircle).radius)
+        .attr('x', (d) => -(d.renderedSize as NodeSizeCircle).radius)
+        .attr('y', (d) => -(d.renderedSize as NodeSizeCircle).radius)
 
     nodeForeignObject
         .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-        .attr('width', (d) => (d.props as NodeRect).width)
-        .attr('height', (d) => (d.props as NodeRect).height)
-        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
 
     nodeForeignObject
         .append('xhtml:div')
@@ -1414,25 +1420,25 @@ function _updateNodeAndLabelSize(
     nodeContainerGroup
         .selectChild('.graph-controller__node')
         .filter((d) => d.props.shape === NodeShape.CIRCLE)
-        .attr('r', (d) => (d.props as NodeCircle).radius)
+        .attr('r', (d) => (d.renderedSize as NodeSizeCircle).radius)
 
     //circle label
     nodeContainerGroup
         .filter((d) => d.props.shape === NodeShape.CIRCLE)
         .selectChild('.graph-controller__node-label-container')
-        .attr('width', (d) => 2 * (d.props as NodeCircle).radius)
-        .attr('height', (d) => 2 * (d.props as NodeCircle).radius)
-        .attr('x', (d) => -(d.props as NodeCircle).radius)
-        .attr('y', (d) => -(d.props as NodeCircle).radius)
+        .attr('width', (d) => 2 * (d.renderedSize as NodeCircle).radius)
+        .attr('height', (d) => 2 * (d.renderedSize as NodeCircle).radius)
+        .attr('x', (d) => -(d.renderedSize as NodeCircle).radius)
+        .attr('y', (d) => -(d.renderedSize as NodeCircle).radius)
 
     //rect
     nodeContainerGroup
         .selectChild('.graph-controller__node')
         .filter((d) => d.props.shape === NodeShape.RECTANGLE)
-        .attr('width', (d) => (d.props as NodeRect)?.width)
-        .attr('height', (d) => (d.props as NodeRect)?.height)
-        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
         .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
         .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
 
@@ -1440,10 +1446,10 @@ function _updateNodeAndLabelSize(
     nodeContainerGroup
         .filter((d) => d.props.shape === NodeShape.RECTANGLE)
         .selectChild('.graph-controller__node-label-container')
-        .attr('width', (d) => (d.props as NodeRect)?.width)
-        .attr('height', (d) => (d.props as NodeRect)?.height)
-        .attr('x', (d) => -0.5 * (d.props as NodeRect).width)
-        .attr('y', (d) => -0.5 * (d.props as NodeRect).height)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
 }
 
 /**
@@ -1592,8 +1598,8 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .on('end', () => _onPointerDownDeleteNode(node))
     } else if (node.props.shape === NodeShape.RECTANGLE) {
         const pathData = generateRoundedRectPath(
-            (node.props as NodeRect).width,
-            (node.props as NodeRect).height,
+            (node.renderedSize as NodeSizeRect).width,
+            (node.renderedSize as NodeSizeRect).height,
             (node.props as NodeRect).cornerRadius
         )
 
@@ -1606,7 +1612,8 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .attr('d', pathData)
 
         let nodePathLength =
-            2 * (node.props as NodeRect).width + 2 * (node.props as NodeRect).height
+            2 * (node.renderedSize as NodeSizeRect).width +
+            2 * (node.renderedSize as NodeSizeRect).height
 
         nodePath
             .attr('stroke-dasharray', nodePathLength)

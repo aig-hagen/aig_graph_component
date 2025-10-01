@@ -23,6 +23,7 @@ export interface D3Node extends SimulationNodeDatum {
 export interface NodeAppearance {
     color?: string
     props?: NodeProps
+    renderedSize?: NodeSize
 }
 
 export interface NodeGUIEditability {
@@ -42,10 +43,17 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
     fx?: number
     fy?: number
     private _fixedPosition?: FixedAxis
+    /**
+     * @param _renderedSize - The actual size used for rendering the node.
+     * By default, this is equal to the size defined in `props`.
+     * When nodes are allowed to grow to fit their label size *(`nodeAutoGrowToLabelSize` in `config`)*,
+     * `renderedSize` may grow beyond the configured size in `props`.
+     */
+    private readonly _renderedSize?: NodeSize
 
     /**
      * @param id - The internal ID which is used for node referencing.
-     * @param props - The props of the node
+     * @param props - The properties (size, shape, ...) of the node
      * @param idImported - The external ID provided for imported nodes (solely used for the purpose of imported node creation).
      * @param x - The x coordinate of the node's center
      * @param y - The y coordinate of the node's center
@@ -72,6 +80,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
         public allowOutgoingLinks?: boolean
     ) {
         this.fixedPosition = fixedPosition
+        this._renderedSize = this.getSize()
     }
 
     public set fixedPosition(pos: FixedAxis | undefined) {
@@ -129,5 +138,65 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
                     (size as NodeSizeRect).height ?? (config.nodeProps as NodeRect).height
             }
         }
+    }
+
+    public getSize() {
+        if (this.props.shape === NodeShape.CIRCLE) {
+            return { radius: this.props.radius }
+        } else {
+            return { width: this.props.width, height: this.props.height }
+        }
+    }
+
+    /**
+     * Sets the nodes rendered size so it is large enough to fit the given size,
+     * but at least as large as the minimal size defined in the node properties.
+     *
+     * @param size - The required size
+     * @return `true` if the nodes rendered size was changed and a rerender is needed,
+     * otherwise `false`
+     */
+    public setRenderedSize(size: NodeSize | number) {
+        let hasSizeChange = false
+        if (this.props.shape === NodeShape.CIRCLE) {
+            if (typeof size === 'number') {
+                size = { radius: size / 2 }
+            }
+            const newRadius =
+                (size as NodeSizeCircle).radius > this.props.radius
+                    ? (size as NodeSizeCircle).radius
+                    : this.props.radius
+
+            if ((this.renderedSize as NodeSizeCircle).radius !== newRadius) {
+                ;(this.renderedSize as NodeSizeCircle).radius = newRadius
+                hasSizeChange = true
+            }
+        } else if (this.props.shape === NodeShape.RECTANGLE) {
+            if (typeof size === 'number') {
+                size = { width: size, height: size }
+            }
+            const newWidth =
+                (size as NodeSizeRect).width > this.props.width
+                    ? (size as NodeSizeRect).width
+                    : this.props.width
+            const newHeight =
+                (size as NodeSizeRect).height > this.props.height
+                    ? (size as NodeSizeRect).height
+                    : this.props.height
+
+            if ((this.renderedSize as NodeSizeRect).width !== newWidth) {
+                ;(this.renderedSize as NodeSizeRect).width = newWidth
+                hasSizeChange = true
+            }
+            if ((this.renderedSize as NodeSizeRect).height !== newHeight) {
+                ;(this.renderedSize as NodeSizeRect).height = newHeight
+                hasSizeChange = true
+            }
+        }
+        return hasSizeChange
+    }
+
+    public get renderedSize() {
+        return this._renderedSize
     }
 }

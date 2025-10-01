@@ -1,5 +1,5 @@
 import * as d3 from 'd3'
-import type { GraphConfiguration, NodeCircle } from '@/model/config'
+import type { GraphConfiguration, NodeSizeCircle, NodeSizeRect } from '@/model/config'
 import Graph from '@/model/graph'
 import { GraphLink } from '@/model/graph-link'
 import { GraphNode } from '@/model/graph-node'
@@ -53,7 +53,9 @@ export function updateCollide(
         return simulation
             .force(
                 'collideCircle',
-                d3.forceCollide<GraphNode>().radius((d) => (d.props as NodeCircle).radius)
+                d3
+                    .forceCollide<GraphNode>()
+                    .radius((d) => (d.renderedSize as NodeSizeCircle).radius)
             )
             .force('collideBox', null)
     } else {
@@ -63,13 +65,25 @@ export function updateCollide(
                 bboxCollide((d: GraphNode) => {
                     if (d.props.shape === NodeShape.CIRCLE) {
                         return [
-                            [-d.props.radius, -d.props.radius],
-                            [d.props.radius, d.props.radius]
+                            [
+                                -(d.renderedSize as NodeSizeCircle).radius,
+                                -(d.renderedSize as NodeSizeCircle).radius
+                            ],
+                            [
+                                (d.renderedSize as NodeSizeCircle).radius,
+                                (d.renderedSize as NodeSizeCircle).radius
+                            ]
                         ]
                     } else if (d.props.shape === NodeShape.RECTANGLE) {
                         return [
-                            [-0.5 * d.props.width, -0.5 * d.props.height],
-                            [0.5 * d.props.width, 0.5 * d.props.height]
+                            [
+                                -0.5 * (d.renderedSize as NodeSizeRect).width,
+                                -0.5 * (d.renderedSize as NodeSizeRect).height
+                            ],
+                            [
+                                0.5 * (d.renderedSize as NodeSizeRect).width,
+                                0.5 * (d.renderedSize as NodeSizeRect).height
+                            ]
                         ]
                     }
                 })
@@ -94,16 +108,22 @@ export function updateBounds(
     return simulation.force('bounds', () => {
         for (const node of graph.nodes) {
             if (node.props.shape === NodeShape.CIRCLE) {
-                node.x = Math.max(node.props.radius, Math.min(width - node.props.radius, node.x!))
-                node.y = Math.max(node.props.radius, Math.min(height - node.props.radius, node.y!))
-            } else if (node.props.shape === NodeShape.RECTANGLE) {
                 node.x = Math.max(
-                    0.5 * node.props.width,
-                    Math.min(width - 0.5 * node.props.width, node.x!)
+                    (node.renderedSize as NodeSizeCircle).radius,
+                    Math.min(width - (node.renderedSize as NodeSizeCircle).radius, node.x!)
                 )
                 node.y = Math.max(
-                    0.5 * node.props.height,
-                    Math.min(height - 0.5 * node.props.height, node.y!)
+                    (node.renderedSize as NodeSizeCircle).radius,
+                    Math.min(height - (node.renderedSize as NodeSizeCircle).radius, node.y!)
+                )
+            } else if (node.props.shape === NodeShape.RECTANGLE) {
+                node.x = Math.max(
+                    0.5 * (node.renderedSize as NodeSizeRect).width,
+                    Math.min(width - 0.5 * (node.renderedSize as NodeSizeRect).width, node.x!)
+                )
+                node.y = Math.max(
+                    0.5 * (node.renderedSize as NodeSizeRect).height,
+                    Math.min(height - 0.5 * (node.renderedSize as NodeSizeRect).height, node.y!)
                 )
             }
         }
