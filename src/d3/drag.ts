@@ -4,7 +4,7 @@ import { terminate } from '@/d3/event'
 import type { Simulation } from '@/d3/simulation'
 import { GraphNode } from '@/model/graph-node'
 import { NodeShape } from '@/model/node-shape'
-import type { GraphConfiguration } from '@/model/config'
+import type { GraphConfiguration, NodeSizeCircle, NodeSizeRect } from '@/model/config'
 
 export type Drag = d3.DragBehavior<SVGGElement, GraphNode, GraphNode>
 
@@ -38,11 +38,14 @@ export function createDrag(
                 if (!config.isCanvasBoundToView) {
                     d.fx = event.x
                 } else if (d.props.shape === NodeShape.CIRCLE) {
-                    d.fx = Math.max(d.props.radius, Math.min(width - d.props.radius, event.x))
+                    d.fx = Math.max(
+                        (d.renderedSize as NodeSizeCircle).radius,
+                        Math.min(width - (d.renderedSize as NodeSizeCircle).radius, event.x)
+                    )
                 } else if (d.props.shape === NodeShape.RECTANGLE) {
                     d.fx = Math.max(
-                        0.5 * d.props.width,
-                        Math.min(width - 0.5 * d.props.width, event.x)
+                        0.5 * (d.renderedSize as NodeSizeRect).width,
+                        Math.min(width - 0.5 * (d.renderedSize as NodeSizeRect).width, event.x)
                     )
                 }
             }
@@ -50,11 +53,14 @@ export function createDrag(
                 if (!config.isCanvasBoundToView) {
                     d.fy = event.y
                 } else if (d.props.shape === NodeShape.CIRCLE) {
-                    d.fy = Math.max(d.props.radius, Math.min(height - d.props.radius, event.y))
+                    d.fy = Math.max(
+                        (d.renderedSize as NodeSizeCircle).radius,
+                        Math.min(height - (d.renderedSize as NodeSizeCircle).radius, event.y)
+                    )
                 } else if (d.props.shape === NodeShape.RECTANGLE) {
                     d.fy = Math.max(
-                        0.5 * d.props.height,
-                        Math.min(height - 0.5 * d.props.height, event.y)
+                        0.5 * (d.renderedSize as NodeSizeRect).height,
+                        Math.min(height - 0.5 * (d.renderedSize as NodeSizeRect).height, event.y)
                     )
                 }
             }
