@@ -69,7 +69,6 @@ export class GraphConfigDefault implements GraphConfiguration {
         cornerRadius: 4,
         reflexiveEdgeStart: 'MOVABLE'
     }
-
     /**
      * If this is set to true, the nodes can grow dynamically to match the width and height
      * of the labels, provided they exceed the size set in the node props.
@@ -82,12 +81,15 @@ export class GraphConfigDefault implements GraphConfiguration {
     showNodeLabels = true
     nodePhysicsEnabled = false
 
-    isGraphEditableInGUI = true
-
-    zoomEnabled = true
-
     showLinkLabels = true
     fixedLinkDistanceEnabled = false
+
+    /**
+     * Whether nodes and links are deletable and their label is editable.
+     * Regardless of this setting, nodes can still be dragged.
+     */
+    isGraphEditableInGUI = true
+    zoomEnabled = false
 
     markerBoxSize = 4
 

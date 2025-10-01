@@ -53,7 +53,8 @@ import {
     releaseImplicitPointerCapture,
     separateNodeAndLinkIds,
     setAndValFixedNodePosition,
-    showError
+    showError,
+    updateRenderedNodeSize
 } from '@/model/helper'
 import {
     type jsonGraph,
@@ -464,39 +465,80 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
         for (const id of nodeIds) {
             nodeSelection!
                 .filter((d) => d.id === id)
-                .each((d) => {
+                .each(function (d) {
+                    let labelDiv, labelBB
+                    if (config.nodeAutoGrowToLabelSize) {
+                        labelDiv = d3
+                            .select(this)
+                            .select('foreignObject')
+                            .select('div')
+                            .node() as HTMLDivElement
+
+                        labelBB = labelDiv.getBoundingClientRect()
+                    }
+
                     if (typeof size === 'number') {
                         d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? updateRenderedNodeSize(d, labelBB)
+                            : d.setRenderedSize(0)
                     } else if (
                         d.props.shape === NodeShape.CIRCLE &&
                         checkForAllNecessaryKeys(['radius'], Object.keys(size), true)
                     ) {
                         d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? updateRenderedNodeSize(d, labelBB)
+                            : d.setRenderedSize(0)
                     } else if (
                         d.props.shape === NodeShape.RECTANGLE &&
                         checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), true)
                     ) {
                         d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? updateRenderedNodeSize(d, labelBB)
+                            : d.setRenderedSize(0)
                     }
                 })
         }
     } else {
-        nodeSelection!.each((d) => {
+        nodeSelection!.each(function (d) {
+            let labelDiv, labelBB
+            if (config.nodeAutoGrowToLabelSize) {
+                labelDiv = d3
+                    .select(this)
+                    .select('foreignObject')
+                    .select('div')
+                    .node() as HTMLDivElement
+
+                labelBB = labelDiv.getBoundingClientRect()
+            }
+
             if (typeof size === 'number') {
                 d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? updateRenderedNodeSize(d, labelBB)
+                    : d.setRenderedSize(0)
             } else if (
                 d.props.shape === NodeShape.CIRCLE &&
                 checkForAllNecessaryKeys(['radius'], Object.keys(size), false)
             ) {
                 d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? updateRenderedNodeSize(d, labelBB)
+                    : d.setRenderedSize(0)
             } else if (
                 d.props.shape === NodeShape.RECTANGLE &&
                 checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false)
             ) {
                 d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? updateRenderedNodeSize(d, labelBB)
+                    : d.setRenderedSize(0)
             }
         })
     }
+
     restart()
 }
 
@@ -513,16 +555,42 @@ function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
         for (const id of nodeIds) {
             nodeSelection!
                 .filter((d) => d.id === id)
-                .each((d) => {
+                .each(function (d) {
                     if (d.props.shape !== shape) {
+                        let labelDiv, labelBB
+                        if (config.nodeAutoGrowToLabelSize) {
+                            labelDiv = d3
+                                .select(this)
+                                .select('foreignObject')
+                                .select('div')
+                                .node() as HTMLDivElement
+
+                            labelBB = labelDiv.getBoundingClientRect()
+                        }
                         d.setShape(shape, config)
+                        if (config.nodeAutoGrowToLabelSize && labelBB) {
+                            updateRenderedNodeSize(d, labelBB)
+                        }
                     }
                 })
         }
     } else {
-        nodeSelection!.each((d) => {
+        nodeSelection!.each(function (d) {
             if (d.props.shape !== shape) {
+                let labelDiv, labelBB
+                if (config.nodeAutoGrowToLabelSize) {
+                    labelDiv = d3
+                        .select(this)
+                        .select('foreignObject')
+                        .select('div')
+                        .node() as HTMLDivElement
+
+                    labelBB = labelDiv.getBoundingClientRect()
+                }
                 d.setShape(shape, config)
+                if (config.nodeAutoGrowToLabelSize && labelBB) {
+                    updateRenderedNodeSize(d, labelBB)
+                }
             }
         })
     }
@@ -560,13 +628,39 @@ function setNodeProps(
                     for (const id of nodeIds) {
                         nodeSelection!
                             .filter((d) => d.id === id)
-                            .each((d) => {
+                            .each(function (d) {
                                 d.props = nodeProps
+
+                                if (config.nodeAutoGrowToLabelSize) {
+                                    let labelDiv, labelBB
+                                    labelDiv = d3
+                                        .select(this)
+                                        .select('foreignObject')
+                                        .select('div')
+                                        .node() as HTMLDivElement
+                                    labelBB = labelDiv.getBoundingClientRect()
+                                    updateRenderedNodeSize(d, labelBB)
+                                } else {
+                                    d.setRenderedSize(0)
+                                }
                             })
                     }
                 } else {
-                    nodeSelection!.each((d) => {
+                    nodeSelection!.each(function (d) {
                         d.props = nodeProps
+
+                        if (config.nodeAutoGrowToLabelSize) {
+                            let labelDiv, labelBB
+                            labelDiv = d3
+                                .select(this)
+                                .select('foreignObject')
+                                .select('div')
+                                .node() as HTMLDivElement
+                            labelBB = labelDiv.getBoundingClientRect()
+                            updateRenderedNodeSize(d, labelBB)
+                        } else {
+                            d.setRenderedSize(0)
+                        }
                     })
                 }
             }
@@ -589,13 +683,39 @@ function setNodeProps(
                         for (const id of nodeIds) {
                             nodeSelection!
                                 .filter((d) => d.id === id)
-                                .each((d) => {
+                                .each(function (d) {
                                     d.props = nodeProps
+
+                                    if (config.nodeAutoGrowToLabelSize) {
+                                        let labelDiv, labelBB
+                                        labelDiv = d3
+                                            .select(this)
+                                            .select('foreignObject')
+                                            .select('div')
+                                            .node() as HTMLDivElement
+                                        labelBB = labelDiv.getBoundingClientRect()
+                                        updateRenderedNodeSize(d, labelBB)
+                                    } else {
+                                        d.setRenderedSize(0)
+                                    }
                                 })
                         }
                     } else {
-                        nodeSelection!.each((d) => {
+                        nodeSelection!.each(function (d) {
                             d.props = nodeProps
+
+                            if (config.nodeAutoGrowToLabelSize) {
+                                let labelDiv, labelBB
+                                labelDiv = d3
+                                    .select(this)
+                                    .select('foreignObject')
+                                    .select('div')
+                                    .node() as HTMLDivElement
+                                labelBB = labelDiv.getBoundingClientRect()
+                                updateRenderedNodeSize(d, labelBB)
+                            } else {
+                                d.setRenderedSize(0)
+                            }
                         })
                     }
                 }
@@ -872,7 +992,16 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
 
 function toggleNodeAutoGrow(isEnabled: boolean) {
     config.nodeAutoGrowToLabelSize = isEnabled
-    isEnabled ? restart() : nodeLabelResizeObserver.disconnect()
+
+    if (!isEnabled) {
+        nodeLabelResizeObserver.disconnect()
+
+        nodeSelection!.each(function (d) {
+            d.setRenderedSize(0)
+        })
+    }
+
+    restart()
 }
 
 //endregion
@@ -929,26 +1058,6 @@ function createNodeLabelResizeObserver() {
                 const nodeData = nodeLabelContainer.datum() as GraphNode
 
                 sizeChange = nodeData.setRenderedSize(labelSize)
-
-                    if (nodeData.props.radius !== newRadius) {
-                        nodeData.props.radius = newRadius
-                        sizeChange = true
-                    }
-                } else if (nodeData.props.shape === NodeShape.RECTANGLE) {
-                    const newWidth =
-                        labelWidth > nodeData.props.width ? labelWidth : nodeData.props.width
-                    const newHeight =
-                        labelHeight > nodeData.props.height ? labelHeight : nodeData.props.height
-
-                    if (nodeData.props.width !== newWidth) {
-                        nodeData.props.width = newWidth
-                        sizeChange = true
-                    }
-                    if (nodeData.props.height !== newHeight) {
-                        nodeData.props.height = newHeight
-                        sizeChange = true
-                    }
-                }
             }
         }
         if (sizeChange) {
@@ -961,7 +1070,11 @@ function createNodeLabelResizeObserver() {
  * Sets the node selection observed by the node label resize observer.
  */
 function updateNodeLabelResizeObserverSelection() {
-    const nodeLabels = graphHost.value.node()!.querySelectorAll('.graph-controller__node-label')
+    const nodeLabels = graphHost.value
+        .node()!
+        .querySelectorAll(
+            '.graph-controller__node-label, .graph-controller__node-label-placeholder'
+        )
     nodeLabels.forEach((label) => nodeLabelResizeObserver.observe(label))
 }
 
@@ -1279,17 +1392,10 @@ function restart(alpha: number = 0.5): void {
     nodeSelection
         .selectChild('foreignObject')
         .selectChild('div')
-        .attr('class', (d) => {
-            if (d.label) {
-                if (config.nodeAutoGrowToLabelSize) {
-                    return 'graph-controller__node-label controls-node-size'
-                } else {
-                    return 'graph-controller__node-label'
-                }
-            } else {
-                return 'graph-controller__node-label-placeholder'
-            }
-        })
+        .attr('class', (d) =>
+            d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
+        )
+        .classed('controls-node-size', config.nodeAutoGrowToLabelSize)
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
         .classed('not-editable', !config.isGraphEditableInGUI)
         .text((d) => (d.label ? d.label : 'add label'))
@@ -1333,7 +1439,13 @@ function _replaceNodeShapeAndLabel(
 ) {
     if (config.nodeAutoGrowToLabelSize) {
         nodeLabelResizeObserver.unobserve(
-            <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
+            <Element>(
+                nodeContainer
+                    .select(
+                        '.graph-controller__node-label, .graph-controller__node-label-placeholder'
+                    )
+                    .node()
+            )
         )
     }
     nodeShapeElement.remove()
@@ -2398,6 +2510,20 @@ function _resetGraph(): void {
     font-size: 0.85rem;
     color: dimgrey;
     cursor: pointer;
+
+    &.controls-node-size {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        display: inline-block;
+        text-align: center;
+        width: auto;
+        height: auto;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
 
     &.hidden {
         visibility: hidden;
