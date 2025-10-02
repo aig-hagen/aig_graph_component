@@ -72,7 +72,7 @@ individual settings specified.
 - `nodeAutoGrowToLabelSize`
   - if set to true, the *nodes can grow dynamically* to match the labels size
     - words in the label will stay on a single line (no horizontal wrapping)
-    - the *minimal size* is the set node size ([individual node size](#shape-and-size))
+    - the *minimal size* is the set base node size ([individual node size](#shape-and-size))
   - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
 
 #### Individual-Element-Level Props
@@ -221,7 +221,7 @@ instance.toggleLinkLabels(false)
 
 Also, there is the possibility that the **nodes can grow dynamically** to match the labels size,
 if the label exceeds the size of the node.
-If this is set, words in the label will stay on a single line (no horizontal wrapping takes places) and the minimal size 
+If this is set, words in the label will stay on a single line (no horizontal wrapping takes places) and the *minimal size* 
 will be the ones set in the `nodeProps`.
 If it is unset, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow.
 
@@ -440,7 +440,7 @@ whereas fixedPosition will only be applied to nodes.*/
 #### Appearance
 ##### Shape and Size
 
-For changing both the shape and the size of nodes, we can use the convenience function named `setnodeProps`.
+For changing both the shape and the base size of nodes, we can use the convenience function named `setnodeProps`.
 
 If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
 for individual nodes.
@@ -475,7 +475,7 @@ To just change the shape of the nodes, we can use `setNodeShape(shape, ids?)`, w
 can be either `'circle'` or `'rect'`.
 
 
-To change the **size** of the nodes, we can use `setNodeSize(size, ids?)`,
+To change the **base size** of the nodes, we can use `setNodeSize(size, ids?)`,
 where size can either be a `number` or an `object` with the following structure:
 - `{radius: number}` for circular nodes
 - `{width: number, height: number}` for rectangular nodes
@@ -522,6 +522,17 @@ This includes `id` and `label` for both, with nodes also providing position deta
     - `id`
     - `label`
 
+#### Node Rendered Size Change
+Event Name: 
+- `noderenderedsizechange`
+
+With the following additional information:
+- `detail.node`
+    - `id`
+    - `renderedSize`
+    - `baseSize`
+- `detail.previousRenderedSize`
+
 #### Click
 Event Names:
 - `nodeclicked`
@@ -553,7 +564,7 @@ const graphHost = document.getElementById('gc1').querySelector('.graph-controlle
 graphHost.addEventListener('nodeclicked', function(e){
     if(e.detail.button === 0){
         //change the color on left click
-        instance.setNodeColor('#8FBC8F', e.detail.node.id)
+        instance.setColor('#8FBC8F', e.detail.node.id)
     }
 })
 ```

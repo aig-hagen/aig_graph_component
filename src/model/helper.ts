@@ -55,21 +55,6 @@ export function setAndValFixedNodePosition(
 }
 
 /**
- * Updates the nodes rendered size so it is large enough to fit the given label size,
- * but at least as large as the minimal size defined in the node properties.
- * @param node
- * @param labelBB - bounding box of the label
- */
-export function updateRenderedNodeSize(node: GraphNode, labelBB: DOMRect) {
-    let radius = labelBB!.width > labelBB!.height ? labelBB!.width / 2 : labelBB!.height / 2
-    node.setRenderedSize({
-        width: labelBB!.width,
-        height: labelBB!.height,
-        radius: radius
-    })
-}
-
-/**
  * Generates an SVG path that outlines a rectangle shaped node, optionally with rounded corners.
  * This is needed for the delete animation.
  * @param width - The nodes width

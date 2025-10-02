@@ -27,7 +27,8 @@ import {
     triggerLinkDeleted,
     triggerNodeClicked,
     triggerNodeCreated,
-    triggerNodeDeleted
+    triggerNodeDeleted,
+    triggerNodeRenderedSizeChange
 } from '@/d3/event'
 //model
 import Graph from '@/model/graph'
@@ -53,8 +54,7 @@ import {
     releaseImplicitPointerCapture,
     separateNodeAndLinkIds,
     setAndValFixedNodePosition,
-    showError,
-    updateRenderedNodeSize
+    showError
 } from '@/model/helper'
 import {
     type jsonGraph,
@@ -466,75 +466,79 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
             nodeSelection!
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    let labelDiv, labelBB
+                    let labelBB, renderingSize
                     if (config.nodeAutoGrowToLabelSize) {
-                        labelDiv = d3
+                        let labelDiv = d3
                             .select(this)
                             .select('foreignObject')
                             .select('div')
                             .node() as HTMLDivElement
-
                         labelBB = labelDiv.getBoundingClientRect()
                     }
 
                     if (typeof size === 'number') {
                         d.setSize(size, config)
                         config.nodeAutoGrowToLabelSize && labelBB
-                            ? updateRenderedNodeSize(d, labelBB)
-                            : d.setRenderedSize(0)
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
                     } else if (
                         d.props.shape === NodeShape.CIRCLE &&
                         checkForAllNecessaryKeys(['radius'], Object.keys(size), true)
                     ) {
                         d.setSize(size, config)
                         config.nodeAutoGrowToLabelSize && labelBB
-                            ? updateRenderedNodeSize(d, labelBB)
-                            : d.setRenderedSize(0)
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
                     } else if (
                         d.props.shape === NodeShape.RECTANGLE &&
                         checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), true)
                     ) {
                         d.setSize(size, config)
                         config.nodeAutoGrowToLabelSize && labelBB
-                            ? updateRenderedNodeSize(d, labelBB)
-                            : d.setRenderedSize(0)
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
                     }
                 })
         }
     } else {
         nodeSelection!.each(function (d) {
-            let labelDiv, labelBB
+            let labelBB, renderingSize
             if (config.nodeAutoGrowToLabelSize) {
-                labelDiv = d3
+                let labelDiv = d3
                     .select(this)
                     .select('foreignObject')
                     .select('div')
                     .node() as HTMLDivElement
-
                 labelBB = labelDiv.getBoundingClientRect()
             }
 
             if (typeof size === 'number') {
                 d.setSize(size, config)
                 config.nodeAutoGrowToLabelSize && labelBB
-                    ? updateRenderedNodeSize(d, labelBB)
-                    : d.setRenderedSize(0)
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
             } else if (
                 d.props.shape === NodeShape.CIRCLE &&
                 checkForAllNecessaryKeys(['radius'], Object.keys(size), false)
             ) {
                 d.setSize(size, config)
                 config.nodeAutoGrowToLabelSize && labelBB
-                    ? updateRenderedNodeSize(d, labelBB)
-                    : d.setRenderedSize(0)
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
             } else if (
                 d.props.shape === NodeShape.RECTANGLE &&
                 checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false)
             ) {
                 d.setSize(size, config)
                 config.nodeAutoGrowToLabelSize && labelBB
-                    ? updateRenderedNodeSize(d, labelBB)
-                    : d.setRenderedSize(0)
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
             }
         })
     }
@@ -569,7 +573,7 @@ function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
                         }
                         d.setShape(shape, config)
                         if (config.nodeAutoGrowToLabelSize && labelBB) {
-                            updateRenderedNodeSize(d, labelBB)
+                            _updateRenderedNodeSize(d, labelBB)
                         }
                     }
                 })
@@ -589,7 +593,7 @@ function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
                 }
                 d.setShape(shape, config)
                 if (config.nodeAutoGrowToLabelSize && labelBB) {
-                    updateRenderedNodeSize(d, labelBB)
+                    _updateRenderedNodeSize(d, labelBB)
                 }
             }
         })
@@ -631,6 +635,7 @@ function setNodeProps(
                             .each(function (d) {
                                 d.props = nodeProps
 
+                                let renderingSize
                                 if (config.nodeAutoGrowToLabelSize) {
                                     let labelDiv, labelBB
                                     labelDiv = d3
@@ -639,16 +644,18 @@ function setNodeProps(
                                         .select('div')
                                         .node() as HTMLDivElement
                                     labelBB = labelDiv.getBoundingClientRect()
-                                    updateRenderedNodeSize(d, labelBB)
+                                    renderingSize = labelBB
                                 } else {
-                                    d.setRenderedSize(0)
+                                    renderingSize = { width: 0, height: 0 }
                                 }
+                                _updateRenderedNodeSize(d, renderingSize)
                             })
                     }
                 } else {
                     nodeSelection!.each(function (d) {
                         d.props = nodeProps
 
+                        let renderingSize
                         if (config.nodeAutoGrowToLabelSize) {
                             let labelDiv, labelBB
                             labelDiv = d3
@@ -657,10 +664,11 @@ function setNodeProps(
                                 .select('div')
                                 .node() as HTMLDivElement
                             labelBB = labelDiv.getBoundingClientRect()
-                            updateRenderedNodeSize(d, labelBB)
+                            renderingSize = labelBB
                         } else {
-                            d.setRenderedSize(0)
+                            renderingSize = { width: 0, height: 0 }
                         }
+                        _updateRenderedNodeSize(d, renderingSize)
                     })
                 }
             }
@@ -686,6 +694,7 @@ function setNodeProps(
                                 .each(function (d) {
                                     d.props = nodeProps
 
+                                    let renderingSize
                                     if (config.nodeAutoGrowToLabelSize) {
                                         let labelDiv, labelBB
                                         labelDiv = d3
@@ -694,16 +703,18 @@ function setNodeProps(
                                             .select('div')
                                             .node() as HTMLDivElement
                                         labelBB = labelDiv.getBoundingClientRect()
-                                        updateRenderedNodeSize(d, labelBB)
+                                        renderingSize = labelBB
                                     } else {
-                                        d.setRenderedSize(0)
+                                        renderingSize = { width: 0, height: 0 }
                                     }
+                                    _updateRenderedNodeSize(d, renderingSize)
                                 })
                         }
                     } else {
                         nodeSelection!.each(function (d) {
                             d.props = nodeProps
 
+                            let renderingSize
                             if (config.nodeAutoGrowToLabelSize) {
                                 let labelDiv, labelBB
                                 labelDiv = d3
@@ -712,10 +723,11 @@ function setNodeProps(
                                     .select('div')
                                     .node() as HTMLDivElement
                                 labelBB = labelDiv.getBoundingClientRect()
-                                updateRenderedNodeSize(d, labelBB)
+                                renderingSize = labelBB
                             } else {
-                                d.setRenderedSize(0)
+                                renderingSize = { width: 0, height: 0 }
                             }
+                            _updateRenderedNodeSize(d, renderingSize)
                         })
                     }
                 }
@@ -997,7 +1009,7 @@ function toggleNodeAutoGrow(isEnabled: boolean) {
         nodeLabelResizeObserver.disconnect()
 
         nodeSelection!.each(function (d) {
-            d.setRenderedSize(0)
+            _updateRenderedNodeSize(d, { width: 0, height: 0 })
         })
     }
 
@@ -1040,27 +1052,21 @@ function initData() {
 
 function createNodeLabelResizeObserver() {
     return new ResizeObserver((entries) => {
-        let sizeChange = false
+        let hasSizeChange = false
         for (let entry of entries) {
             const nodeLabel = entry
             if (nodeLabel) {
-                const labelWidth = nodeLabel.borderBoxSize[0].inlineSize
-                const labelHeight = nodeLabel.borderBoxSize[0].blockSize
-                const labelRadius = labelWidth > labelHeight ? labelWidth / 2 : labelHeight / 2
-
                 const labelSize = {
-                    width: labelWidth,
-                    height: labelHeight,
-                    radius: labelRadius
+                    width: nodeLabel.borderBoxSize[0].inlineSize,
+                    height: nodeLabel.borderBoxSize[0].blockSize
                 }
-
                 const nodeLabelContainer = d3.select(nodeLabel.target)
-                const nodeData = nodeLabelContainer.datum() as GraphNode
+                const node = nodeLabelContainer.datum() as GraphNode
 
-                sizeChange = nodeData.setRenderedSize(labelSize)
+                hasSizeChange = _updateRenderedNodeSize(node, labelSize)
             }
         }
-        if (sizeChange) {
+        if (hasSizeChange) {
             restart()
         }
     })
@@ -1076,6 +1082,32 @@ function updateNodeLabelResizeObserverSelection() {
             '.graph-controller__node-label, .graph-controller__node-label-placeholder'
         )
     nodeLabels.forEach((label) => nodeLabelResizeObserver.observe(label))
+}
+
+/**
+ * Updates the nodes rendered size so it is large enough to fit the given label size,
+ * but at least as large as the minimal size defined in the node properties.
+ * If the nodes rendered size was changed, the according event is triggered.
+ * @param node
+ * @param labelSize - Size of the label as bounding box
+ * @returns `true` if the nodes rendered size was changed and a rerender is needed,
+ * otherwise `false`
+ */
+function _updateRenderedNodeSize(node: GraphNode, labelSize: Pick<DOMRect, 'width' | 'height'>) {
+    let hasSizeChange = false
+    const prevSize = { ...node.renderedSize }
+
+    const radius = labelSize.width > labelSize.height ? labelSize.width / 2 : labelSize.height / 2
+    const width = labelSize.width
+    const height = labelSize.height
+    node.renderedSize = { width: width, height: height, radius: radius }
+
+    if (JSON.stringify(prevSize) !== JSON.stringify(node.renderedSize)) {
+        hasSizeChange = true
+        triggerNodeRenderedSizeChange(node, prevSize, graphHost.value)
+    }
+
+    return hasSizeChange
 }
 
 function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {

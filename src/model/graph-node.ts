@@ -49,7 +49,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
      * When nodes are allowed to grow to fit their label size *(`nodeAutoGrowToLabelSize` in `config`)*,
      * `renderedSize` may grow beyond the configured size in `props`.
      */
-    private readonly _renderedSize?: NodeSize
+    private _renderedSize?: NodeSize
 
     /**
      * @param id - The internal ID which is used for node referencing.
@@ -122,7 +122,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
     public setSize(size: NodeSize | number, config: GraphConfiguration) {
         if (this.props.shape === NodeShape.CIRCLE) {
             if (typeof size === 'number') {
-                this.props.radius = size
+                this.props.radius = size / 2
             } else {
                 this.props.radius =
                     (size as NodeSizeCircle).radius ?? (config.nodeProps as NodeCircle).radius
@@ -140,7 +140,14 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
         }
     }
 
-    public getSize() {
+    /**
+     * Returns the node's defined base size.
+     *
+     * If the node is not allowed to grow to fit its label size, this is identical to the
+     * rendered size. Otherwise, the rendered size may be larger, and this value
+     * represents the minimal size the node can shrink to.
+     */
+    public getSize(): NodeSize {
         if (this.props.shape === NodeShape.CIRCLE) {
             return { radius: this.props.radius }
         } else {
@@ -153,11 +160,8 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
      * but at least as large as the minimal size defined in the node properties.
      *
      * @param size - The required size
-     * @return `true` if the nodes rendered size was changed and a rerender is needed,
-     * otherwise `false`
      */
-    public setRenderedSize(size: NodeSize | number) {
-        let hasSizeChange = false
+    public set renderedSize(size: NodeSize | number) {
         if (this.props.shape === NodeShape.CIRCLE) {
             if (typeof size === 'number') {
                 size = { radius: size / 2 }
@@ -167,9 +171,8 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
                     ? (size as NodeSizeCircle).radius
                     : this.props.radius
 
-            if ((this.renderedSize as NodeSizeCircle).radius !== newRadius) {
-                ;(this.renderedSize as NodeSizeCircle).radius = newRadius
-                hasSizeChange = true
+            if ((this._renderedSize as NodeSizeCircle).radius !== newRadius) {
+                this._renderedSize = { radius: newRadius }
             }
         } else if (this.props.shape === NodeShape.RECTANGLE) {
             if (typeof size === 'number') {
@@ -184,19 +187,16 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
                     ? (size as NodeSizeRect).height
                     : this.props.height
 
-            if ((this.renderedSize as NodeSizeRect).width !== newWidth) {
-                ;(this.renderedSize as NodeSizeRect).width = newWidth
-                hasSizeChange = true
-            }
-            if ((this.renderedSize as NodeSizeRect).height !== newHeight) {
-                ;(this.renderedSize as NodeSizeRect).height = newHeight
-                hasSizeChange = true
+            if (
+                (this._renderedSize as NodeSizeRect).width !== newWidth ||
+                (this._renderedSize as NodeSizeRect).height !== newHeight
+            ) {
+                this._renderedSize = { width: newWidth, height: newHeight }
             }
         }
-        return hasSizeChange
     }
 
-    public get renderedSize() {
-        return this._renderedSize
+    public get renderedSize(): NodeSize {
+        return this._renderedSize!
     }
 }
