@@ -21,7 +21,7 @@ export function createDrag(
                 event.button === 0 && //left mouse click
                 (d.fixedPosition?.x !== true || d.fixedPosition?.y !== true)
         )
-        .on('start', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
+        .on('start', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode, ) => {
             terminate(event.sourceEvent)
             if (event.active === 0) {
                 simulation!.alphaTarget(0.5).restart()
@@ -32,6 +32,7 @@ export function createDrag(
             if (d.fixedPosition?.y !== true) {
                 d.fy = d.y
             }
+            updateMembers(config, d)
         })
         .on('drag', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (d.fixedPosition?.x !== true) {
@@ -58,6 +59,7 @@ export function createDrag(
                     )
                 }
             }
+            updateMembers(config, d)
         })
         .on('end', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (event.active === 0) {
@@ -69,5 +71,32 @@ export function createDrag(
             if (d.fixedPosition?.y !== true) {
                 d.fy = undefined
             }
+            updateMembers(config, d)
         })
+}
+
+function updateMembers(config: GraphConfiguration, node: GraphNode) {
+    const members = config.nodeGroupsFn(node)
+    if (node.fx === undefined) {
+        for (const member of members) {
+            const diffX = member.x! - node.x!
+            member.fx = node.x + diffX
+        }
+    } else {
+        for (const member of members) {
+            const diffX = member.x! - node.x!
+            member.fx = node.fx + diffX
+        }
+    }
+    if (node.fy === undefined) {
+        for (const member of members) {
+            const diffY = member.y! - node.y!
+            member.fy = node.y + diffY
+        }
+    } else {
+        for (const member of members) {
+            const diffY = member.y! - node.y!
+            member.fy = node.fy + diffY
+        }
+    }
 }

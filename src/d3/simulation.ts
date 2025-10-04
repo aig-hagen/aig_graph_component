@@ -44,6 +44,8 @@ export function updateCollide(
     graph: UnwrapRef<Graph> | Graph,
     config: GraphConfiguration
 ): Simulation {
+    // When disabling collision for circles, boxes still influence each other and circle would need to move.
+    return simulation
     const justCircles =
         !graph.nodes || graph.nodes.length === 0
             ? config.nodeProps.shape === NodeShape.CIRCLE
@@ -63,8 +65,8 @@ export function updateCollide(
                 bboxCollide((d: GraphNode) => {
                     if (d.props.shape === NodeShape.CIRCLE) {
                         return [
-                            [-d.props.radius, -d.props.radius],
-                            [d.props.radius, d.props.radius]
+                            [0, 0],
+                            [0, 0]
                         ]
                     } else if (d.props.shape === NodeShape.RECTANGLE) {
                         return [

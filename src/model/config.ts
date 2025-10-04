@@ -1,5 +1,6 @@
 import { NodeShape } from '@/model/node-shape'
 import { SideType } from '@/model/side-type'
+import type { GraphNode } from './graph-node'
 
 export type NodeProps = NodeCircle | NodeRect
 export type NodeSize = NodeSizeCircle | NodeSizeRect
@@ -58,6 +59,8 @@ export interface GraphConfiguration {
 
     //canvas
     readonly isCanvasBoundToView: boolean
+
+    nodeGroupsFn: (node: GraphNode) => GraphNode[]
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
@@ -95,6 +98,8 @@ export class GraphConfigDefault implements GraphConfiguration {
     markerBoxSize = 4
 
     private _markerPadding = 2 * this.markerBoxSize
+
+    nodeGroupsFn = (node: GraphNode) => [node]
 
     public set nodeSize(nodeSize: NodeSize | number) {
         if (this.nodeProps.shape === NodeShape.CIRCLE) {

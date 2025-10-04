@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, unref } from 'vue'
 //component
 import GraphControls from '@/components/GraphControls.vue'
 //d3
@@ -159,8 +159,8 @@ let draggableLinkEnd: [number, number] | undefined
 let xOffset = 0
 let yOffset = 0
 let scale = 1
-let longRightClickTimerNode: number
-let longRightClickTimerLink: number
+let longRightClickTimerNode: ReturnType<typeof setTimeout>
+let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
 
 //exposing for API
@@ -189,7 +189,10 @@ defineExpose({
     toggleNodePhysics,
     toggleFixedLinkDistance,
     toggleGraphEditingInGUI,
-    resetView
+    resetView,
+    createNode,
+    setNodeGroupsFn,
+    modifyGraph
 })
 
 type GraphConfigurationInput = Partial<
@@ -441,7 +444,9 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
             .style('stroke', color)
     }
     createLinkMarkerColored(canvas!, graphHostId.value, config, color)
-    restart()
+    if (!modifyingGraph) {
+        restart()
+    }
 }
 
 /**
@@ -1006,6 +1011,10 @@ function toggleGraphEditingInGUI(isEnabled: boolean) {
     config.isGraphEditableInGUI = isEnabled
 }
 
+function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => number[]) {
+    config.nodeGroupsFn = nodeGroupsFn;
+}
+
 //endregion
 
 function initData() {
@@ -1036,7 +1045,7 @@ function initData() {
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config)
-    nodeLabelResizeObserver = createNodeLabelResizeObserver()
+    // nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
 }
 
@@ -1102,6 +1111,18 @@ function createNode(
     triggerNodeCreated(newNode, graphHost.value)
     updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
+}
+
+let modifyingGraph = false
+function modifyGraph(modificationFn: (graph: Graph) => void) {
+    try {
+        modifyingGraph = true
+        modificationFn(unref(graph))
+    } finally {
+        modifyingGraph = false
+    }
+    graphHasNodes.value = graph.value.nodes.length > 0
+    updateCollide(simulation, graph.value, config)
     restart()
 }
 
@@ -1377,7 +1398,7 @@ function restart(alpha: number = 0.5): void {
     }
 
     if (config.nodeAutoResizeToLabelSize) {
-        updateNodeLabelResizeObserverSelection()
+        // updateNodeLabelResizeObserverSelection()
     }
 
     simulation.nodes(graph.value.nodes)
@@ -1406,9 +1427,9 @@ function _replaceNodeShapeAndLabel(
     nodeShapeElement: SVGCircleElement | SVGRectElement,
     nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
 ) {
-    nodeLabelResizeObserver.unobserve(
-        <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
-    )
+    // nodeLabelResizeObserver.unobserve(
+    //     <Element>nodeContainer.selectChild('.graph-controller__node-label-container').node()
+    // )
     nodeShapeElement.remove()
     nodeContainer.selectChild('.graph-controller__node-label-container').remove()
     _appendNodeShapeAndLabel(nodeContainer)
@@ -2123,8 +2144,13 @@ function _redrawNodeContainer(node: GraphNode) {
 
     if (nodeContainer) {
         const nodeContainerParent = nodeContainer!.parentElement
+        // TODO Review rational for last change: Prior it had a strange effect where a rectangle was drawn over circles when the label was set.
+        // But actually, that shouldn't be necessary.
+        // But maybe it's because of the foreign element.
+        // But then it should be enough to remove the foreign element and recreate it.
+        const nextSibling = nodeContainer!.nextSibling
         nodeContainer!.remove()
-        nodeContainerParent!.append(nodeContainer)
+        nodeContainerParent.insertBefore(nodeContainer, nextSibling);
     }
 }
 

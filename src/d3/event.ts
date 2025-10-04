@@ -5,7 +5,7 @@ import type { GraphHost } from '@/d3/canvas'
 export function triggerNodeCreated(node: GraphNode, host: GraphHost) {
     const eventNodeCreated = new CustomEvent('nodecreated', {
         detail: {
-            node: { id: node.id, label: node.label, x: node.x, y: node.y }
+            node: { id: node.id, label: node.label, x: node.x, y: node.y, }
         }
     })
     host.node()!.dispatchEvent(eventNodeCreated)
