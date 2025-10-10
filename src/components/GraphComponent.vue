@@ -186,7 +186,7 @@ defineExpose({
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
-    toggleGraphEditingInGUI,
+    toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
     resetView
 })
@@ -194,23 +194,21 @@ defineExpose({
 type GraphConfigurationInput = Partial<
     Pick<
         GraphConfiguration,
-        | 'isGraphEditableInGUI'
         | 'zoomEnabled'
         | 'nodePhysicsEnabled'
         | 'fixedLinkDistanceEnabled'
         | 'showNodeLabels'
         | 'showLinkLabels'
+        | 'allowNodeCreationViaGUI'
         | 'nodeAutoGrowToLabelSize'
         | 'nodeProps'
-    > // > & {
+        | 'nodeGUIEditability'
+        | 'linkGUIEditability'
+    >
 >
 
 function setDefaults(configInput: GraphConfigurationInput) {
     //region graph-level
-    // editability
-    if (configInput.isGraphEditableInGUI !== undefined) {
-        toggleGraphEditingInGUI(configInput.isGraphEditableInGUI)
-    }
     // zoom
     if (configInput.zoomEnabled !== undefined) {
         toggleZoom(configInput.zoomEnabled)
@@ -232,11 +230,20 @@ function setDefaults(configInput: GraphConfigurationInput) {
     if (configInput.nodeAutoGrowToLabelSize !== undefined) {
         toggleNodeAutoGrow(configInput.nodeAutoGrowToLabelSize)
     }
+    // editability
+    if (configInput.allowNodeCreationViaGUI !== undefined) {
+        toggleNodeCreationViaGUI(configInput.allowNodeCreationViaGUI)
+    }
     //endregion
 
     //region individual element level
     //nodes
     config.nodeProps = configInput.nodeProps ?? config.nodeProps
+    //editability
+    config.nodeGUIEditability = (configInput.nodeGUIEditability ??
+        config.nodeGUIEditability) as Required<NodeGUIEditability>
+    config.linkGUIEditability = (configInput.linkGUIEditability ??
+        config.linkGUIEditability) as Required<LinkGUIEditability>
     //endregion
 
     restart()
@@ -998,8 +1005,8 @@ function toggleZoom(isEnabled: boolean) {
     resetView()
 }
 
-function toggleGraphEditingInGUI(isEnabled: boolean) {
-    config.isGraphEditableInGUI = isEnabled
+function toggleNodeCreationViaGUI(isEnabled: boolean) {
+    config.allowNodeCreationViaGUI = isEnabled
 }
 
 function toggleNodeAutoGrow(isEnabled: boolean) {
@@ -1028,10 +1035,10 @@ function initData() {
     canvas = createCanvas(
         graphHost.value!,
         zoom,
-        (event) => (config.isGraphEditableInGUI ? onPointerMovedBeginningFromNode(event) : null),
-        (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
+        (event) => (config.allowNodeCreationViaGUI ? onPointerMovedBeginningFromNode(event) : null),
+        (event) => (config.allowNodeCreationViaGUI ? onPointerUpNode(event) : null),
         (event) => {
-            if (config.isGraphEditableInGUI) {
+            if (config.allowNodeCreationViaGUI) {
                 createNode(
                     { ...config.nodeProps },
                     d3.pointer(event, canvas!.node())[0],
@@ -1125,8 +1132,8 @@ function createLink(
     target: GraphNode,
     label?: string,
     linkColor?: string,
-    isDeletableViaGUI: boolean = true,
-    isLabelEditableViaGUI: boolean = true
+    isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
 ): void {
     let newLink = graph.value.createLink(
         source.id,
@@ -1149,12 +1156,11 @@ function createNode(
     importedId?: string | number,
     label?: string,
     nodeColor?: string,
-    //TODO soon there will probably also be global editability config settings, which will replace the default values
-    hasFixedPosition: FixedAxis = { x: false, y: false },
-    isDeletableViaGUI: boolean = true,
-    isLabelEditableViaGUI: boolean = true,
-    allowIncomingLinks: boolean = true,
-    allowOutgoingLinks: boolean = true
+    hasFixedPosition: FixedAxis = config.nodeGUIEditability.fixedPosition,
+    isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
+    allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
 ): void {
     let newNode = graph.value.createNode(
         props,
@@ -1259,9 +1265,7 @@ function restart(alpha: number = 0.5): void {
                 .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
                     triggerLinkClicked(d, event.button, graphHost.value)
-                    if (config.isGraphEditableInGUI) {
-                        onPointerDownDeleteLink(event, d)
-                    }
+                    onPointerDownDeleteLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphLink) => {
                     onPointerUpLink(event, d)
@@ -1281,9 +1285,7 @@ function restart(alpha: number = 0.5): void {
                 .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
                 .text((d: GraphLink) => (d.label ? d.label : 'add label'))
                 .on('click', (event: PointerEvent, d: GraphLink) => {
-                    if (config.isGraphEditableInGUI) {
-                        onLinkLabelClicked(event, d)
-                    }
+                    onLinkLabelClicked(event, d)
                 })
                 .on('dblclick', (event: PointerEvent) => {
                     //a double click on a label, should not create a new node
@@ -1302,9 +1304,7 @@ function restart(alpha: number = 0.5): void {
                         </div>`
                 )
                 .on('click', (event: PointerEvent, d: GraphLink) => {
-                    if (config.isGraphEditableInGUI) {
-                        onLinkLabelClicked(event, d)
-                    }
+                    onLinkLabelClicked(event, d)
                 })
                 .on('dblclick', (event: PointerEvent) => {
                     //a double click on a label, should not create a new node
@@ -1363,7 +1363,7 @@ function restart(alpha: number = 0.5): void {
             d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'
         )
         .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
-        .classed('not-editable', !config.isGraphEditableInGUI)
+        .classed('not-editable', (d) => !d.labelEditable)
         .attr('startOffset', (d) => {
             if (d.pathType?.includes('REVERSE')) {
                 return '46%'
@@ -1391,14 +1391,10 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
                         lastPointerDownOnNodePosition = { x: event.x, y: event.y }
-                        if (config.isGraphEditableInGUI) {
-                            onPointerDownNode(event, d)
-                        }
+                        onPointerDownNode(event, d)
                     })
                     .on('pointerup', (event: PointerEvent, d: GraphNode) => {
-                        if (config.isGraphEditableInGUI) {
-                            onPointerUpNode(event, d)
-                        }
+                        onPointerUpNode(event, d)
                     })
                 //node shape, size and label
                 return _appendNodeShapeAndLabel(nodeContainerGroup)
@@ -1429,7 +1425,7 @@ function restart(alpha: number = 0.5): void {
         )
         .classed('controls-node-size', config.nodeAutoGrowToLabelSize)
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
-        .classed('not-editable', !config.isGraphEditableInGUI)
+        .classed('not-editable', (d) => !d.labelEditable)
         .text((d) => (d.label ? d.label : 'add label'))
 
     //version will only be injected until MathJax is initialized
@@ -1538,9 +1534,7 @@ function _appendNodeShapeAndLabel(
     nodeForeignObject
         .append('xhtml:div')
         .on('click', (event: PointerEvent, d: GraphNode) => {
-            if (config.isGraphEditableInGUI) {
-                onNodeLabelClicked(event, d)
-            }
+            onNodeLabelClicked(event, d)
         })
         .on('dblclick', (event: PointerEvent) => {
             //a double click on a label, should not create a new node
@@ -1775,20 +1769,18 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
  * @param node
  */
 function _onPointerDownDeleteNode(node: GraphNode): void {
-    if (config.isGraphEditableInGUI) {
-        let r = graph.value.removeNode(node)
-        if (r !== undefined) {
-            let [removedNode, removedLinks] = r
-            triggerNodeDeleted(removedNode, graphHost.value)
-            removedLinks.forEach((link) => {
-                triggerLinkDeleted(link, graphHost.value)
-            })
-            updateCollide(simulation, graph.value, config)
-        }
-        graphHasNodes.value = graph.value.nodes.length > 0
-        _resetDraggableLink()
-        restart()
+    let r = graph.value.removeNode(node)
+    if (r !== undefined) {
+        let [removedNode, removedLinks] = r
+        triggerNodeDeleted(removedNode, graphHost.value)
+        removedLinks.forEach((link) => {
+            triggerLinkDeleted(link, graphHost.value)
+        })
+        updateCollide(simulation, graph.value, config)
     }
+    graphHasNodes.value = graph.value.nodes.length > 0
+    _resetDraggableLink()
+    restart()
 }
 
 /**
@@ -2000,15 +1992,13 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
  */
 function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
-    if (config.isGraphEditableInGUI) {
-        let removedLink = graph.value.removeLink(link)
-        if (removedLink !== undefined) {
-            triggerLinkDeleted(removedLink, graphHost.value)
-        }
-        if (color) {
-            if (!graph.value.hasNonDefaultLinkColor(color)) {
-                deleteLinkMarkerColored(canvas!, graphHostId.value, color)
-            }
+    let removedLink = graph.value.removeLink(link)
+    if (removedLink !== undefined) {
+        triggerLinkDeleted(removedLink, graphHost.value)
+    }
+    if (color) {
+        if (!graph.value.hasNonDefaultLinkColor(color)) {
+            deleteLinkMarkerColored(canvas!, graphHostId.value, color)
         }
     }
     restart()

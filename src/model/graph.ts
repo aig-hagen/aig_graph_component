@@ -15,12 +15,11 @@ export default class Graph {
         importedId?: string | number,
         label?: string,
         color?: string,
-        //TODO soon there will probably also be global editability config settings, which will replace the default values
-        fixedPosition: FixedAxis = { x: false, y: false },
-        deletable: boolean = true,
-        labelEditable: boolean = true,
-        allowIncomingLinks: boolean = true,
-        allowOutgoingLinks: boolean = true
+        fixedPosition?: FixedAxis,
+        deletable?: boolean,
+        labelEditable?: boolean,
+        allowIncomingLinks?: boolean,
+        allowOutgoingLinks?: boolean
     ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -45,9 +44,8 @@ export default class Graph {
         targetId: number,
         label?: string,
         color?: string,
-        //TODO soon there will probably also be global editability config settings, which will replace the default values
-        deletable: boolean = true,
-        labelEditable: boolean = true
+        deletable?: boolean,
+        labelEditable?: boolean
     ): GraphLink | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId

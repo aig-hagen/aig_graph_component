@@ -60,15 +60,14 @@ to elements created after the default settings are set, and only if those elemen
 individual settings specified.
 
 #### Graph-Level Props
-- `isGraphEditableInGUI`
-  - whether nodes and links are *deletable* and their *label is editable*
-  - regardless of this, nodes can still be dragged  
-  - for more fine granular editing options, configure it on [individual element level](#editability-1)
 - `zoomEnabled`
 - `nodePhysicsEnabled`
 - `fixedLinkDistanceEnabled`
 - `showNodeLabels`
 - `showLinkLabels`
+- `allowNodeCreationViaGUI`
+  - whether graph nodes can be created via double-clicking on the canvas
+  - *for detailed element editability settings, see the [individual element level](#editability-1)*
 - `nodeAutoGrowToLabelSize`
   - if set to true, the *nodes can grow dynamically* to match the labels size
     - words in the label will stay on a single line (no horizontal wrapping)
@@ -78,18 +77,23 @@ individual settings specified.
 #### Individual-Element-Level Props
 - `nodeProps`
   - expects a [node property object](#shape-and-size) with a different structure regarding the chosen shape
-
+- `nodeGUIEditability`
+  - defines how nodes can be edited via the GUI
+  - expects a [node GUI editability object](#editability-convenience-function)
+- `linkGUIEditability`
+  - defines how links can be edited via the GUI
+  - expects a [node GUI editability object](#editability-convenience-function)
 
 #### Example of a full config input object
 ```typescript 
 instance.setDefaults(
     {
-        isGraphEditableInGUI: true,
         zoomEnabled: false,
         nodePhysicsEnabled: false,
         fixedLinkDistanceEnabled: false,
         showNodeLabels: true,
         showLinkLabels: true,
+        allowNodeCreationViaGUI: true,
         nodeAutoGrowToLabelSize: false,
         nodeProps: {
             shape: 'rect',
@@ -97,6 +101,17 @@ instance.setDefaults(
             height: 24,
             cornerRadius: 4,
             reflexiveEdgeStart: 'MOVABLE'
+        },
+        nodeGUIEditability: {
+            fixedPosition: { x: false, y: false },
+            deletable: true,
+            labelEditable: true,
+            allowIncomingLinks: true,
+            allowOutgoingLinks: true
+        },
+        linkGUIEditability: {
+            deletable: true,
+            labelEditable: true
         }
     }
 )
@@ -118,7 +133,7 @@ let graphAsObject = {
     {id: 2, label: "c"}
   ],
   links: [
-    {sourceId: 0, targetId: 1, label: "$\text{a_0 to b}$"},
+    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$"},
     {sourceId: 2, targetId: 2, label: "c to c"}
   ]
 }
@@ -133,7 +148,7 @@ let graphAsObjectWithEditability = {
     {id: 2, label: "c", deletable: false, allowIncomingLinks: false, allowOutgoingLinks: false}
   ],
   links: [
-    {sourceId: 0, targetId: 1, label: "$\text{a_0 to b}$", deletable: true},
+    {sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b}$", deletable: true},
     {sourceId: 2, targetId: 2, label: "c to c", labelEditable: false}
   ]
 }
@@ -142,7 +157,7 @@ let graphAsObjectWithEditability = {
 ##### TGF
 ```javascript
 //graph as tgf with optional normal and LaTeX label
-let graphAsTgf = "0 $a_0$\n 1 b\n 2 c\n#\n 0 1 \text{$a_0 to b$}\n 2 2 c to c"
+let graphAsTgf = "0 $a_0$\n 1 b\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
 ```
 *Positioning and the editability options are only available in the object notation.*
 
@@ -230,15 +245,16 @@ instance.toggleNodeAutoGrow(true)
 ```
 
 #### Editability
-If we want to embed the component and only display the graph without
-allowing users to add or remove nodes or links, or edit labels via the GUI 
-*(dragging is still allowed and editing options via API remain available)*,
-we can use `toggleGraphEditingInGUI`.
+We can control whether users are allowed to create new nodes by double-clicking on the canvas using `toggleNodeCreationViaGUI`.
 
 ```javascript
-instance.toggleGraphEditingInGUI(false)
+instance.toggleNodeCreationViaGUI(false)
 ```
 More fine-granular editability options are also available at [individual element level](#editability-1).
+
+>[TIP]
+> This can be useful, for example, when embedding the component to display a graph for users
+to interact with while limit their capabilities to edit something.
 
 #### Simulation Behaviour
 
@@ -278,7 +294,7 @@ We can change the labels of existing nodes and links via their id with `setLabel
 //setting a new label for the nodes with id 0 and 1 and the link between it
 instance.setLabel("new label", [0, 1, "1-0"])
 //setting node with id 2 with a latex label
-instance.setLabel("$\text{this is }g_2$")
+instance.setLabel("$this\\ is\\ g_2$")
 ```
 
 ##### Changing Color
@@ -328,10 +344,6 @@ instance.deleteElement()
 #### Editability
 We have precise control over **what can be edited through the GUI** using the IDs of the specific nodes and links.
 
->[!NOTE] 
-> If any of this is set for an element, 
-this overrides the default behaviour set with `isGraphEditableInGUI`for this specific element.
-
 ##### Deletion and Label Editing
 We can set whether nodes or links can be **deleted** with `setDeletable` and whether labels of nodes or links can be 
 **edited** using `setLabelEditable`.
@@ -371,6 +383,7 @@ instance.setNodesFixedPosition(true)
 
 Additionally, we can control whether certain nodes are allowed to have incoming and
 outgoing links with `setNodesLinkPermission(bool, bool)`.
+Existing links on the nodes are not affected.
 
 ```javascript
 // only allow incoming links but no outgoing ones for the nodes with id 2 and 3
@@ -382,7 +395,7 @@ instance.setNodesLinkPermission(false, false)
 
 ##### Editability Convenience Function
 To set all the editability parameter at once, we can use `setEditability(editabilityObject, id(s))`
-with an editability-object and the specific ids as parameters.
+with an *editability-object* and the specific ids as parameters.
 
 - Nodes editability object:`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`
 - Links editability object:`{deletable, labelEditable}`
