@@ -1,7 +1,7 @@
 import { GraphLink } from '@/model/graph-link'
 import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
-import type { NodeShape } from '@/model/node-shape'
+import type { NodeProps } from '@/model/config'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -9,27 +9,26 @@ export default class Graph {
     public readonly links: GraphLink[] = []
 
     public createNode(
+        props: NodeProps,
         x?: number,
         y?: number,
         importedId?: string | number,
         label?: string,
         color?: string,
-        shape?: NodeShape,
-        //TODO soon there will probably also be global editability config settings, which will replace the default values
-        fixedPosition: FixedAxis = { x: false, y: false },
-        deletable: boolean = true,
-        labelEditable: boolean = true,
-        allowIncomingLinks: boolean = true,
-        allowOutgoingLinks: boolean = true
+        fixedPosition?: FixedAxis,
+        deletable?: boolean,
+        labelEditable?: boolean,
+        allowIncomingLinks?: boolean,
+        allowOutgoingLinks?: boolean
     ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
+            props,
             importedId,
             x,
             y,
             label,
             color,
-            shape,
             fixedPosition,
             deletable,
             labelEditable,
@@ -45,9 +44,8 @@ export default class Graph {
         targetId: number,
         label?: string,
         color?: string,
-        //TODO soon there will probably also be global editability config settings, which will replace the default values
-        deletable: boolean = true,
-        labelEditable: boolean = true
+        deletable?: boolean,
+        labelEditable?: boolean
     ): GraphLink | undefined {
         const existingLink = this.links.find(
             (l) => l.source.id === sourceId && l.target.id === targetId
@@ -206,20 +204,22 @@ export default class Graph {
     }
 
     /** Formats the graph in a json like graph format.
+     * @param includeNodePosition if position should be included
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
+     * @param includeNodeProps if node props should be included
      * @param includeNodeColor if node color should be included
      * @param includeLinkColor if link color should be included
-     * @param includeNodePosition if position should be included
      * @param includeNodeEditability if editability of node via GUI should be included
      * @param includeLinkEditability if editability of link via GUI should be included
      * @returns The graph in JSON format*/
     public toJSON(
+        includeNodePosition: boolean = true,
         includeNodeLabels: boolean = true,
         includeLinkLabels: boolean = true,
+        includeNodeProps: boolean = true,
         includeNodeColor: boolean = true,
         includeLinkColor: boolean = true,
-        includeNodePosition: boolean = true,
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true
     ): string {
@@ -228,9 +228,10 @@ export default class Graph {
                 Object.entries(node).filter(([key]) => {
                     return (
                         key === 'id' ||
-                        (includeNodeLabels && key === 'label') ||
-                        (includeNodeColor && key === 'color') ||
                         (includeNodePosition && (key === 'x' || key === 'y')) ||
+                        (includeNodeLabels && key === 'label') ||
+                        (includeNodeProps && key === 'props') ||
+                        (includeNodeColor && key === 'color') ||
                         (includeNodeEditability &&
                             [
                                 'fixedPosition',

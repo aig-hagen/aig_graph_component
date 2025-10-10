@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeMount, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 //component
 import GraphControls from '@/components/GraphControls.vue'
 //d3
@@ -12,7 +12,12 @@ import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
-import { createSimulation, setFixedLinkDistance, setNodeChargeAndAttraction } from '@/d3/simulation'
+import {
+    createSimulation,
+    setFixedLinkDistance,
+    setNodeChargeAndAttraction,
+    updateCollide
+} from '@/d3/simulation'
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
 import {
     terminate,
@@ -22,7 +27,8 @@ import {
     triggerLinkDeleted,
     triggerNodeClicked,
     triggerNodeCreated,
-    triggerNodeDeleted
+    triggerNodeDeleted,
+    triggerNodeRenderedSizeChange
 } from '@/d3/event'
 //model
 import Graph from '@/model/graph'
@@ -31,6 +37,7 @@ import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
 import {
     GraphConfigDefault,
+    type GraphConfiguration,
     type NodeCircle,
     type NodeProps,
     type NodeRect,
@@ -116,10 +123,6 @@ const graphHostId = computed(() => {
     return id ? id : 'gc'
 })
 
-onBeforeMount(() => {
-    initFromLocalStorage()
-})
-
 onMounted(() => {
     initData()
     window.addEventListener('resize', handleWindowResize)
@@ -159,9 +162,11 @@ let yOffset = 0
 let scale = 1
 let longRightClickTimerNode: number
 let longRightClickTimerLink: number
+let nodeLabelResizeObserver: ResizeObserver
 
 //exposing for API
 defineExpose({
+    setDefaults,
     getGraph,
     setGraph,
     printGraph,
@@ -181,25 +186,86 @@ defineExpose({
     toggleZoom,
     toggleNodePhysics,
     toggleFixedLinkDistance,
-    toggleGraphEditingInGUI,
+    toggleNodeCreationViaGUI,
+    toggleNodeAutoGrow,
     resetView
 })
+
+type GraphConfigurationInput = Partial<
+    Pick<
+        GraphConfiguration,
+        | 'zoomEnabled'
+        | 'nodePhysicsEnabled'
+        | 'fixedLinkDistanceEnabled'
+        | 'showNodeLabels'
+        | 'showLinkLabels'
+        | 'allowNodeCreationViaGUI'
+        | 'nodeAutoGrowToLabelSize'
+        | 'nodeProps'
+        | 'nodeGUIEditability'
+        | 'linkGUIEditability'
+    >
+>
+
+function setDefaults(configInput: GraphConfigurationInput) {
+    //region graph-level
+    // zoom
+    if (configInput.zoomEnabled !== undefined) {
+        toggleZoom(configInput.zoomEnabled)
+    }
+    // simulation
+    if (configInput.nodePhysicsEnabled !== undefined) {
+        toggleNodePhysics(configInput.nodePhysicsEnabled)
+    }
+    if (configInput.fixedLinkDistanceEnabled !== undefined) {
+        toggleFixedLinkDistance(configInput.fixedLinkDistanceEnabled)
+    }
+    //labels and auto resize
+    if (configInput.showNodeLabels !== undefined) {
+        toggleNodeLabels(configInput.showNodeLabels)
+    }
+    if (configInput.showLinkLabels !== undefined) {
+        toggleLinkLabels(configInput.showLinkLabels)
+    }
+    if (configInput.nodeAutoGrowToLabelSize !== undefined) {
+        toggleNodeAutoGrow(configInput.nodeAutoGrowToLabelSize)
+    }
+    // editability
+    if (configInput.allowNodeCreationViaGUI !== undefined) {
+        toggleNodeCreationViaGUI(configInput.allowNodeCreationViaGUI)
+    }
+    //endregion
+
+    //region individual element level
+    //nodes
+    config.nodeProps = configInput.nodeProps ?? config.nodeProps
+    //editability
+    config.nodeGUIEditability = (configInput.nodeGUIEditability ??
+        config.nodeGUIEditability) as Required<NodeGUIEditability>
+    config.linkGUIEditability = (configInput.linkGUIEditability ??
+        config.linkGUIEditability) as Required<LinkGUIEditability>
+    //endregion
+
+    restart()
+}
 
 //region functions that are solely used as exposed ones
 function getGraph(
     format: string = 'json',
+    includeNodePosition: boolean = true,
+    includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includePosition: boolean = true,
     includeEditability: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         return JSON.parse(
             graph.value.toJSON(
+                includeNodePosition,
+                config.showNodeLabels,
                 config.showLinkLabels,
-                config.showLinkLabels,
+                includeNodeProps,
                 includeColor,
                 includeColor,
-                includePosition,
                 includeEditability,
                 includeEditability
             )
@@ -221,18 +287,20 @@ function setGraph(graphToSet: string | jsonGraph | undefined) {
 
 function printGraph(
     format: string = 'json',
+    includeNodePosition: boolean = true,
+    includeNodeProps: boolean = true,
     includeColor: boolean = true,
-    includePosition: boolean = true,
     includeEditability: boolean = true
 ) {
     if (format.toLowerCase() === 'json') {
         console.log(
             graph.value.toJSON(
+                includeNodePosition,
+                config.showNodeLabels,
                 config.showLinkLabels,
-                config.showLinkLabels,
+                includeNodeProps,
                 includeColor,
                 includeColor,
-                includePosition,
                 includeEditability,
                 includeEditability
             )
@@ -380,91 +448,168 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
 }
 
 /**
- * Exposed function to set the size of nodes.
+ * Exposed function to set the size of individual nodes via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes
+ * (but does not affect nodes created in the future).
  * Behavior depends on the type of `size` provided and the shape of the node.
  *
  * @param size - Either a `number` or an object defining the node size:
  *
  *   If a `number` is provided:
  *   - For circular nodes: used as the radius.
- *   - For rectangular nodes: sets the width and, if `sizeY` is not provided, also the height.
+ *   - For rectangular nodes: sets the width and the height.
  *
  *   If an object is provided:
  *   - `{ radius: number }` for circular nodes.
  *   - `{ width: number, height: number }` for rectangular nodes.
  *
- * @param sizeY - Optional height for rectangular nodes, only used if `size` is a number.
+ * @param ids
  */
-function setNodeSize(size: NodeSize, sizeY?: number) {
-    if (
-        typeof size === 'number' &&
-        typeof sizeY === 'number' &&
-        config.nodeProps.shape === NodeShape.RECTANGLE
-    ) {
-        config.nodeSize = { width: size, height: sizeY }
-    } else if (typeof size === 'number') {
-        config.nodeSize = size
-    } else if (
-        (config.nodeProps.shape === NodeShape.CIRCLE &&
-            checkForAllNecessaryKeys(['radius'], Object.keys(size), false)) ||
-        (config.nodeProps.shape === NodeShape.RECTANGLE &&
-            checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false))
-    ) {
-        config.nodeSize = size
-    } else {
-        showError(
-            'Invalid Size Object',
-            'For circular nodes: {radius: number}\n' +
-                'For rectangular nodes: {width: number, height: number}'
-        )
-    }
-    resetView()
-}
+function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
 
-/**
- * Exposed function to set the shape of the nodes.
- * @param shapeToSet
- */
-function setNodeShape(shapeToSet: NodeShape | string) {
-    if (shapeToSet === 'circle') shapeToSet = NodeShape.CIRCLE
-    else if (shapeToSet === 'rect') shapeToSet = NodeShape.RECTANGLE
-    else {
-        showError('Invalid Shape', "For circular nodes: 'circle'\nFor rectangular nodes: 'rect'")
-        return
-    }
-    let currentSize = config.nodeSize
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    let labelBB, renderingSize
+                    if (config.nodeAutoGrowToLabelSize) {
+                        let labelDiv = d3
+                            .select(this)
+                            .select('foreignObject')
+                            .select('div')
+                            .node() as HTMLDivElement
+                        labelBB = labelDiv.getBoundingClientRect()
+                    }
 
-    if (config.nodeProps.shape !== shapeToSet) {
-        if (shapeToSet === NodeShape.CIRCLE) {
-            config.nodeProps = {
-                shape: shapeToSet,
-                radius: (currentSize as NodeSizeRect).width / 2
-            }
-
-            for (let node of graph.value.nodes) {
-                node.x = node.x! + config.nodeProps.radius
-                node.y = node.y! + config.nodeProps.radius
-            }
-        } else if (shapeToSet === NodeShape.RECTANGLE) {
-            config.nodeProps = {
-                shape: shapeToSet,
-                width: (currentSize as NodeSizeCircle).radius * 2,
-                height: (currentSize as NodeSizeCircle).radius * 2,
-                cornerRadius: 4,
-                reflexiveEdgeStart: 'MOVABLE'
-            }
-
-            for (let node of graph.value.nodes) {
-                node.x = node.x! - config.nodeProps.width / 2
-                node.y = node.y! - config.nodeProps.height / 2
-            }
+                    if (typeof size === 'number') {
+                        d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
+                    } else if (
+                        d.props.shape === NodeShape.CIRCLE &&
+                        checkForAllNecessaryKeys(['radius'], Object.keys(size), true)
+                    ) {
+                        d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
+                    } else if (
+                        d.props.shape === NodeShape.RECTANGLE &&
+                        checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), true)
+                    ) {
+                        d.setSize(size, config)
+                        config.nodeAutoGrowToLabelSize && labelBB
+                            ? (renderingSize = labelBB)
+                            : (renderingSize = { width: 0, height: 0 })
+                        _updateRenderedNodeSize(d, renderingSize)
+                    }
+                })
         }
-        resetView()
+    } else {
+        nodeSelection!.each(function (d) {
+            let labelBB, renderingSize
+            if (config.nodeAutoGrowToLabelSize) {
+                let labelDiv = d3
+                    .select(this)
+                    .select('foreignObject')
+                    .select('div')
+                    .node() as HTMLDivElement
+                labelBB = labelDiv.getBoundingClientRect()
+            }
+
+            if (typeof size === 'number') {
+                d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
+            } else if (
+                d.props.shape === NodeShape.CIRCLE &&
+                checkForAllNecessaryKeys(['radius'], Object.keys(size), false)
+            ) {
+                d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
+            } else if (
+                d.props.shape === NodeShape.RECTANGLE &&
+                checkForAllNecessaryKeys(['width', 'height'], Object.keys(size), false)
+            ) {
+                d.setSize(size, config)
+                config.nodeAutoGrowToLabelSize && labelBB
+                    ? (renderingSize = labelBB)
+                    : (renderingSize = { width: 0, height: 0 })
+                _updateRenderedNodeSize(d, renderingSize)
+            }
+        })
     }
+
+    restart()
 }
 
 /**
- * Exposed function to set the nodes properties.
+ * Exposed function to set the individual node shape via id.
+ * If no ids are provided, it is set for all currently existing nodes.
+ * @param shape
+ * @param ids
+ */
+function setNodeShape(shape: NodeShape, ids: number[] | number | undefined) {
+    if (ids !== undefined) {
+        const [nodeIds, _] = separateNodeAndLinkIds(ids)
+
+        for (const id of nodeIds) {
+            nodeSelection!
+                .filter((d) => d.id === id)
+                .each(function (d) {
+                    if (d.props.shape !== shape) {
+                        let labelDiv, labelBB
+                        if (config.nodeAutoGrowToLabelSize) {
+                            labelDiv = d3
+                                .select(this)
+                                .select('foreignObject')
+                                .select('div')
+                                .node() as HTMLDivElement
+
+                            labelBB = labelDiv.getBoundingClientRect()
+                        }
+                        d.setShape(shape, config)
+                        if (config.nodeAutoGrowToLabelSize && labelBB) {
+                            _updateRenderedNodeSize(d, labelBB)
+                        }
+                    }
+                })
+        }
+    } else {
+        nodeSelection!.each(function (d) {
+            if (d.props.shape !== shape) {
+                let labelDiv, labelBB
+                if (config.nodeAutoGrowToLabelSize) {
+                    labelDiv = d3
+                        .select(this)
+                        .select('foreignObject')
+                        .select('div')
+                        .node() as HTMLDivElement
+
+                    labelBB = labelDiv.getBoundingClientRect()
+                }
+                d.setShape(shape, config)
+                if (config.nodeAutoGrowToLabelSize && labelBB) {
+                    _updateRenderedNodeSize(d, labelBB)
+                }
+            }
+        })
+    }
+    restart()
+}
+
+/**
+ * Exposed function to set the individual nodes properties.
  *
  * For rectangular properties a width-to-height ratio smaller than 1:10 is recommended.
  *
@@ -475,14 +620,64 @@ function setNodeShape(shapeToSet: NodeShape | string) {
  *
  * @param nodeProps - `{shape: 'circle', radius: number}` or
  * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
+ * @param ids
  */
-function setNodeProps(nodeProps: NodeProps) {
+function setNodeProps(
+    nodeProps: NodeProps,
+    ids: string[] | number[] | string | number | undefined
+) {
     if (checkForAllNecessaryKeys(['shape'], Object.keys(nodeProps), false)) {
+        let nodeIds
+
+        ids !== undefined ? ([nodeIds] = separateNodeAndLinkIds(ids)) : (nodeIds = undefined)
+
         if (nodeProps.shape === NodeShape.CIRCLE) {
             const nodeCircleKeys: (keyof NodeCircle)[] = ['shape', 'radius']
 
             if (checkForAllNecessaryKeys(nodeCircleKeys, Object.keys(nodeProps), true)) {
-                config.nodeProps = nodeProps
+                if (nodeIds !== undefined) {
+                    for (const id of nodeIds) {
+                        nodeSelection!
+                            .filter((d) => d.id === id)
+                            .each(function (d) {
+                                d.props = nodeProps
+
+                                let renderingSize
+                                if (config.nodeAutoGrowToLabelSize) {
+                                    let labelDiv, labelBB
+                                    labelDiv = d3
+                                        .select(this)
+                                        .select('foreignObject')
+                                        .select('div')
+                                        .node() as HTMLDivElement
+                                    labelBB = labelDiv.getBoundingClientRect()
+                                    renderingSize = labelBB
+                                } else {
+                                    renderingSize = { width: 0, height: 0 }
+                                }
+                                _updateRenderedNodeSize(d, renderingSize)
+                            })
+                    }
+                } else {
+                    nodeSelection!.each(function (d) {
+                        d.props = nodeProps
+
+                        let renderingSize
+                        if (config.nodeAutoGrowToLabelSize) {
+                            let labelDiv, labelBB
+                            labelDiv = d3
+                                .select(this)
+                                .select('foreignObject')
+                                .select('div')
+                                .node() as HTMLDivElement
+                            labelBB = labelDiv.getBoundingClientRect()
+                            renderingSize = labelBB
+                        } else {
+                            renderingSize = { width: 0, height: 0 }
+                        }
+                        _updateRenderedNodeSize(d, renderingSize)
+                    })
+                }
             }
             checkForNotValidKeys(nodeCircleKeys, Object.keys(nodeProps), true)
         } else if (nodeProps.shape === NodeShape.RECTANGLE) {
@@ -499,17 +694,60 @@ function setNodeProps(nodeProps: NodeProps) {
                     Object.values(SideType).includes(nodeProps.reflexiveEdgeStart as SideType) ||
                     nodeProps.reflexiveEdgeStart === 'MOVABLE'
                 ) {
-                    config.nodeProps = nodeProps
-                } else {
-                    showError(
-                        'Invalid reflexiveEdgeStart Value',
-                        'Use RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT or MOVABLE.'
-                    )
+                    if (nodeIds !== undefined) {
+                        for (const id of nodeIds) {
+                            nodeSelection!
+                                .filter((d) => d.id === id)
+                                .each(function (d) {
+                                    d.props = nodeProps
+
+                                    let renderingSize
+                                    if (config.nodeAutoGrowToLabelSize) {
+                                        let labelDiv, labelBB
+                                        labelDiv = d3
+                                            .select(this)
+                                            .select('foreignObject')
+                                            .select('div')
+                                            .node() as HTMLDivElement
+                                        labelBB = labelDiv.getBoundingClientRect()
+                                        renderingSize = labelBB
+                                    } else {
+                                        renderingSize = { width: 0, height: 0 }
+                                    }
+                                    _updateRenderedNodeSize(d, renderingSize)
+                                })
+                        }
+                    } else {
+                        nodeSelection!.each(function (d) {
+                            d.props = nodeProps
+
+                            let renderingSize
+                            if (config.nodeAutoGrowToLabelSize) {
+                                let labelDiv, labelBB
+                                labelDiv = d3
+                                    .select(this)
+                                    .select('foreignObject')
+                                    .select('div')
+                                    .node() as HTMLDivElement
+                                labelBB = labelDiv.getBoundingClientRect()
+                                renderingSize = labelBB
+                            } else {
+                                renderingSize = { width: 0, height: 0 }
+                            }
+                            _updateRenderedNodeSize(d, renderingSize)
+                        })
+                    }
                 }
+            } else {
+                showError(
+                    'Invalid reflexiveEdgeStart Value',
+                    'Use RIGHT, BOTTOMRIGHT, BOTTOM, BOTTOMLEFT, LEFT, TOPLEFT, TOP, TOPRIGHT or MOVABLE.'
+                )
             }
             checkForNotValidKeys(nodeRectKeys, Object.keys(nodeProps), true)
         }
-        resetView()
+
+        restart()
     } else {
         showError(
             'Invalid NodeProps Object',
@@ -767,39 +1005,25 @@ function toggleZoom(isEnabled: boolean) {
     resetView()
 }
 
-function toggleGraphEditingInGUI(isEnabled: boolean) {
-    config.isGraphEditableInGUI = isEnabled
+function toggleNodeCreationViaGUI(isEnabled: boolean) {
+    config.allowNodeCreationViaGUI = isEnabled
+}
+
+function toggleNodeAutoGrow(isEnabled: boolean) {
+    config.nodeAutoGrowToLabelSize = isEnabled
+
+    if (!isEnabled) {
+        nodeLabelResizeObserver.disconnect()
+
+        nodeSelection!.each(function (d) {
+            _updateRenderedNodeSize(d, { width: 0, height: 0 })
+        })
+    }
+
+    restart()
 }
 
 //endregion
-
-/**
- * Inits the graph configuration with the settings from the local storage.
- */
-function initFromLocalStorage() {
-    const stringToBoolean = (text: string) => (text === 'false' ? false : !!text)
-
-    //config
-    if (localStorage.showNodeLabels) {
-        config.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
-    }
-    if (localStorage.enableNodePhysics) {
-        config.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
-    }
-    if (localStorage.showLinkLabels) {
-        config.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
-    }
-    if (localStorage.enableFixedLinkDistance) {
-        config.fixedLinkDistanceEnabled = stringToBoolean(localStorage.enableFixedLinkDistance)
-    }
-    if (localStorage.enableZoom) {
-        config.zoomEnabled = stringToBoolean(localStorage.enableZoom)
-    }
-
-    if (localStorage.persistSettings) {
-        config.persistSettingsLocalStorage = stringToBoolean(localStorage.persistSettings)
-    }
-}
 
 function initData() {
     width = graphHost.value.node()!.clientWidth
@@ -811,21 +1035,15 @@ function initData() {
     canvas = createCanvas(
         graphHost.value!,
         zoom,
-        (event) => (config.isGraphEditableInGUI ? onPointerMovedBeginningFromNode(event) : null),
-        (event) => (config.isGraphEditableInGUI ? onPointerUpNode(event) : null),
+        (event) => (config.allowNodeCreationViaGUI ? onPointerMovedBeginningFromNode(event) : null),
+        (event) => (config.allowNodeCreationViaGUI ? onPointerUpNode(event) : null),
         (event) => {
-            if (config.isGraphEditableInGUI) {
-                if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                    createNode(
-                        d3.pointer(event, canvas!.node())[0] - 0.5 * config.nodeProps.width,
-                        d3.pointer(event, canvas!.node())[1] - 0.5 * config.nodeProps.height
-                    )
-                } else {
-                    createNode(
-                        d3.pointer(event, canvas!.node())[0],
-                        d3.pointer(event, canvas!.node())[1]
-                    )
-                }
+            if (config.allowNodeCreationViaGUI) {
+                createNode(
+                    { ...config.nodeProps },
+                    d3.pointer(event, canvas!.node())[0],
+                    d3.pointer(event, canvas!.node())[1]
+                )
             }
         }
     )
@@ -835,7 +1053,68 @@ function initData() {
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
     drag = createDrag(simulation, width, height, config)
+    nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
+}
+
+function createNodeLabelResizeObserver() {
+    return new ResizeObserver((entries) => {
+        let hasSizeChange = false
+        for (let entry of entries) {
+            const nodeLabel = entry
+            if (nodeLabel) {
+                const labelSize = {
+                    width: nodeLabel.borderBoxSize[0].inlineSize,
+                    height: nodeLabel.borderBoxSize[0].blockSize
+                }
+                const nodeLabelContainer = d3.select(nodeLabel.target)
+                const node = nodeLabelContainer.datum() as GraphNode
+
+                hasSizeChange = _updateRenderedNodeSize(node, labelSize)
+            }
+        }
+        if (hasSizeChange) {
+            restart()
+        }
+    })
+}
+
+/**
+ * Sets the node selection observed by the node label resize observer.
+ */
+function updateNodeLabelResizeObserverSelection() {
+    const nodeLabels = graphHost.value
+        .node()!
+        .querySelectorAll(
+            '.graph-controller__node-label, .graph-controller__node-label-placeholder'
+        )
+    nodeLabels.forEach((label) => nodeLabelResizeObserver.observe(label))
+}
+
+/**
+ * Updates the nodes rendered size so it is large enough to fit the given label size,
+ * but at least as large as the minimal size defined in the node properties.
+ * If the nodes rendered size was changed, the according event is triggered.
+ * @param node
+ * @param labelSize - Size of the label as bounding box
+ * @returns `true` if the nodes rendered size was changed and a rerender is needed,
+ * otherwise `false`
+ */
+function _updateRenderedNodeSize(node: GraphNode, labelSize: Pick<DOMRect, 'width' | 'height'>) {
+    let hasSizeChange = false
+    const prevSize = { ...node.renderedSize }
+
+    const radius = labelSize.width > labelSize.height ? labelSize.width / 2 : labelSize.height / 2
+    const width = labelSize.width
+    const height = labelSize.height
+    node.renderedSize = { width: width, height: height, radius: radius }
+
+    if (JSON.stringify(prevSize) !== JSON.stringify(node.renderedSize)) {
+        hasSizeChange = true
+        triggerNodeRenderedSizeChange(node, prevSize, graphHost.value)
+    }
+
+    return hasSizeChange
 }
 
 function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
@@ -853,8 +1132,8 @@ function createLink(
     target: GraphNode,
     label?: string,
     linkColor?: string,
-    isDeletableViaGUI: boolean = true,
-    isLabelEditableViaGUI: boolean = true
+    isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
 ): void {
     let newLink = graph.value.createLink(
         source.id,
@@ -871,26 +1150,25 @@ function createLink(
 }
 
 function createNode(
+    props: NodeProps,
     x?: number,
     y?: number,
     importedId?: string | number,
     label?: string,
     nodeColor?: string,
-    //TODO soon there will probably also be global editability config settings, which will replace the default values
-    nodeShape?: NodeShape,
-    hasFixedPosition: FixedAxis = { x: false, y: false },
-    isDeletableViaGUI: boolean = true,
-    isLabelEditableViaGUI: boolean = true,
-    allowIncomingLinks: boolean = true,
-    allowOutgoingLinks: boolean = true
+    hasFixedPosition: FixedAxis = config.nodeGUIEditability.fixedPosition,
+    isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
+    allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
 ): void {
     let newNode = graph.value.createNode(
+        props,
         x ?? width / 2,
         y ?? height / 2,
         importedId,
         label,
         nodeColor,
-        nodeShape,
         hasFixedPosition,
         isDeletableViaGUI,
         isLabelEditableViaGUI,
@@ -898,6 +1176,7 @@ function createNode(
         allowOutgoingLinks
     )
     triggerNodeCreated(newNode, graphHost.value)
+    updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
     restart()
 }
@@ -963,6 +1242,7 @@ function _updateDraggableLinkPath(): void {
     }
 }
 
+//region restart
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
         .data(graph.value.links, (d: GraphLink) => d.id)
@@ -985,9 +1265,7 @@ function restart(alpha: number = 0.5): void {
                 .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
                     triggerLinkClicked(d, event.button, graphHost.value)
-                    if (config.isGraphEditableInGUI) {
-                        onPointerDownDeleteLink(event, d)
-                    }
+                    onPointerDownDeleteLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphLink) => {
                     onPointerUpLink(event, d)
@@ -1007,9 +1285,7 @@ function restart(alpha: number = 0.5): void {
                 .attr('href', (d) => `#${graphHostId.value + '-link-' + d.id}`)
                 .text((d: GraphLink) => (d.label ? d.label : 'add label'))
                 .on('click', (event: PointerEvent, d: GraphLink) => {
-                    if (config.isGraphEditableInGUI) {
-                        onLinkLabelClicked(event, d)
-                    }
+                    onLinkLabelClicked(event, d)
                 })
                 .on('dblclick', (event: PointerEvent) => {
                     //a double click on a label, should not create a new node
@@ -1028,9 +1304,7 @@ function restart(alpha: number = 0.5): void {
                         </div>`
                 )
                 .on('click', (event: PointerEvent, d: GraphLink) => {
-                    if (config.isGraphEditableInGUI) {
-                        onLinkLabelClicked(event, d)
-                    }
+                    onLinkLabelClicked(event, d)
                 })
                 .on('dblclick', (event: PointerEvent) => {
                     //a double click on a label, should not create a new node
@@ -1089,7 +1363,7 @@ function restart(alpha: number = 0.5): void {
             d.label ? 'graph-controller__link-label' : 'graph-controller__link-label-placeholder'
         )
         .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
-        .classed('not-editable', !config.isGraphEditableInGUI)
+        .classed('not-editable', (d) => !d.labelEditable)
         .attr('startOffset', (d) => {
             if (d.pathType?.includes('REVERSE')) {
                 return '46%'
@@ -1103,7 +1377,8 @@ function restart(alpha: number = 0.5): void {
         .data(graph.value.nodes, (d) => d.id)
         .join(
             (enter) => {
-                const nodeGroup = enter
+                //node container
+                const nodeContainerGroup = enter
                     .append('g')
                     .classed('graph-controller__node-container', true)
                     .call(drag!)
@@ -1116,98 +1391,41 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
                         triggerNodeClicked(d, event.button, graphHost.value)
                         lastPointerDownOnNodePosition = { x: event.x, y: event.y }
-                        if (config.isGraphEditableInGUI) {
-                            onPointerDownNode(event, d)
-                        }
+                        onPointerDownNode(event, d)
                     })
                     .on('pointerup', (event: PointerEvent, d: GraphNode) => {
-                        if (config.isGraphEditableInGUI) {
-                            onPointerUpNode(event, d)
-                        }
+                        onPointerUpNode(event, d)
                     })
-
-                //shape
-                const nodeShape = nodeGroup
-                    .append(config.nodeProps.shape)
-                    .classed('graph-controller__node', true)
-                    .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
-                    .style('fill', (d) => (d.color ? d.color : ''))
-
-                if (config.nodeProps.shape === NodeShape.CIRCLE) {
-                    nodeShape.attr('r', config.nodeProps.radius)
-                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                    nodeShape
-                        .attr('width', config.nodeProps.width)
-                        .attr('height', config.nodeProps.height)
-                        .attr('rx', config.nodeProps.cornerRadius)
-                        .attr('ry', config.nodeProps.cornerRadius)
-                }
-
-                //label
-                const nodeForeignObject = nodeGroup
-                    .append('foreignObject')
-                    .classed('graph-controller__node-label-container', true)
-                    .attr('xmlns', 'http://www.w3.org/2000/svg')
-
-                if (config.nodeProps.shape === NodeShape.CIRCLE) {
-                    nodeForeignObject
-                        .attr('width', 2 * config.nodeProps.radius)
-                        .attr('height', 2 * config.nodeProps.radius)
-                        .attr('x', -config.nodeProps.radius)
-                        .attr('y', -config.nodeProps.radius)
-                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                    nodeForeignObject
-                        .attr('width', config.nodeProps.width)
-                        .attr('height', config.nodeProps.height)
-                }
-                nodeForeignObject
-                    .append('xhtml:div')
-                    .on('click', (event: PointerEvent, d: GraphNode) => {
-                        if (config.isGraphEditableInGUI) {
-                            onNodeLabelClicked(event, d)
-                        }
-                    })
-                    .on('dblclick', (event: PointerEvent) => {
-                        //a double click on a label, should not create a new node
-                        terminate(event)
-                    })
-                    .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
-                    .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
-
-                return nodeGroup
+                //node shape, size and label
+                return _appendNodeShapeAndLabel(nodeContainerGroup)
             },
             (update) => {
-                if (config.nodeProps.shape === NodeShape.CIRCLE) {
-                    update.selectChild('.graph-controller__node').attr('r', config.nodeProps.radius)
-                } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
-                    update
+                update.each(function (d) {
+                    const nodeContainer = d3.select<SVGGElement, GraphNode>(this)
+                    const currentShape = nodeContainer
                         .selectChild('.graph-controller__node')
-                        .attr('width', config.nodeProps.width)
-                        .attr('height', config.nodeProps.height)
-                        .attr('rx', config.nodeProps.cornerRadius)
-                        .attr('ry', config.nodeProps.cornerRadius)
-                }
+                        .node() as SVGCircleElement | SVGRectElement
 
-                update
-                    .selectChild('foreignObject')
-                    .selectChild('div')
-                    .classed(
-                        'hidden',
-                        (d) => !config.showNodeLabels || (!d.label && !d.labelEditable)
-                    )
-                    .classed('not-editable', !config.isGraphEditableInGUI)
-
+                    if (_hasShapeChange(d, currentShape)) {
+                        _replaceNodeShapeAndLabel(currentShape, nodeContainer)
+                        updateCollide(simulation, graph.value, config)
+                    } else {
+                        _updateNodeAndLabelSize(nodeContainer)
+                    }
+                })
                 return update
             }
         )
-
+    //node label visibility, editability and behaviour
     nodeSelection
         .selectChild('foreignObject')
         .selectChild('div')
         .attr('class', (d) =>
             d.label ? 'graph-controller__node-label' : 'graph-controller__node-label-placeholder'
         )
+        .classed('controls-node-size', config.nodeAutoGrowToLabelSize)
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
+        .classed('not-editable', (d) => !d.labelEditable)
         .text((d) => (d.label ? d.label : 'add label'))
 
     //version will only be injected until MathJax is initialized
@@ -1216,8 +1434,160 @@ function restart(alpha: number = 0.5): void {
             _handleLinkMathJax()
         })
     }
+
+    if (config.nodeAutoGrowToLabelSize) {
+        updateNodeLabelResizeObserverSelection()
+    }
+
     simulation.nodes(graph.value.nodes)
     simulation.alpha(alpha).restart()
+}
+
+/**
+ * Checks whether the node's shape prop differs from the currently rendered shape.
+ * @param node - GraphNode bound data
+ * @param nodeShapeElement - The currently rendered SVG shape element
+ * @returns True if the shape type differs from the node's data
+ */
+function _hasShapeChange(node: GraphNode, nodeShapeElement: SVGCircleElement | SVGRectElement) {
+    return (
+        (node.props.shape === NodeShape.CIRCLE && nodeShapeElement.tagName !== 'circle') ||
+        (node.props.shape === NodeShape.RECTANGLE && nodeShapeElement.tagName !== 'rect')
+    )
+}
+
+/**
+ * Replaces the current node shape and its label container with new ones based on the node's data.
+ * @param nodeShapeElement - The currently rendered SVG node shape element to be replaced
+ * @param nodeContainer - D3 Selection of the node container
+ */
+function _replaceNodeShapeAndLabel(
+    nodeShapeElement: SVGCircleElement | SVGRectElement,
+    nodeContainer: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    if (config.nodeAutoGrowToLabelSize) {
+        nodeLabelResizeObserver.unobserve(
+            <Element>(
+                nodeContainer
+                    .select(
+                        '.graph-controller__node-label, .graph-controller__node-label-placeholder'
+                    )
+                    .node()
+            )
+        )
+    }
+    nodeShapeElement.remove()
+    nodeContainer.selectChild('.graph-controller__node-label-container').remove()
+    _appendNodeShapeAndLabel(nodeContainer)
+}
+
+/**
+ * Appends the necessary elements for the node selections node shape and label inside the node container.
+ * @param nodeContainerGroup - D3 Selection of the node container, from the enter or update phase, to which it is appended
+ */
+function _appendNodeShapeAndLabel(
+    nodeContainerGroup: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    //shape circle
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .append(NodeShape.CIRCLE)
+        .classed('graph-controller__node', true)
+        .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
+        .attr('r', (d) => (d.renderedSize as NodeSizeCircle).radius)
+        .style('fill', (d) => (d.color ? d.color : ''))
+
+    //shape rect
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .append(NodeShape.RECTANGLE)
+        .classed('graph-controller__node', true)
+        .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
+        .attr('rx', (d) => (d.props as NodeRect).cornerRadius)
+        .attr('ry', (d) => (d.props as NodeRect).cornerRadius)
+        .style('fill', (d) => (d.color ? d.color : ''))
+
+    //label
+    const nodeForeignObject = nodeContainerGroup
+        .append('foreignObject')
+        .classed('graph-controller__node-label-container', true)
+        .attr('xmlns', 'http://www.w3.org/2000/svg')
+
+    nodeForeignObject
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .attr('width', (d) => 2 * (d.renderedSize as NodeSizeCircle).radius)
+        .attr('height', (d) => 2 * (d.renderedSize as NodeSizeCircle).radius)
+        .attr('x', (d) => -(d.renderedSize as NodeSizeCircle).radius)
+        .attr('y', (d) => -(d.renderedSize as NodeSizeCircle).radius)
+
+    nodeForeignObject
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
+
+    nodeForeignObject
+        .append('xhtml:div')
+        .on('click', (event: PointerEvent, d: GraphNode) => {
+            onNodeLabelClicked(event, d)
+        })
+        .on('dblclick', (event: PointerEvent) => {
+            //a double click on a label, should not create a new node
+            terminate(event)
+        })
+        .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
+        .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
+
+    return nodeContainerGroup
+}
+
+/**
+ * Updates the size of nodes as well as the size and position of their labels.
+ * This is used, when the node's shape does not change (when it changes `_replaceNodeShapeAndLabel` is needed).
+ * @param nodeContainerGroup - D3 Selection of the node container
+ */
+function _updateNodeAndLabelSize(
+    nodeContainerGroup: d3.Selection<SVGGElement, GraphNode, any, any>
+) {
+    //circle
+    nodeContainerGroup
+        .selectChild('.graph-controller__node')
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .attr('r', (d) => (d.renderedSize as NodeSizeCircle).radius)
+
+    //circle label
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.CIRCLE)
+        .selectChild('.graph-controller__node-label-container')
+        .attr('width', (d) => 2 * (d.renderedSize as NodeCircle).radius)
+        .attr('height', (d) => 2 * (d.renderedSize as NodeCircle).radius)
+        .attr('x', (d) => -(d.renderedSize as NodeCircle).radius)
+        .attr('y', (d) => -(d.renderedSize as NodeCircle).radius)
+
+    //rect
+    nodeContainerGroup
+        .selectChild('.graph-controller__node')
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
+        .attr('rx', (d) => (d.props as NodeRect)?.cornerRadius)
+        .attr('ry', (d) => (d.props as NodeRect)?.cornerRadius)
+
+    //rect label
+    nodeContainerGroup
+        .filter((d) => d.props.shape === NodeShape.RECTANGLE)
+        .selectChild('.graph-controller__node-label-container')
+        .attr('width', (d) => (d.renderedSize as NodeSizeRect).width)
+        .attr('height', (d) => (d.renderedSize as NodeSizeRect).height)
+        .attr('x', (d) => -0.5 * (d.renderedSize as NodeSizeRect).width)
+        .attr('y', (d) => -0.5 * (d.renderedSize as NodeSizeRect).height)
 }
 
 /**
@@ -1294,6 +1664,8 @@ function _updateLinkMjxPosition() {
         })
 }
 
+//endregion
+
 // region onNodePointerDown
 
 /**
@@ -1320,8 +1692,8 @@ function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
 }
 
 /**
- * Renders a growing circumference around the specified node and
- * triggers node deletion after the animation is complete.
+ * Renders an animated, growing outline around the specified node,
+ * then triggers the node's deletion after the animation is complete.
  * @param node
  */
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
@@ -1332,11 +1704,11 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
 
     let nodeContainer = d3.select(nodeElement.parentElement)
 
-    if (config.nodeProps.shape === NodeShape.CIRCLE) {
+    if (node.props.shape === NodeShape.CIRCLE) {
         let arcGenerator = d3
                 .arc()
-                .outerRadius(config.nodeProps.radius + 4)
-                .innerRadius(config.nodeProps.radius),
+                .outerRadius((node.props as NodeCircle).radius + 4)
+                .innerRadius((node.props as NodeCircle).radius),
             startArc = [{ startAngle: 0, endAngle: 0 }]
 
         let path = nodeContainer
@@ -1362,11 +1734,11 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
                 }
             })
             .on('end', () => _onPointerDownDeleteNode(node))
-    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+    } else if (node.props.shape === NodeShape.RECTANGLE) {
         const pathData = generateRoundedRectPath(
-            config.nodeProps.width,
-            config.nodeProps.height,
-            config.nodeProps.cornerRadius
+            (node.renderedSize as NodeSizeRect).width,
+            (node.renderedSize as NodeSizeRect).height,
+            (node.props as NodeRect).cornerRadius
         )
 
         let nodePath = nodeContainer
@@ -1377,7 +1749,9 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .attr('opacity', '0.7')
             .attr('d', pathData)
 
-        let nodePathLength = 2 * config.nodeProps.width + 2 * config.nodeProps.height
+        let nodePathLength =
+            2 * (node.renderedSize as NodeSizeRect).width +
+            2 * (node.renderedSize as NodeSizeRect).height
 
         nodePath
             .attr('stroke-dasharray', nodePathLength)
@@ -1395,19 +1769,18 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
  * @param node
  */
 function _onPointerDownDeleteNode(node: GraphNode): void {
-    if (config.isGraphEditableInGUI) {
-        let r = graph.value.removeNode(node)
-        if (r !== undefined) {
-            let [removedNode, removedLinks] = r
-            triggerNodeDeleted(removedNode, graphHost.value)
-            removedLinks.forEach((link) => {
-                triggerLinkDeleted(link, graphHost.value)
-            })
-        }
-        graphHasNodes.value = graph.value.nodes.length > 0
-        _resetDraggableLink()
-        restart()
+    let r = graph.value.removeNode(node)
+    if (r !== undefined) {
+        let [removedNode, removedLinks] = r
+        triggerNodeDeleted(removedNode, graphHost.value)
+        removedLinks.forEach((link) => {
+            triggerLinkDeleted(link, graphHost.value)
+        })
+        updateCollide(simulation, graph.value, config)
     }
+    graphHasNodes.value = graph.value.nodes.length > 0
+    _resetDraggableLink()
+    restart()
 }
 
 /**
@@ -1415,10 +1788,7 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
  * @param node
  */
 function _onPointerDownCreateDraggableLink(node: GraphNode): void {
-    draggableLinkEnd =
-        config.nodeProps.shape === NodeShape.CIRCLE
-            ? [node.x!, node.y!]
-            : [node.x! + 0.5 * config.nodeProps.width, node.y! + 0.5 * config.nodeProps.height]
+    draggableLinkEnd = [node.x!, node.y!]
     draggableLinkSourceNode = node
     draggableLink!
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
@@ -1468,18 +1838,18 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeElement = d3.select(nodeById)
     let nodeContainer = d3.select(nodeById.parentElement)
 
-    if (config.nodeProps.shape === NodeShape.CIRCLE) {
+    if (node.props.shape === NodeShape.CIRCLE) {
         nodeElement.classed('on-deletion', false)
         nodeContainer.select('g.arc').select('path.arc').interrupt().remove()
         nodeContainer.select('g.arc').remove()
-    } else if (config.nodeProps.shape === NodeShape.RECTANGLE) {
+    } else if (node.props.shape === NodeShape.RECTANGLE) {
         if (nodeElement.classed('on-deletion')) {
             let nodePath = nodeContainer.select('path')
             nodePath
-                .attr('stroke-dasharray', 2 * config.nodeProps.width + 2 * config.nodeProps.height)
+                .attr('stroke-dasharray', 2 * node.props.width + 2 * node.props.height)
                 .attr('stroke-dashoffset', 0)
                 .transition()
-                .attr('stroke-dashoffset', 2 * config.nodeProps.width + 2 * config.nodeProps.height)
+                .attr('stroke-dashoffset', 2 * node.props.width + 2 * node.props.height)
                 .on('end', () => {
                     nodeContainer.select('path').remove()
                 })
@@ -1622,15 +1992,13 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
  */
 function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
-    if (config.isGraphEditableInGUI) {
-        let removedLink = graph.value.removeLink(link)
-        if (removedLink !== undefined) {
-            triggerLinkDeleted(removedLink, graphHost.value)
-        }
-        if (color) {
-            if (!graph.value.hasNonDefaultLinkColor(color)) {
-                deleteLinkMarkerColored(canvas!, graphHostId.value, color)
-            }
+    let removedLink = graph.value.removeLink(link)
+    if (removedLink !== undefined) {
+        triggerLinkDeleted(removedLink, graphHost.value)
+    }
+    if (color) {
+        if (!graph.value.hasNonDefaultLinkColor(color)) {
+            deleteLinkMarkerColored(canvas!, graphHostId.value, color)
         }
     }
     restart()
@@ -1676,14 +2044,7 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
     terminate(event)
     if (node.labelEditable) {
-        let position =
-            config.nodeProps.shape === NodeShape.CIRCLE
-                ? ([node.x!, node.y!] as [number, number])
-                : ([
-                      node.x! + 0.5 * config.nodeProps.width,
-                      node.y! + 0.5 * config.nodeProps.height
-                  ] as [number, number])
-        handleInputForLabel(node, position)
+        handleInputForLabel(node, [node.x!, node.y!])
     }
 }
 
@@ -1868,7 +2229,7 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
     }
 
     _resetGraph()
-    _parsedToGraph(nodes, links)
+    _parseToGraph(nodes, links)
 }
 
 /**
@@ -1876,15 +2237,15 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
  * @param nodes - parsed nodes
  * @param links - parsed links
  */
-function _parsedToGraph(nodes: parsedNode[], links: parsedLink[]) {
+function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(
+            parsedNode.props ?? config.nodeProps,
             parsedNode.x,
             parsedNode.y,
             parsedNode.idImported,
             parsedNode.label,
             parsedNode.color,
-            config.nodeProps.shape,
             parsedNode.fixedPosition,
             parsedNode.deletable,
             parsedNode.labelEditable,
@@ -1961,7 +2322,6 @@ function resetView(): void {
     nodeSelection = undefined
     simulation = undefined
     _resetDraggableLink()
-    initFromLocalStorage()
     initData()
 }
 
@@ -2123,17 +2483,30 @@ function _resetGraph(): void {
 }
 
 .graph-controller__node-label {
-    font-family: sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1rem;
-    opacity: 1;
-    text-align: center;
-    pointer-events: all;
-    cursor: pointer;
     width: 100%;
     height: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all;
+    font-family: sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+
+    &.controls-node-size {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        display: inline-block;
+        text-align: center;
+        width: auto;
+        height: auto;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
 
     &.hidden {
         visibility: hidden;
@@ -2147,19 +2520,32 @@ function _resetGraph(): void {
 }
 
 .graph-controller__node-label-placeholder {
-    color: dimgrey;
-    font-family: sans-serif;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    font-style: oblique;
-    font-size: 0.85rem;
-    opacity: 1;
-    text-align: center;
-    pointer-events: all;
-    cursor: pointer;
     width: 100%;
     height: 100%;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    pointer-events: all;
+    font-family: sans-serif;
+    font-style: oblique;
+    font-size: 0.85rem;
+    color: dimgrey;
+    cursor: pointer;
+
+    &.controls-node-size {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        display: inline-block;
+        text-align: center;
+        width: auto;
+        height: auto;
+        padding: 4px 8px;
+        white-space: nowrap;
+    }
 
     &.hidden {
         visibility: hidden;

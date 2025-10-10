@@ -4,7 +4,7 @@ import { terminate } from '@/d3/event'
 import type { Simulation } from '@/d3/simulation'
 import { GraphNode } from '@/model/graph-node'
 import { NodeShape } from '@/model/node-shape'
-import type { GraphConfiguration } from '@/model/config'
+import type { GraphConfiguration, NodeSizeCircle, NodeSizeRect } from '@/model/config'
 
 export type Drag = d3.DragBehavior<SVGGElement, GraphNode, GraphNode>
 
@@ -14,7 +14,6 @@ export function createDrag(
     height: number,
     config: GraphConfiguration
 ): Drag {
-    const nodeProps = config.nodeProps
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
         .filter(
@@ -38,19 +37,31 @@ export function createDrag(
             if (d.fixedPosition?.x !== true) {
                 if (!config.isCanvasBoundToView) {
                     d.fx = event.x
-                } else if (nodeProps.shape === NodeShape.CIRCLE) {
-                    d.fx = Math.max(nodeProps.radius, Math.min(width - nodeProps.radius, event.x))
-                } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-                    d.fx = Math.max(0, Math.min(width - nodeProps.width, event.x))
+                } else if (d.props.shape === NodeShape.CIRCLE) {
+                    d.fx = Math.max(
+                        (d.renderedSize as NodeSizeCircle).radius,
+                        Math.min(width - (d.renderedSize as NodeSizeCircle).radius, event.x)
+                    )
+                } else if (d.props.shape === NodeShape.RECTANGLE) {
+                    d.fx = Math.max(
+                        0.5 * (d.renderedSize as NodeSizeRect).width,
+                        Math.min(width - 0.5 * (d.renderedSize as NodeSizeRect).width, event.x)
+                    )
                 }
             }
             if (d.fixedPosition?.y !== true) {
                 if (!config.isCanvasBoundToView) {
                     d.fy = event.y
-                } else if (nodeProps.shape === NodeShape.CIRCLE) {
-                    d.fy = Math.max(nodeProps.radius, Math.min(height - nodeProps.radius, event.y))
-                } else if (nodeProps.shape === NodeShape.RECTANGLE) {
-                    d.fy = Math.max(0, Math.min(height - nodeProps.height, event.y))
+                } else if (d.props.shape === NodeShape.CIRCLE) {
+                    d.fy = Math.max(
+                        (d.renderedSize as NodeSizeCircle).radius,
+                        Math.min(height - (d.renderedSize as NodeSizeCircle).radius, event.y)
+                    )
+                } else if (d.props.shape === NodeShape.RECTANGLE) {
+                    d.fy = Math.max(
+                        0.5 * (d.renderedSize as NodeSizeRect).height,
+                        Math.min(height - 0.5 * (d.renderedSize as NodeSizeRect).height, event.y)
+                    )
                 }
             }
         })
