@@ -252,7 +252,7 @@ instance.toggleNodeCreationViaGUI(false)
 ```
 More fine-granular editability options are also available at [individual element level](#editability-1).
 
->[TIP]
+>[!TIP]
 > This can be useful, for example, when embedding the component to display a graph for users
 to interact with while limit their capabilities to edit something.
 
