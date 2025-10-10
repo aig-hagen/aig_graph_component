@@ -84,8 +84,10 @@ individual settings specified.
   - defines how links can be edited via the GUI
   - expects a [node GUI editability object](#editability-convenience-function)
 
-#### Example of a full config input object
+#### Example config input object
+Example of a complete configuration input object:
 ```typescript 
+// full config input object with rectangular shaped nodes
 instance.setDefaults(
     {
         zoomEnabled: false,
@@ -115,6 +117,23 @@ instance.setDefaults(
         }
     }
 )
+```
+Alternatively, we can simply specify the props we want to override:
+```javascript
+// partial config object with circular nodes and restricted GUI editability
+instance.setDefaults({
+    allowNodeCreationViaGUI: false,
+    nodeProps: {
+        shape: 'circle',
+        radius: 42
+    },
+    nodeGUIEditability: {
+        deletable: false,
+        labelEditable: false,
+        allowIncomingLinks: false,
+        allowOutgoingLinks: false
+    }
+})
 ```
 
 
