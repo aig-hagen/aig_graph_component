@@ -1040,7 +1040,7 @@ function initData() {
         }
     )
     initMarkers(canvas, graphHostId.value, config, graph.value.getNonDefaultLinkColors())
-    draggableLink = createDraggableLink(canvas)
+    draggableLink = createDraggableLink(graphHostId.value, canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
@@ -1111,6 +1111,10 @@ function createNode(
     triggerNodeCreated(newNode, graphHost.value)
     updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
+    // TODO put this back in...
+    // IN the editor it only works, because after triggerNodeCreated I do somehting
+    // But checkbefore that, that restarting multiple times is ok
+    // restart()
 }
 
 let modifyingGraph = false
@@ -1291,6 +1295,15 @@ function restart(alpha: number = 0.5): void {
                 return null
             }
         })
+        // Workaround WebKit issues relating to not correctly rerendering after changing marker. 
+        // https://bugs.webkit.org/show_bug.cgi?id=294206
+        // The applied workaround is described in
+        // https://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
+        .style('display', 'none')
+        .each(function() {
+            void (this as SVGGraphicsElement).getBBox();
+        })
+        .style('display', null);
 
     // link label positioning, visibility and editability
     linkSelection
@@ -1748,7 +1761,6 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
     draggableLinkEnd = [node.x!, node.y!]
     draggableLinkSourceNode = node
     draggableLink!
-        .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
         .classed('hidden', false)
         .attr('d', linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config))
 }
@@ -2163,7 +2175,7 @@ function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, num
 }
 
 function _resetDraggableLink(): void {
-    draggableLink?.classed('hidden', true).attr('marker-end', 'null')
+    draggableLink?.classed('hidden', true)
     draggableLinkSourceNode = undefined
     draggableLinkTargetNode = undefined
     draggableLinkEnd = undefined
