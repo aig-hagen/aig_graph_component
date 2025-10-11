@@ -2440,12 +2440,15 @@ function _resetGraph(): void {
     stroke: none;
     cursor: pointer;
 
-    &:not(.on-deletion):hover {
-        stroke: #006597;
-        stroke-dasharray: (8, 3);
-        stroke-width: 2;
-        filter: grayscale(30%);
-    }
+    // This has no effect in Firefox and Chrome, because the foreignObject is on top of rect/circle.
+    // For the knowledge base editor this is not needed anyway.
+    // TODO but maybe this should stay and be properly fixed for other use cases
+    // &:not(.on-deletion):hover {
+    //     stroke: #006597;
+    //     stroke-dasharray: (8, 3);
+    //     stroke-width: 2;
+    //     filter: grayscale(30%);
+    // }
 }
 
 .graph-controller__link-label-mathjax-container {
