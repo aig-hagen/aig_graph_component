@@ -1,6 +1,8 @@
 import { NodeShape } from '@/model/node-shape'
 import { SideType } from '@/model/side-type'
 import type { GraphNode } from './graph-node'
+import type { NodeGUIEditability } from '@/model/graph-node'
+import type { LinkGUIEditability } from '@/model/graph-link'
 
 export type NodeProps = NodeCircle | NodeRect
 export type NodeSize = NodeSizeCircle | NodeSizeRect
@@ -38,16 +40,18 @@ export type NodeSizeCircle = {
 export interface GraphConfiguration {
     // nodes
     nodeProps: NodeProps //also individual element option
-    nodeAutoResizeToLabelSize: boolean
+    nodeGUIEditability: NodeGUIEditability //also individual element option
+    nodeAutoGrowToLabelSize: boolean
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
 
     // links
+    linkGUIEditability: LinkGUIEditability //also individual element option
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
 
-    // graph
-    isGraphEditableInGUI: boolean //also individual element option (more fine granular)
+    // graph component
+    allowNodeCreationViaGUI: boolean
     zoomEnabled: boolean
 
     // marker
@@ -64,9 +68,6 @@ export interface GraphConfiguration {
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
-    persistSettingsLocalStorage = false
-    hasToolbar = false
-
     // private _nodeProps: NodeProps = { shape: NodeShape.CIRCLE, radius: 48 }
     private _nodeProps: NodeProps = {
         shape: NodeShape.RECTANGLE,
@@ -76,24 +77,34 @@ export class GraphConfigDefault implements GraphConfiguration {
         reflexiveEdgeStart: 'MOVABLE'
     }
 
+    private _nodeGUIEditability: Required<NodeGUIEditability> = {
+        fixedPosition: { x: false, y: false },
+        deletable: true,
+        labelEditable: true,
+        allowIncomingLinks: true,
+        allowOutgoingLinks: true
+    }
     /**
-     * If set to true, the node resizes dynamically to match the label's width and height.
+     * If this is set to true, the nodes can grow dynamically to match the width and height
+     * of the labels, provided they exceed the size set in the node props.
      * Words in the label will stay on a single line (no horizontal wrapping).
      *
-     * If set to false, the node has a fixed size, and label words may wrap to the next line
+     * If set to false, the nodes have a fixed size, and label words may wrap to the next line
      * or potentially overflow.
      */
-    nodeAutoResizeToLabelSize = true
-
+    nodeAutoGrowToLabelSize = true
     showNodeLabels = true
     nodePhysicsEnabled = false
 
-    isGraphEditableInGUI = true
-
-    zoomEnabled = true
-
+    private _linkGUIEditability: Required<LinkGUIEditability> = {
+        deletable: true,
+        labelEditable: true
+    }
     showLinkLabels = true
     fixedLinkDistanceEnabled = false
+
+    allowNodeCreationViaGUI = true
+    zoomEnabled = false
 
     markerBoxSize = 4
 
@@ -119,25 +130,70 @@ export class GraphConfigDefault implements GraphConfiguration {
         }
     }
 
-    public get nodeSize(): NodeSize {
+    public get nodeSize(): NodeSizeRect & NodeSizeCircle {
+        let w, h, r
         if (this.nodeProps.shape === NodeShape.CIRCLE) {
-            return { radius: this.nodeProps.radius }
+            r = this.nodeProps.radius
+            w = 2 * r
+            h = 2 * r
         } else {
-            return { width: this.nodeProps.width, height: this.nodeProps.height }
+            w = this.nodeProps.width
+            h = this.nodeProps.height
+            r = w / 2
+        }
+
+        return {
+            width: w,
+            height: h,
+            radius: r
         }
     }
 
     public set nodeProps(props: NodeProps) {
+        props.shape = props.shape ?? this._nodeProps.shape
         this._nodeProps = props
+
         if (props.shape === NodeShape.CIRCLE) {
             this.nodeSize = { radius: props.radius }
         } else if (props.shape === NodeShape.RECTANGLE) {
             this.nodeSize = { width: props.width, height: props.height }
+            if (props.cornerRadius === undefined) {
+                ;(this._nodeProps as NodeRect).cornerRadius = 4
+            }
+            if (props.reflexiveEdgeStart === undefined) {
+                ;(this._nodeProps as NodeRect).reflexiveEdgeStart = 'MOVABLE'
+            }
         }
     }
 
     public get nodeProps() {
         return this._nodeProps
+    }
+
+    public set nodeGUIEditability(editability: NodeGUIEditability) {
+        this._nodeGUIEditability = {
+            ...this._nodeGUIEditability,
+            ...editability,
+            fixedPosition: {
+                ...this._nodeGUIEditability.fixedPosition,
+                ...editability.fixedPosition
+            }
+        }
+    }
+
+    public get nodeGUIEditability(): Required<NodeGUIEditability> {
+        return this._nodeGUIEditability
+    }
+
+    public set linkGUIEditability(editability: LinkGUIEditability) {
+        this._linkGUIEditability = {
+            ...this._linkGUIEditability,
+            ...editability
+        }
+    }
+
+    public get linkGUIEditability(): Required<LinkGUIEditability> {
+        return this._linkGUIEditability
     }
 
     public get markerPadding() {

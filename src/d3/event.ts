@@ -1,6 +1,7 @@
 import { GraphNode } from '@/model/graph-node'
 import type { GraphLink } from '@/model/graph-link'
 import type { GraphHost } from '@/d3/canvas'
+import type { NodeSize } from '@/model/config'
 
 export function triggerNodeCreated(node: GraphNode, host: GraphHost) {
     const eventNodeCreated = new CustomEvent('nodecreated', {
@@ -66,6 +67,20 @@ export function triggerLabelEdited(parent: GraphNode | GraphLink, label: string,
         }
     })
     host.node()!.dispatchEvent(eventLabelEdited)
+}
+
+export function triggerNodeRenderedSizeChange(
+    node: GraphNode,
+    previousRenderedSize: NodeSize,
+    host: GraphHost
+) {
+    const eventLabelRenderedSizeChange = new CustomEvent('noderenderedsizechange', {
+        detail: {
+            node: { id: node.id, renderedSize: node.renderedSize, baseSize: node.getSize() },
+            previousRenderedSize: previousRenderedSize
+        }
+    })
+    host.node()!.dispatchEvent(eventLabelRenderedSizeChange)
 }
 
 export function terminate(event: Event): void {

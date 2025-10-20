@@ -1,7 +1,7 @@
 import Matrix from 'ml-matrix'
 //@ts-ignore
 import svgPathReverse from 'svg-path-reverse'
-import type { GraphConfiguration, NodeCircle, NodeRect } from '@/model/config'
+import type { GraphConfiguration, NodeRect, NodeSizeCircle, NodeSizeRect } from '@/model/config'
 import { GraphNode } from '@/model/graph-node'
 import type { GraphLink } from '@/model/graph-link'
 import { PathType } from '@/model/path-type'
@@ -102,15 +102,15 @@ function _linePathDeterminePathStartAndEnd(
 
     if (source.props.shape === NodeShape.CIRCLE) {
         pathStart = {
-            x: source.x! + (source.props.radius - 1) * normX,
-            y: source.y! + (source.props.radius - 1) * normY
+            x: source.x! + ((source.renderedSize as NodeSizeCircle).radius - 1) * normX,
+            y: source.y! + ((source.renderedSize as NodeSizeCircle).radius - 1) * normY
         }
     } else if (source.props.shape === NodeShape.RECTANGLE) {
         pathStart = _getRectEdgePointForPath(
             source.x!,
             source.y!,
-            source.props.width,
-            source.props.height,
+            (source.renderedSize as NodeSizeRect).width,
+            (source.renderedSize as NodeSizeRect).height,
             normX,
             normY,
             2
@@ -121,14 +121,20 @@ function _linePathDeterminePathStartAndEnd(
         pathEnd =
             target.props.shape === NodeShape.CIRCLE
                 ? {
-                      x: target.x! - (target.props.radius + config.markerPadding) * normX,
-                      y: target.y! - (target.props.radius + config.markerPadding) * normY
+                      x:
+                          target.x! -
+                          ((target.renderedSize as NodeSizeCircle).radius + config.markerPadding) *
+                              normX,
+                      y:
+                          target.y! -
+                          ((target.renderedSize as NodeSizeCircle).radius + config.markerPadding) *
+                              normY
                   }
                 : _getRectEdgePointForPath(
                       target.x!,
                       target.y!,
-                      target.props.width,
-                      target.props.height,
+                      (target.renderedSize as NodeSizeRect).width,
+                      (target.renderedSize as NodeSizeRect).height,
                       -normX,
                       -normY,
                       -config.markerPadding + 1
@@ -186,14 +192,14 @@ function _arcPathDeterminePathStartAndEnd(
 
     if (source.props.shape === NodeShape.CIRCLE) {
         pathStart = _rotate(norm, -rotation.start)
-            .multiply(source.props.radius - 1)
+            .multiply((source.renderedSize as NodeSizeCircle).radius - 1)
             .add(s)
     } else if (source.props.shape === NodeShape.RECTANGLE) {
         const pathStartPoint = _getRectEdgePointForPath(
             source.x!,
             source.y!,
-            source.props.width,
-            source.props.height,
+            (source.renderedSize as NodeSizeRect).width,
+            (source.renderedSize as NodeSizeRect).height,
             norm.get(0, 0),
             norm.get(0, 1),
             2
@@ -204,15 +210,15 @@ function _arcPathDeterminePathStartAndEnd(
     if (target.props.shape === NodeShape.CIRCLE) {
         const endNorm = Matrix.multiply(norm, -1)
         pathEnd = _rotate(endNorm, rotation.end)
-            .multiply(target.props.radius)
+            .multiply((target.renderedSize as NodeSizeCircle).radius)
             .add(t)
             .add(_rotate(endNorm, rotation.end).multiply(2 * config.markerBoxSize))
     } else if (target.props.shape === NodeShape.RECTANGLE) {
         const pathEndPoint = _getRectEdgePointForPath(
             target.x!,
             target.y!,
-            target.props.width,
-            target.props.height,
+            (target.renderedSize as NodeSizeRect).width,
+            (target.renderedSize as NodeSizeRect).height,
             -norm.get(0, 0),
             -norm.get(0, 1)
         )
@@ -253,15 +259,15 @@ export function reflexivePath(
         const norm = diff.divide(diff.norm('frobenius'))
         const rotation = _degreesToRadians(40)
         const start = _rotate(norm, rotation)
-            .multiply((node.props as NodeCircle).radius - 1)
+            .multiply((node.renderedSize as NodeSizeCircle).radius - 1)
             .add(n)
         const end = _rotate(norm, -rotation)
-            .multiply((node.props as NodeCircle).radius)
+            .multiply((node.renderedSize as NodeSizeCircle).radius)
             .add(n)
             .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
 
         return `M${start.get(0, 0)},${start.get(0, 1)}
-              A${(node.props as NodeCircle).radius},${(node.props as NodeCircle).radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
+              A${(node.renderedSize as NodeSizeCircle).radius},${(node.renderedSize as NodeSizeCircle).radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
     } else if (node.props.shape === NodeShape.RECTANGLE) {
         if ((node.props as NodeRect).reflexiveEdgeStart == 'MOVABLE') {
             return _reflexiveRectPathMovable(node, config, c)
@@ -304,8 +310,8 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
         const rotation = _degreesToRadians(45)
 
         let start, end
-        let arcWidthRadius = 0.5 * (node.props as NodeRect).width
-        let arcHeightRadius = 0.5 * (node.props as NodeRect).height
+        let arcWidthRadius = 0.5 * (node.renderedSize as NodeSizeRect).width
+        let arcHeightRadius = 0.5 * (node.renderedSize as NodeSizeRect).height
 
         const pathStartSide = _getPathAttachmentSideForRectReflexiveLink(
             delta.get(0, 0),
@@ -323,31 +329,37 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
             start = m.start
             end = m.end
 
-            if ((node.props as NodeRect).width > (node.props as NodeRect).height) {
+            if (
+                (node.renderedSize as NodeSizeRect).width >
+                (node.renderedSize as NodeSizeRect).height
+            ) {
                 if (pathStartSide === SideType.TOPLEFT || pathStartSide === SideType.BOTTOMRIGHT) {
-                    arcWidthRadius = 0.25 * (node.props as NodeRect).width
+                    arcWidthRadius = 0.25 * (node.renderedSize as NodeSizeRect).width
                 }
-            } else if ((node.props as NodeRect).height > (node.props as NodeRect).width) {
+            } else if (
+                (node.renderedSize as NodeSizeRect).height >
+                (node.renderedSize as NodeSizeRect).width
+            ) {
                 if (pathStartSide === SideType.TOPRIGHT || pathStartSide === SideType.BOTTOMLEFT) {
-                    arcHeightRadius = 0.25 * (node.props as NodeRect).height
+                    arcHeightRadius = 0.25 * (node.renderedSize as NodeSizeRect).height
                 }
             }
         } else if (pathStartSide === SideType.LEFT || pathStartSide === SideType.RIGHT) {
             start = _rotate(norm, rotation)
-                .multiply(0.5 * (node.props as NodeRect).width - 1)
+                .multiply(0.5 * (node.renderedSize as NodeSizeRect).width - 1)
                 .add(n)
 
             end = _rotate(norm, -rotation)
-                .multiply(0.5 * (node.props as NodeRect).height - 1)
+                .multiply(0.5 * (node.renderedSize as NodeSizeRect).height - 1)
                 .add(n)
                 .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
         } else {
             start = _rotate(norm, rotation)
-                .multiply(0.5 * (node.props as NodeRect).height - 1)
+                .multiply(0.5 * (node.renderedSize as NodeSizeRect).height - 1)
                 .add(n)
 
             end = _rotate(norm, -rotation)
-                .multiply(0.5 * (node.props as NodeRect).width - 1)
+                .multiply(0.5 * (node.renderedSize as NodeSizeRect).width - 1)
                 .add(n)
                 .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
         }
@@ -375,26 +387,32 @@ function _reflexiveRectPathFixed(node: GraphNode, config: GraphConfiguration) {
         (node.props as NodeRect).reflexiveEdgeStart !== 'MOVABLE'
     ) {
         let start, end
-        let arcWidthRadius = 0.5 * (node.props as NodeRect).width
-        let arcHeightRadius = 0.5 * (node.props as NodeRect).height
+        let arcWidthRadius = 0.5 * (node.renderedSize as NodeSizeRect).width
+        let arcHeightRadius = 0.5 * (node.renderedSize as NodeSizeRect).height
 
-        if ((node.props as NodeRect).width > (node.props as NodeRect).height) {
+        if (
+            (node.renderedSize as NodeSizeRect).width > (node.renderedSize as NodeSizeRect).height
+        ) {
             if (
                 (node.props as NodeRect).reflexiveEdgeStart === SideType.TOPLEFT ||
                 (node.props as NodeRect).reflexiveEdgeStart === SideType.BOTTOMRIGHT
             ) {
                 arcWidthRadius =
-                    (node.props as NodeRect).width / (node.props as NodeRect).height +
-                    (node.props as NodeRect).height
+                    (node.renderedSize as NodeSizeRect).width /
+                        (node.renderedSize as NodeSizeRect).height +
+                    (node.renderedSize as NodeSizeRect).height
             }
-        } else if ((node.props as NodeRect).height > (node.props as NodeRect).width) {
+        } else if (
+            (node.renderedSize as NodeSizeRect).height > (node.renderedSize as NodeSizeRect).width
+        ) {
             if (
                 (node.props as NodeRect).reflexiveEdgeStart === SideType.TOPRIGHT ||
                 (node.props as NodeRect).reflexiveEdgeStart === SideType.BOTTOMLEFT
             ) {
                 arcHeightRadius =
-                    (node.props as NodeRect).height / (node.props as NodeRect).width +
-                    (node.props as NodeRect).width
+                    (node.renderedSize as NodeSizeRect).height /
+                        (node.renderedSize as NodeSizeRect).width +
+                    (node.renderedSize as NodeSizeRect).width
             }
         }
 
@@ -515,8 +533,8 @@ function _getPathCoordinatesForRectReflexiveLink(
 ) {
     const x = node.x!
     const y = node.y!
-    const widthOffset = 0.5 * (node.props as NodeRect).width
-    const heightOffset = 0.5 * (node.props as NodeRect).height
+    const widthOffset = 0.5 * (node.renderedSize as NodeSizeRect).width
+    const heightOffset = 0.5 * (node.renderedSize as NodeSizeRect).height
     const markerBoxSize = config.markerBoxSize
 
     const points = {
