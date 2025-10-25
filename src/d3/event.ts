@@ -3,10 +3,17 @@ import type { GraphLink } from '@/model/graph-link'
 import type { GraphHost } from '@/d3/canvas'
 import type { NodeSize } from '@/model/config'
 
-export function triggerNodeCreated(node: GraphNode, host: GraphHost) {
+
+export const enum EVENT_CAUSE {
+    USER_ACTION = 'user-action',
+    PROGRAMMATIC_ACTION = 'programmatic-action'
+}
+
+export function triggerNodeCreated(node: GraphNode, host: GraphHost, cause: EVENT_CAUSE) {
     const eventNodeCreated = new CustomEvent('nodecreated', {
         detail: {
-            node: { id: node.id, label: node.label, x: node.x, y: node.y, }
+            node: { id: node.id, label: node.label, x: node.x, y: node.y, },
+            cause: cause
         }
     })
     host.node()!.dispatchEvent(eventNodeCreated)
@@ -41,19 +48,21 @@ export function triggerLinkClicked(link: GraphLink, button: number, host: GraphH
     host.node()!.dispatchEvent(eventLinkClicked)
 }
 
-export function triggerNodeDeleted(node: GraphNode, host: GraphHost) {
+export function triggerNodeDeleted(node: GraphNode, host: GraphHost, cause: EVENT_CAUSE) {
     const eventNodeDeleted = new CustomEvent('nodedeleted', {
         detail: {
-            node: { id: node.id, label: node.label, x: node.x, y: node.y }
+            node: { id: node.id, label: node.label, x: node.x, y: node.y },
+            cause: cause
         }
     })
     host.node()!.dispatchEvent(eventNodeDeleted)
 }
 
-export function triggerLinkDeleted(link: GraphLink, host: GraphHost) {
+export function triggerLinkDeleted(link: GraphLink, host: GraphHost, cause: EVENT_CAUSE) {
     const eventLinkDeleted = new CustomEvent('linkdeleted', {
         detail: {
-            link: { id: link.id, label: link.label }
+            link: { id: link.id, label: link.label },
+            cause: cause
         }
     })
     host.node()!.dispatchEvent(eventLinkDeleted)

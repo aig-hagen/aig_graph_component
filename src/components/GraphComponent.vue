@@ -28,7 +28,8 @@ import {
     triggerNodeClicked,
     triggerNodeCreated,
     triggerNodeDeleted,
-    triggerNodeRenderedSizeChange
+    triggerNodeRenderedSizeChange,
+    EVENT_CAUSE
 } from '@/d3/event'
 //model
 import Graph from '@/model/graph'
@@ -174,6 +175,7 @@ defineExpose({
     setLabel,
     setColor,
     setNodeSize,
+    getNodeSize,
     setNodeShape,
     setNodeProps,
     setDeletable,
@@ -189,9 +191,11 @@ defineExpose({
     toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
     resetView,
-    createNode,
     setNodeGroupsFn,
-    modifyGraph
+    createNode: createNodePublic,
+    getNodeFixedPosition,
+    setNodeFixedPosition,
+    setNodePosition
 })
 
 type GraphConfigurationInput = Partial<
@@ -333,9 +337,9 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                     let r = graph.value.removeNode(d)
                     if (r !== undefined) {
                         let [removedNode, removedLinks] = r
-                        triggerNodeDeleted(removedNode, graphHost.value)
+                        triggerNodeDeleted(removedNode, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
                         removedLinks.forEach((link) => {
-                            triggerLinkDeleted(link, graphHost.value)
+                            triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
                         })
                     }
                 })
@@ -347,7 +351,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 .each(function (d) {
                     let removedLink = graph.value.removeLink(d)
                     if (removedLink !== undefined) {
-                        triggerLinkDeleted(removedLink, graphHost.value)
+                        triggerLinkDeleted(removedLink, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
                     }
                 })
         }
@@ -356,9 +360,9 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             let r = graph.value.removeNode(d)
             if (r !== undefined) {
                 let [removedNode, removedLinks] = r
-                triggerNodeDeleted(removedNode, graphHost.value)
+                triggerNodeDeleted(removedNode, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
                 removedLinks.forEach((link) => {
-                    triggerLinkDeleted(link, graphHost.value)
+                    triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
                 })
             }
         })
@@ -366,7 +370,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         linkSelection!.each(function (d) {
             let removedLink = graph.value.removeLink(d)
             if (removedLink !== undefined) {
-                triggerLinkDeleted(removedLink, graphHost.value)
+                triggerLinkDeleted(removedLink, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
             }
         })
     }
@@ -451,9 +455,12 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
             .style('stroke', color)
     }
     createLinkMarkerColored(canvas!, graphHostId.value, config, color)
-    if (!modifyingGraph) {
-        restart()
-    }
+    restart()
+}
+
+function getNodeSize(id: number): NodeSize {
+    const node = findNode(id)
+    return node.getSize()
 }
 
 /**
@@ -1032,7 +1039,7 @@ function toggleNodeAutoGrow(isEnabled: boolean) {
     restart()
 }
 
-function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => number[]) {
+function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {
     config.nodeGroupsFn = nodeGroupsFn;
 }
 
@@ -1053,6 +1060,7 @@ function initData() {
         (event) => {
             if (config.allowNodeCreationViaGUI) {
                 createNode(
+                    EVENT_CAUSE.USER_ACTION,
                     { ...config.nodeProps },
                     d3.pointer(event, canvas!.node())[0],
                     d3.pointer(event, canvas!.node())[1]
@@ -1065,8 +1073,8 @@ function initData() {
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph.value, config, width, height, () => onTick())
-    drag = createDrag(simulation, width, height, config)
-    // nodeLabelResizeObserver = createNodeLabelResizeObserver()
+    drag = createDrag(simulation, width, height, config, graph.value)
+    nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
 }
 
@@ -1162,7 +1170,7 @@ function createLink(
     restart()
 }
 
-function createNode(
+function createNodePublic(
     props: NodeProps,
     x?: number,
     y?: number,
@@ -1173,8 +1181,37 @@ function createNode(
     isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
-    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
-): void {
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks): number {
+    return createNode(
+        EVENT_CAUSE.PROGRAMMATIC_ACTION,
+        props,
+        x,
+        y,
+        importedId,
+        label,
+        nodeColor,
+        hasFixedPosition,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI,
+        allowIncomingLinks,
+        allowOutgoingLinks
+    )
+}
+
+function createNode(
+    cause: EVENT_CAUSE,
+    props: NodeProps,
+    x?: number,
+    y?: number,
+    importedId?: string | number,
+    label?: string,
+    nodeColor?: string,
+    hasFixedPosition: FixedAxis = config.nodeGUIEditability.fixedPosition,
+    isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
+    allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks,
+): number {
     let newNode = graph.value.createNode(
         props,
         x ?? width / 2,
@@ -1188,26 +1225,14 @@ function createNode(
         allowIncomingLinks,
         allowOutgoingLinks
     )
-    triggerNodeCreated(newNode, graphHost.value)
+    triggerNodeCreated(newNode, graphHost.value, cause)
     updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
     // TODO put this back in...
     // IN the editor it only works, because after triggerNodeCreated I do somehting
     // But checkbefore that, that restarting multiple times is ok
-    // restart()
-}
-
-let modifyingGraph = false
-function modifyGraph(modificationFn: (graph: Graph) => void) {
-    try {
-        modifyingGraph = true
-        modificationFn(unref(graph))
-    } finally {
-        modifyingGraph = false
-    }
-    graphHasNodes.value = graph.value.nodes.length > 0
-    updateCollide(simulation, graph.value, config)
     restart()
+    return newNode.id
 }
 
 function onTick(): void {
@@ -1810,9 +1835,9 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
     let r = graph.value.removeNode(node)
     if (r !== undefined) {
         let [removedNode, removedLinks] = r
-        triggerNodeDeleted(removedNode, graphHost.value)
+        triggerNodeDeleted(removedNode, graphHost.value, EVENT_CAUSE.USER_ACTION)
         removedLinks.forEach((link) => {
-            triggerLinkDeleted(link, graphHost.value)
+            triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.USER_ACTION)
         })
         updateCollide(simulation, graph.value, config)
     }
@@ -2031,7 +2056,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
     let removedLink = graph.value.removeLink(link)
     if (removedLink !== undefined) {
-        triggerLinkDeleted(removedLink, graphHost.value)
+        triggerLinkDeleted(removedLink, graphHost.value, EVENT_CAUSE.USER_ACTION)
     }
     if (color) {
         if (!graph.value.hasNonDefaultLinkColor(color)) {
@@ -2282,6 +2307,7 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
 function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(
+            EVENT_CAUSE.PROGRAMMATIC_ACTION,
             parsedNode.props ?? config.nodeProps,
             parsedNode.x,
             parsedNode.y,
@@ -2380,12 +2406,48 @@ function handleWindowResize() {
 }
 
 function _resetGraph(): void {
-    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
-    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
+    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION))
+    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION))
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
 }
+
+function findNode(id: number): GraphNode {
+    const node = graph.value.nodes.find((node) => node.id === id)
+    if (node === undefined) {
+        throw new Error(`Node with id ${id} not found`)
+    }
+    return node
+}
+
+function getNodeFixedPosition(id: number): { x: number; y: number } {
+    const node = findNode(id)
+    const x = node.x
+    if (x === undefined) {
+        throw new Error(`Node with id ${id} has no x position`)
+    }
+    const y = node.y
+    if (y === undefined) {
+        throw new Error(`Node with id ${id} has no y position`)
+    }
+    return { x: x, y: y }
+}
+
+function setNodeFixedPosition(position: { x: number; y: number }, id: number): void {
+    const node = findNode(id)
+    node.fx = position.x
+    node.fy = position.y
+    restart()
+}
+
+function setNodePosition(position: { x: number; y: number }, id: number): void {
+    const node = findNode(id)
+    node.x = position.x
+    node.y = position.y
+    restart()
+}
+
 </script>
 
 <template>

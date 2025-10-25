@@ -64,7 +64,7 @@ export interface GraphConfiguration {
     //canvas
     readonly isCanvasBoundToView: boolean
 
-    nodeGroupsFn: (node: GraphNode) => GraphNode[]
+    nodeGroupsFn: (id: number) => Set<number>
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
@@ -110,7 +110,7 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     private _markerPadding = 2 * this.markerBoxSize
 
-    nodeGroupsFn = (node: GraphNode) => [node]
+    nodeGroupsFn = () => new Set<number>()
 
     public set nodeSize(nodeSize: NodeSize | number) {
         if (this.nodeProps.shape === NodeShape.CIRCLE) {
