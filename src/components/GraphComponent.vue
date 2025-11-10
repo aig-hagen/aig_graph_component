@@ -1319,7 +1319,7 @@ function restart(alpha: number = 0.5): void {
                 })
                 .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
-                    triggerLinkClicked(d, event.button, graphHost.value)
+                    triggerLinkClicked(d, event.button, graphHost.value, event)
                     onPointerDownDeleteLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphLink) => {
@@ -1453,7 +1453,7 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
-                        triggerNodeClicked(d, event.button, graphHost.value)
+                        triggerNodeClicked(d, event.button, graphHost.value, event)
                         lastPointerDownOnNodePosition = { x: event.x, y: event.y }
                         onPointerDownNode(event, d)
                     })

@@ -28,21 +28,26 @@ export function triggerLinkCreated(link: GraphLink, host: GraphHost, cause: EVEN
     host.node()!.dispatchEvent(eventLinkCreated)
 }
 
-export function triggerNodeClicked(node: GraphNode, button: number, host: GraphHost) {
+export function triggerNodeClicked(node: GraphNode, button: number, host: GraphHost, originalEvent: Event) {
     const eventNodeClicked = new CustomEvent('nodeclicked', {
         detail: {
             node: { id: node.id, label: node.label, x: node.x, y: node.y },
-            button: button
+            button: button,
+            originalEvent: originalEvent,
         }
     })
     host.node()!.dispatchEvent(eventNodeClicked)
 }
 
-export function triggerLinkClicked(link: GraphLink, button: number, host: GraphHost) {
+// A use case for `originalEvent` is that the consumer can call `originalEvent.preventDefault()`.
+// Without calling `.preventDefault()`, some parent of the clicked link may become the focused element.
+// The consumer might want to prevent this from happening in order to programmatically change the focus to another element when the link is clicked.
+export function triggerLinkClicked(link: GraphLink, button: number, host: GraphHost, originalEvent: Event) {
     const eventLinkClicked = new CustomEvent('linkclicked', {
         detail: {
             link: { id: link.id, label: link.label },
-            button: button
+            button: button,
+            originalEvent: originalEvent,
         }
     })
     host.node()!.dispatchEvent(eventLinkClicked)
