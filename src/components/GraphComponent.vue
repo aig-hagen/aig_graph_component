@@ -1149,6 +1149,7 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
 }
 
 function createLink(
+    cause: EVENT_CAUSE,
     source: GraphNode,
     target: GraphNode,
     label?: string,
@@ -1165,7 +1166,7 @@ function createLink(
         isLabelEditableViaGUI
     )
     if (newLink !== undefined) {
-        triggerLinkCreated(newLink, graphHost.value)
+        triggerLinkCreated(newLink, graphHost.value, cause)
     }
     restart()
 }
@@ -1931,7 +1932,7 @@ function _onPointerUpCreateLink(): void {
     if (source === undefined || target === undefined) {
         return
     }
-    createLink(source, target)
+    createLink(EVENT_CAUSE.USER_ACTION, source, target)
 }
 
 //endregion
@@ -2329,6 +2330,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
             createLink(
+                EVENT_CAUSE.PROGRAMMATIC_ACTION,
                 srcNode,
                 targetNode,
                 parsedLink.label,

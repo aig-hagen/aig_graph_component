@@ -3,7 +3,6 @@ import type { GraphLink } from '@/model/graph-link'
 import type { GraphHost } from '@/d3/canvas'
 import type { NodeSize } from '@/model/config'
 
-
 export const enum EVENT_CAUSE {
     USER_ACTION = 'user-action',
     PROGRAMMATIC_ACTION = 'programmatic-action'
@@ -12,17 +11,18 @@ export const enum EVENT_CAUSE {
 export function triggerNodeCreated(node: GraphNode, host: GraphHost, cause: EVENT_CAUSE) {
     const eventNodeCreated = new CustomEvent('nodecreated', {
         detail: {
-            node: { id: node.id, label: node.label, x: node.x, y: node.y, },
+            node: { id: node.id, label: node.label, x: node.x, y: node.y },
             cause: cause
         }
     })
     host.node()!.dispatchEvent(eventNodeCreated)
 }
 
-export function triggerLinkCreated(link: GraphLink, host: GraphHost) {
+export function triggerLinkCreated(link: GraphLink, host: GraphHost, cause: EVENT_CAUSE) {
     const eventLinkCreated = new CustomEvent('linkcreated', {
         detail: {
-            link: { id: link.id, label: link.label }
+            link: { id: link.id, label: link.label },
+            cause: cause
         }
     })
     host.node()!.dispatchEvent(eventLinkCreated)
