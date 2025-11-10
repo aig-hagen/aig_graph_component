@@ -24,7 +24,18 @@ export default defineConfig({
         lib: {
             name: 'GraphComponentLib',
             entry: './src/main.ce.ts'
-        }
+        },
+        rollupOptions: {
+            // externalize Vue
+            // See https://vite.dev/guide/build#library-mode
+            external: ['vue'],
+            // global variables to use in the UMD build for externalized deps
+            output: {
+                globals: {
+                    vue: 'Vue',
+                },
+            },
+        },
     },
     define: {
         'process.env.NODE_ENV': "'production'"
