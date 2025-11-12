@@ -1,10 +1,10 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { ConfigEnv, defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+const ceConfig = defineConfig({
     plugins: [
         vue({
             // custom element mode -> inlines the styles
@@ -21,8 +21,9 @@ export default defineConfig({
         port: 5173
     },
     build: {
+        outDir: './dist/ce',
         lib: {
-            name: 'GraphComponentLib',
+            name: 'GraphComponentCE',
             entry: './src/main.ce.ts'
         }
     },
@@ -30,3 +31,30 @@ export default defineConfig({
         'process.env.NODE_ENV': "'production'"
     }
 })
+
+const libConfig = defineConfig({
+    plugins: [vue()],
+    resolve: {
+        alias: {
+            '@': fileURLToPath(new URL('./src', import.meta.url))
+        }
+    },
+    build: {
+        outDir: './dist/lib',
+        lib: {
+            name: 'GraphComponentLib',
+            entry: './src/main.lib.js'
+        },
+        rollupOptions: {
+            external: ['vue'],
+            output: {
+                globals: { vue: 'Vue' }
+            }
+        }
+    }
+})
+
+export default ({ mode }: ConfigEnv) => {
+    if (mode === 'lib') return libConfig
+    else return ceConfig
+}
