@@ -543,32 +543,32 @@ function _getPathCoordinatesForRectReflexiveLink(
             end: [x + widthOffset - 2 * markerBoxSize, y + heightOffset + 2 * markerBoxSize]
         },
         [SideType.BOTTOM]: {
-            start: [x + 0.5 * widthOffset, y + heightOffset - 1],
-            end: [x + widthOffset + 2 * markerBoxSize, y + 0.5 * heightOffset]
+            start: [x, y + heightOffset - 1],
+            end: [x + widthOffset + 2 * markerBoxSize, y]
         },
         [SideType.BOTTOMRIGHT]: {
             start: [x + widthOffset - 2, y + heightOffset - 1],
             end: [x + widthOffset + 2 * markerBoxSize, y - heightOffset + 2 * markerBoxSize]
         },
         [SideType.RIGHT]: {
-            start: [x + widthOffset - 1, y + 0.5 * heightOffset],
-            end: [x + 0.5 * widthOffset, y - 2 * markerBoxSize]
+            start: [x + widthOffset - 1, y],
+            end: [x, y - heightOffset - 2 * markerBoxSize]
         },
         [SideType.TOPRIGHT]: {
             start: [x + widthOffset - 2, y - heightOffset + 1],
             end: [x - widthOffset + 2 * markerBoxSize, y - heightOffset - 2 * markerBoxSize]
         },
         [SideType.TOP]: {
-            start: [x + 0.5 * widthOffset, y + 1],
-            end: [x - 2 * markerBoxSize, y + 0.5 * heightOffset]
+            start: [x, y - heightOffset + 1],
+            end: [x - widthOffset - 2 * markerBoxSize, y]
         },
         [SideType.TOPLEFT]: {
             start: [x - widthOffset + 2, y - heightOffset + 1],
             end: [x - widthOffset - 2 * markerBoxSize, y + heightOffset - 2 * markerBoxSize]
         },
         [SideType.LEFT]: {
-            start: [x + 1, y + 0.5 * heightOffset],
-            end: [x + 0.5 * widthOffset, y + heightOffset + 2 * markerBoxSize]
+            start: [x - widthOffset + 1, y],
+            end: [x, y + heightOffset + 2 * markerBoxSize]
         }
     }
     const { start, end } = points[side]
