@@ -160,8 +160,8 @@ let draggableLinkEnd: [number, number] | undefined
 let xOffset = 0
 let yOffset = 0
 let scale = 1
-let longRightClickTimerNode: number
-let longRightClickTimerLink: number
+let longRightClickTimerNode: ReturnType<typeof setTimeout>
+let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
 
 //exposing for API
