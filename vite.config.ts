@@ -2,12 +2,13 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { ConfigEnv, defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import dts from 'vite-plugin-dts'
 
 // https://vitejs.dev/config/
 const ceConfig = defineConfig({
     plugins: [
         vue({
-            // custom element mode -> inlines the styles
+            // custom element mode -> inlines the style: https://github.com/vitejs/vite-plugin-vue/tree/main/packages/plugin-vue#using-vue-sfcs-as-custom-elements
             // customElement: process.env.NODE_ENV === 'production'
         })
     ],
@@ -33,7 +34,13 @@ const ceConfig = defineConfig({
 })
 
 const libConfig = defineConfig({
-    plugins: [vue()],
+    plugins: [
+        vue(),
+        dts({
+            tsconfigPath: './tsconfig.app.json',
+            outDir: './dist/lib/types'
+        })
+    ],
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url))

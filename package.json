@@ -7,7 +7,6 @@
         "dev": "vite",
         "build": "run-p type-check \"build-only-*\" --",
         "preview": "vite preview",
-        "build-only": "vite build",
         "build-only-ce": "vite build --mode ce",
         "build-only-lib": "vite build --mode lib",
         "build-types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist/types",
@@ -45,6 +44,7 @@
         "scss": "^0.2.4",
         "typescript": "^5.8.3",
         "vite": "^7.0.4",
+        "vite-plugin-dts": "^4.5.4",
         "vue-tsc": "^3.0.1",
         "vue3-webcomponent-wrapper": "^0.2.0"
     }
