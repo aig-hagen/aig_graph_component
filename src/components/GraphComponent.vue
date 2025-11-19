@@ -1063,14 +1063,16 @@ function createNodeLabelResizeObserver() {
         for (let entry of entries) {
             const nodeLabel = entry
             if (nodeLabel) {
-                const labelSize = {
-                    width: nodeLabel.borderBoxSize[0].inlineSize,
-                    height: nodeLabel.borderBoxSize[0].blockSize
-                }
-                const nodeLabelContainer = d3.select(nodeLabel.target)
-                const node = nodeLabelContainer.datum() as GraphNode
+                if (nodeLabel.borderBoxSize[0] !== undefined) {
+                    const labelSize = {
+                        width: nodeLabel.borderBoxSize[0].inlineSize,
+                        height: nodeLabel.borderBoxSize[0].blockSize
+                    }
+                    const nodeLabelContainer = d3.select(nodeLabel.target)
+                    const node = nodeLabelContainer.datum() as GraphNode
 
-                hasSizeChange = _updateRenderedNodeSize(node, labelSize)
+                    hasSizeChange = _updateRenderedNodeSize(node, labelSize)
+                }
             }
         }
         if (hasSizeChange) {
@@ -1616,7 +1618,7 @@ function _handleLinkMathJax() {
                 )
                 .node() as HTMLDivElement
 
-            linkLabelMjxContainer.replaceChild(mjxContainer, linkLabelMjxContainer.childNodes[0])
+            linkLabelMjxContainer.replaceChild(mjxContainer, linkLabelMjxContainer.childNodes[0]!)
         })
 
     // if there is no text after moving mathjax
@@ -1882,8 +1884,10 @@ function onPointerMovedBeginningFromNode(event: PointerEvent): void {
     terminate(event)
     if (draggableLinkSourceNode !== undefined) {
         const pointer = d3.pointers(event, graphHost.value!.node())[0]
-        draggableLinkEnd = [(pointer[0] - xOffset) / scale, (pointer[1] - yOffset) / scale]
-        _updateDraggableLinkPath()
+        if (pointer !== undefined) {
+            draggableLinkEnd = [(pointer[0] - xOffset) / scale, (pointer[1] - yOffset) / scale]
+            _updateDraggableLinkPath()
+        }
     }
 }
 
