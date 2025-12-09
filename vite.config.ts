@@ -13,7 +13,9 @@ export default defineConfig(({ command, mode }): UserConfig => {
                     vue(),
                     dts({
                         tsconfigPath: './tsconfig.app.json',
-                        outDir: './dist/lib/types'
+                        outDir: './dist/lib/',
+                        rollupTypes: true,
+                        insertTypesEntry: true
                     })
                 ],
                 resolve: {
@@ -25,7 +27,7 @@ export default defineConfig(({ command, mode }): UserConfig => {
                     outDir: './dist/lib',
                     lib: {
                         name: 'GraphComponentLib',
-                        entry: './src/main.lib.js'
+                        entry: './src/main.lib.ts'
                     },
                     rollupOptions: {
                         external: ['vue'],
