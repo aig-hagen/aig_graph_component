@@ -14,7 +14,7 @@
 
 The graph component is available as a **custom element**
 allowing easy embedding into an HTML-file using the `<graph-component/>` tag.
-Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory for integration examples.
+Refer to the explanation below and check out the [application-example-ce](application-examples) directory for integration examples.
 
 You can create your graph using the GUI, or interact with it
 and customize its behaviour [via the API](#API).
