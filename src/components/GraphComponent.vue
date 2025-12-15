@@ -170,6 +170,8 @@ defineExpose({
     getGraph,
     setGraph,
     printGraph,
+    createNode,
+    createLink,
     deleteElement,
     setLabel,
     setColor,
@@ -1129,30 +1131,62 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
     }
 }
 
+/**
+ * Creates a new link from source to target node, triggers the according event.
+ *
+ * @param sourceId
+ * @param targetId
+ * @param label
+ * @param linkColor
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @returns The id of the newly created link or undefined if the link already exists or the source or target node id was invalid.
+ */
 function createLink(
-    source: GraphNode,
-    target: GraphNode,
+    sourceId: number,
+    targetId: number,
     label?: string,
     linkColor?: string,
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
-): void {
+): string | undefined {
     let newLink = graph.value.createLink(
-        source.id,
-        target.id,
+        sourceId,
+        targetId,
         label,
         linkColor,
         isDeletableViaGUI,
         isLabelEditableViaGUI
     )
     if (newLink !== undefined) {
+        if (newLink.color) {
+            createLinkMarkerColored(canvas!, graphHostId.value, config, newLink.color)
+        }
         triggerLinkCreated(newLink, graphHost.value)
+        restart()
+        return newLink.id
+    } else {
+        return undefined
     }
-    restart()
 }
 
+/**
+ * Creates a new graph node and triggers the according event.
+ * @param props
+ * @param x
+ * @param y
+ * @param importedId
+ * @param label
+ * @param nodeColor
+ * @param hasFixedPosition
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @param allowIncomingLinks
+ * @param allowOutgoingLinks
+ * @returns The id of the newly created node.
+ */
 function createNode(
-    props: NodeProps,
+    props: NodeProps = { ...config.nodeProps },
     x?: number,
     y?: number,
     importedId?: string | number,
@@ -1163,7 +1197,7 @@ function createNode(
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
     allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
-): void {
+): number {
     let newNode = graph.value.createNode(
         props,
         x ?? width / 2,
@@ -1181,6 +1215,8 @@ function createNode(
     updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
     restart()
+
+    return newNode.id
 }
 
 function onTick(): void {
@@ -1871,7 +1907,7 @@ function _onPointerUpCreateLink(): void {
     if (source === undefined || target === undefined) {
         return
     }
-    createLink(source, target)
+    createLink(source.id, target.id)
 }
 
 //endregion
@@ -2265,8 +2301,8 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
         let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
             createLink(
-                srcNode,
-                targetNode,
+                srcNode.id,
+                targetNode.id,
                 parsedLink.label,
                 parsedLink.color,
                 parsedLink.deletable,
