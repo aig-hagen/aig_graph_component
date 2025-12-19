@@ -607,72 +607,70 @@ Various events are triggered by different interactions with the graph.
 
 Event Names:
 
-- `nodecreated`
-- `nodedeleted`
-- `linkcreated`
-- `linkdeleted`
+- `node-created`
+- `node-deleted`
+- `link-created`
+- `link-deleted`
 
-Additional information can be accessed through `detail.node` or `detail.link`.
-This includes `id` and `label` for both, with nodes also providing position details via `x` and `y`.
-
-- `detail.node`
-    - `id`
-    - `label`
-    - `x`
-    - `y`
-- `detail.link`
-    - `id`
-    - `label`
-
-#### Node Rendered Size Change
-
-Event Name:
-
-- `noderenderedsizechange`
-
-With the following additional information:
-
-- `detail.node`
-    - `id`
-    - `renderedSize`
-    - `baseSize`
-- `detail.previousRenderedSize`
+Additional information can be accessed which include `node: {id, label, x, y}` for nodes
+and `link: {id, label}` for links.
 
 #### Click
 
 Event Names:
 
-- `nodeclicked`
-- `linkclicked`
+- `node-clicked`
+- `link-clicked`
 
 In addition to the details provided for creation and deletion events,
-the click events also include `detail.button`, indicating the button used for the click.
+the click event also include `button`, indicating the button used for the click.
+This results in `node: {id, label, x, y}, button` for nodes and `link: {id, label}, button` for links.
 
 #### Labels
 
-Event Name: `labeledited`
+Event Name: `label-edited`
 
-For label editing events, the following details are available:
+For this event the id of the node or link element whose label was edited is available as additional information
+as well as the updated label text `parent: {id}, label`.
 
-- `detail.parent.id` : the ID of the node or link element whose label was edited
-- `detail.label`: the updated label text
+#### Node Rendered Size Change
+
+Event Name: `node-rendered-size-change`
+
+As additional information the nodes id, the new rendered size and the minimal size is provided,
+as well as the previously rendered size `node: {id, renderedSize, baseSize}, previousRenderedSize`.
 
 #### Listening for Events
 
-Events are fired from the graph host. This is where we attach the event listener.
+##### Inside a Vue Library
+
+```vue
+
+<template>
+    <graph-component
+        @node-clicked="function(clickedNode, button){
+            //change the color on left click
+            if(button === 0){
+                instance.setColor('#8FBC8F', clickedNode.id)
+            }
+        }"
+    >
+    </graph-component>
+</template>
+```
+
+##### Inside a Custom Element
+
+On the custom element, the events are dispatched as native CustomEvents
+and the event arguments (payload) will be exposed as an array on the CustomEvent object as its detail property[^1].
+
+[^1]: https://vuejs.org/guide/extras/web-components.html#events
 
 ```javascript
-// get the graph host
-// w/o shadow root
-const graphHost = document.getElementById('gc1').querySelector('.graph-controller__graph-host')
-// with shadow root
-//document.getElementById('gc1').shadowRoot.querySelector('.graph-controller__graph-host')
-
-// add event listener for click on node
-graphHost.addEventListener('nodeclicked', function(e) {
-    if (e.detail.button === 0) {
+graphComponent.addEventListener('node-clicked', function(e) {
+    if (e.detail[1] === 0) {
         //change the color on left click
-        instance.setColor('#8FBC8F', e.detail.node.id)
+        instance.setColor('#8FBC8F', e.detail[0].id)
     }
 })
 ```
