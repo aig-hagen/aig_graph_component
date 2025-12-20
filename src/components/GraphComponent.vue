@@ -19,17 +19,7 @@ import {
     updateCollide
 } from '@/d3/simulation'
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
-import {
-    terminate,
-    triggerLabelEdited,
-    triggerLinkClicked,
-    triggerLinkCreated,
-    triggerLinkDeleted,
-    triggerNodeClicked,
-    triggerNodeCreated,
-    triggerNodeDeleted,
-    triggerNodeRenderedSizeChange
-} from '@/d3/event'
+import { terminate } from '@/d3/event'
 //model
 import Graph from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
@@ -163,6 +153,20 @@ let scale = 1
 let longRightClickTimerNode: ReturnType<typeof setTimeout>
 let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
+
+const emit = defineEmits<{
+    nodeCreated: [node: { id: number; label?: string; x?: number; y?: number }]
+    nodeClicked: [node: { id: number; label?: string; x?: number; y?: number }, button: number]
+    nodeDeleted: [node: { id: number; label?: string; x?: number; y?: number }]
+    nodeRenderedSizeChange: [
+        node: { id: number; renderedSize: NodeSize; baseSize: NodeSize },
+        previousRenderedSize: NodeSize
+    ]
+    linkCreated: [link: { id: string; label?: string }]
+    linkClicked: [link: { id: string; label?: string }, button: number]
+    linkDeleted: [link: { id: string; label?: string }]
+    labelEdited: [parent: { id: number | string }, label: string]
+}>()
 
 //exposing for API
 defineExpose({
@@ -328,9 +332,14 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                     let r = graph.value.removeNode(d)
                     if (r !== undefined) {
                         let [removedNode, removedLinks] = r
-                        triggerNodeDeleted(removedNode, graphHost.value)
-                        removedLinks.forEach((link) => {
-                            triggerLinkDeleted(link, graphHost.value)
+                        emit('nodeDeleted', {
+                            id: removedNode.id,
+                            label: removedNode.label,
+                            x: removedNode.x,
+                            y: removedNode.y
+                        })
+                        removedLinks.forEach((removedLink) => {
+                            emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
                         })
                     }
                 })
@@ -342,7 +351,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 .each(function (d) {
                     let removedLink = graph.value.removeLink(d)
                     if (removedLink !== undefined) {
-                        triggerLinkDeleted(removedLink, graphHost.value)
+                        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
                     }
                 })
         }
@@ -351,9 +360,14 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             let r = graph.value.removeNode(d)
             if (r !== undefined) {
                 let [removedNode, removedLinks] = r
-                triggerNodeDeleted(removedNode, graphHost.value)
-                removedLinks.forEach((link) => {
-                    triggerLinkDeleted(link, graphHost.value)
+                emit('nodeDeleted', {
+                    id: removedNode.id,
+                    label: removedNode.label,
+                    x: removedNode.x,
+                    y: removedNode.y
+                })
+                removedLinks.forEach((removedLink) => {
+                    emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
                 })
             }
         })
@@ -361,7 +375,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         linkSelection!.each(function (d) {
             let removedLink = graph.value.removeLink(d)
             if (removedLink !== undefined) {
-                triggerLinkDeleted(removedLink, graphHost.value)
+                emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
             }
         })
     }
@@ -1115,7 +1129,11 @@ function _updateRenderedNodeSize(node: GraphNode, labelSize: Pick<DOMRect, 'widt
 
     if (JSON.stringify(prevSize) !== JSON.stringify(node.renderedSize)) {
         hasSizeChange = true
-        triggerNodeRenderedSizeChange(node, prevSize, graphHost.value)
+        emit(
+            'nodeRenderedSizeChange',
+            { id: node.id, renderedSize: node.renderedSize, baseSize: node.getSize() },
+            prevSize
+        )
     }
 
     return hasSizeChange
@@ -1162,7 +1180,7 @@ function createLink(
         if (newLink.color) {
             createLinkMarkerColored(canvas!, graphHostId.value, config, newLink.color)
         }
-        triggerLinkCreated(newLink, graphHost.value)
+        emit('linkCreated', { id: newLink.id, label: newLink.label })
         restart()
         return newLink.id
     } else {
@@ -1211,7 +1229,7 @@ function createNode(
         allowIncomingLinks,
         allowOutgoingLinks
     )
-    triggerNodeCreated(newNode, graphHost.value)
+    emit('nodeCreated', { id: newNode.id, label: newNode.label, x: newNode.x, y: newNode.y })
     updateCollide(simulation, graph.value, config)
     graphHasNodes.value = true
     restart()
@@ -1302,7 +1320,7 @@ function restart(alpha: number = 0.5): void {
                 })
                 .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
-                    triggerLinkClicked(d, event.button, graphHost.value)
+                    emit('linkClicked', { id: d.id, label: d.label }, event.button)
                     onPointerDownDeleteLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphLink) => {
@@ -1427,7 +1445,11 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
-                        triggerNodeClicked(d, event.button, graphHost.value)
+                        emit(
+                            'nodeClicked',
+                            { id: d.id, label: d.label, x: d.x, y: d.y },
+                            event.button
+                        )
                         lastPointerDownOnNodePosition = { x: event.x, y: event.y }
                         onPointerDownNode(event, d)
                     })
@@ -1810,9 +1832,14 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
     let r = graph.value.removeNode(node)
     if (r !== undefined) {
         let [removedNode, removedLinks] = r
-        triggerNodeDeleted(removedNode, graphHost.value)
-        removedLinks.forEach((link) => {
-            triggerLinkDeleted(link, graphHost.value)
+        emit('nodeDeleted', {
+            id: removedNode.id,
+            label: removedNode.label,
+            x: removedNode.x,
+            y: removedNode.y
+        })
+        removedLinks.forEach((removedLink) => {
+            emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
         })
         updateCollide(simulation, graph.value, config)
     }
@@ -2034,7 +2061,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
     let removedLink = graph.value.removeLink(link)
     if (removedLink !== undefined) {
-        triggerLinkDeleted(removedLink, graphHost.value)
+        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
     }
     if (color) {
         if (!graph.value.hasNonDefaultLinkColor(color)) {
@@ -2175,8 +2202,7 @@ function handleInputForLabel(element: GraphNode | GraphLink, position: [number, 
  * @param label - new label
  */
 function _updateLabel(element: GraphNode | GraphLink, label: string) {
-    triggerLabelEdited(element, label, graphHost.value)
-
+    emit('labelEdited', { id: element.id }, label)
     element.label = label
     restart()
 
@@ -2378,8 +2404,17 @@ function handleWindowResize() {
 }
 
 function _resetGraph(): void {
-    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value))
-    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value))
+    graph.value.links.forEach((removedLink) =>
+        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+    )
+    graph.value.nodes.forEach((removedNode) =>
+        emit('nodeDeleted', {
+            id: removedNode.id,
+            label: removedNode.label,
+            x: removedNode.x,
+            y: removedNode.y
+        })
+    )
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
