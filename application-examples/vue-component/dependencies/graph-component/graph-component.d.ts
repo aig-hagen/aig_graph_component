@@ -1,113 +1,292 @@
-import { ComponentOptionsMixin } from 'vue';
-import { ComponentProvideOptions } from 'vue';
-import { DefineComponent } from 'vue';
-import { PublicProps } from 'vue';
+import { ComponentOptionsMixin } from 'vue'
+import { ComponentProvideOptions } from 'vue'
+import { DefineComponent } from 'vue'
+import { PublicProps } from 'vue'
+
+/**
+ * Creates a new link from source to target node, triggers the according event.
+ *
+ * @param sourceId
+ * @param targetId
+ * @param label
+ * @param linkColor
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @returns The id of the newly created link or undefined if the link already exists or the source or target node id was invalid.
+ */
+declare function createLink(
+    sourceId: number,
+    targetId: number,
+    label?: string,
+    linkColor?: string,
+    isDeletableViaGUI?: boolean,
+    isLabelEditableViaGUI?: boolean
+): string | undefined
+
+/**
+ * Creates a new graph node and triggers the according event.
+ * @param props
+ * @param x
+ * @param y
+ * @param importedId
+ * @param label
+ * @param nodeColor
+ * @param hasFixedPosition
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @param allowIncomingLinks
+ * @param allowOutgoingLinks
+ * @returns The id of the newly created node.
+ */
+declare function createNode(
+    props?: NodeProps,
+    x?: number,
+    y?: number,
+    importedId?: string | number,
+    label?: string,
+    nodeColor?: string,
+    hasFixedPosition?: FixedAxis,
+    isDeletableViaGUI?: boolean,
+    isLabelEditableViaGUI?: boolean,
+    allowIncomingLinks?: boolean,
+    allowOutgoingLinks?: boolean
+): number
 
 /**
  * Exposed function that deletes nodes and links via their IDs.
  * If no IDs are provided all currently existing nodes and links are deleted.
  * @param ids
  */
-declare function deleteElement(ids: string[] | number[] | string | number | undefined): void;
+declare function deleteElement(ids: string[] | number[] | string | number | undefined): void
 
 declare type FixedAxis = {
-    x: boolean;
-    y: boolean;
-};
-
-declare function getGraph(format?: string, includeNodePosition?: boolean, includeNodeProps?: boolean, includeColor?: boolean, includeEditability?: boolean): any;
-
-export declare const GraphComponent: DefineComponent<    {}, {
-setDefaults: typeof setDefaults;
-getGraph: typeof getGraph;
-setGraph: typeof setGraph;
-printGraph: typeof printGraph;
-deleteElement: typeof deleteElement;
-setLabel: typeof setLabel;
-setColor: typeof setColor;
-setNodeSize: typeof setNodeSize;
-setNodeShape: typeof setNodeShape;
-setNodeProps: typeof setNodeProps;
-setDeletable: typeof setDeletable;
-setLabelEditable: typeof setLabelEditable;
-setNodesLinkPermission: typeof setNodesLinkPermission;
-setNodesFixedPosition: typeof setNodesFixedPosition;
-setEditability: typeof setEditability;
-toggleNodeLabels: typeof toggleNodeLabels;
-toggleLinkLabels: typeof toggleLinkLabels;
-toggleZoom: typeof toggleZoom;
-toggleNodePhysics: typeof toggleNodePhysics;
-toggleFixedLinkDistance: typeof toggleFixedLinkDistance;
-toggleNodeCreationViaGUI: typeof toggleNodeCreationViaGUI;
-toggleNodeAutoGrow: typeof toggleNodeAutoGrow;
-resetView: typeof resetView;
-}, {}, {}, {}, ComponentOptionsMixin, ComponentOptionsMixin, {}, string, PublicProps, Readonly<{}> & Readonly<{}>, {}, {}, {}, {}, string, ComponentProvideOptions, true, {}, any>;
-
-declare interface GraphConfiguration {
-    nodeProps: NodeProps;
-    nodeGUIEditability: NodeGUIEditability;
-    nodeAutoGrowToLabelSize: boolean;
-    showNodeLabels: boolean;
-    nodePhysicsEnabled: boolean;
-    linkGUIEditability: LinkGUIEditability;
-    showLinkLabels: boolean;
-    fixedLinkDistanceEnabled: boolean;
-    allowNodeCreationViaGUI: boolean;
-    zoomEnabled: boolean;
-    markerBoxSize: number;
-    markerPadding: number;
-    markerRef: number;
-    arrowPoints: [number, number][];
-    markerPath: string;
-    readonly isCanvasBoundToView: boolean;
+    x: boolean
+    y: boolean
 }
 
-declare type GraphConfigurationInput = Partial<Pick<GraphConfiguration, 'zoomEnabled' | 'nodePhysicsEnabled' | 'fixedLinkDistanceEnabled' | 'showNodeLabels' | 'showLinkLabels' | 'allowNodeCreationViaGUI' | 'nodeAutoGrowToLabelSize' | 'nodeProps' | 'nodeGUIEditability' | 'linkGUIEditability'>>;
+declare function getDefaults(): GraphConfigurationPublic
 
-declare type jsonGraph = {
-    nodes: jsonNode[];
-    links: jsonLink[];
-};
+declare function getGraph(
+    format?: string,
+    includeNodePosition?: boolean,
+    includeNodeProps?: boolean,
+    includeColor?: boolean,
+    includeEditability?: boolean
+): any
 
-declare type jsonLink = {
-    sourceId: number;
-    targetId: number;
-    label?: string;
-    color?: string;
-} & LinkGUIEditability;
+export declare const GraphComponent: DefineComponent<
+    {},
+    {
+        setDefaults: typeof setDefaults
+        getDefaults: typeof getDefaults
+        getGraph: typeof getGraph
+        setGraph: typeof setGraph
+        printGraph: typeof printGraph
+        createNode: typeof createNode
+        createLink: typeof createLink
+        deleteElement: typeof deleteElement
+        setLabel: typeof setLabel
+        setColor: typeof setColor
+        setNodeSize: typeof setNodeSize
+        setNodeShape: typeof setNodeShape
+        setNodeProps: typeof setNodeProps
+        setDeletable: typeof setDeletable
+        setLabelEditable: typeof setLabelEditable
+        setNodesLinkPermission: typeof setNodesLinkPermission
+        setNodesFixedPosition: typeof setNodesFixedPosition
+        setEditability: typeof setEditability
+        toggleNodeLabels: typeof toggleNodeLabels
+        toggleLinkLabels: typeof toggleLinkLabels
+        toggleZoom: typeof toggleZoom
+        toggleNodePhysics: typeof toggleNodePhysics
+        toggleFixedLinkDistance: typeof toggleFixedLinkDistance
+        toggleNodeCreationViaGUI: typeof toggleNodeCreationViaGUI
+        toggleNodeAutoGrow: typeof toggleNodeAutoGrow
+        resetView: typeof resetView
+    },
+    {},
+    {},
+    {},
+    ComponentOptionsMixin,
+    ComponentOptionsMixin,
+    {
+        nodeCreated: (node: { id: number; label?: string; x?: number; y?: number }) => any
+        nodeClicked: (
+            node: {
+                id: number
+                label?: string
+                x?: number
+                y?: number
+            },
+            button: number
+        ) => any
+        nodeDeleted: (node: { id: number; label?: string; x?: number; y?: number }) => any
+        nodeRenderedSizeChange: (
+            node: {
+                id: number
+                renderedSize: NodeSize
+                baseSize: NodeSize
+            },
+            previousRenderedSize: NodeSize
+        ) => any
+        linkCreated: (link: { id: string; label?: string }) => any
+        linkClicked: (
+            link: {
+                id: string
+                label?: string
+            },
+            button: number
+        ) => any
+        linkDeleted: (link: { id: string; label?: string }) => any
+        labelEdited: (
+            parent: {
+                id: number | string
+            },
+            label: string
+        ) => any
+    },
+    string,
+    PublicProps,
+    Readonly<{}> &
+        Readonly<{
+            onNodeCreated?:
+                | ((node: { id: number; label?: string; x?: number; y?: number }) => any)
+                | undefined
+            onNodeClicked?:
+                | ((
+                      node: {
+                          id: number
+                          label?: string
+                          x?: number
+                          y?: number
+                      },
+                      button: number
+                  ) => any)
+                | undefined
+            onNodeDeleted?:
+                | ((node: { id: number; label?: string; x?: number; y?: number }) => any)
+                | undefined
+            onNodeRenderedSizeChange?:
+                | ((
+                      node: {
+                          id: number
+                          renderedSize: NodeSize
+                          baseSize: NodeSize
+                      },
+                      previousRenderedSize: NodeSize
+                  ) => any)
+                | undefined
+            onLinkCreated?: ((link: { id: string; label?: string }) => any) | undefined
+            onLinkClicked?:
+                | ((
+                      link: {
+                          id: string
+                          label?: string
+                      },
+                      button: number
+                  ) => any)
+                | undefined
+            onLinkDeleted?: ((link: { id: string; label?: string }) => any) | undefined
+            onLabelEdited?:
+                | ((
+                      parent: {
+                          id: number | string
+                      },
+                      label: string
+                  ) => any)
+                | undefined
+        }>,
+    {},
+    {},
+    {},
+    {},
+    string,
+    ComponentProvideOptions,
+    true,
+    {},
+    any
+>
 
-declare type jsonNode = {
-    id: number;
-    x?: number;
-    y?: number;
-    label?: string;
-} & NodeGUIEditability & NodeAppearance;
+declare interface GraphConfiguration {
+    nodeProps: NodeProps
+    nodeGUIEditability: NodeGUIEditability
+    nodeAutoGrowToLabelSize: boolean
+    showNodeLabels: boolean
+    nodePhysicsEnabled: boolean
+    linkGUIEditability: LinkGUIEditability
+    showLinkLabels: boolean
+    fixedLinkDistanceEnabled: boolean
+    allowNodeCreationViaGUI: boolean
+    zoomEnabled: boolean
+    markerBoxSize: number
+    markerPadding: number
+    markerRef: number
+    arrowPoints: [number, number][]
+    markerPath: string
+    readonly isCanvasBoundToView: boolean
+}
+
+declare type GraphConfigurationPublic = Partial<
+    Pick<
+        GraphConfiguration,
+        | 'zoomEnabled'
+        | 'nodePhysicsEnabled'
+        | 'fixedLinkDistanceEnabled'
+        | 'showNodeLabels'
+        | 'showLinkLabels'
+        | 'allowNodeCreationViaGUI'
+        | 'nodeAutoGrowToLabelSize'
+        | 'nodeProps'
+        | 'nodeGUIEditability'
+        | 'linkGUIEditability'
+    >
+>
+
+export declare type jsonGraph = {
+    nodes: jsonNode[]
+    links: jsonLink[]
+}
+
+export declare type jsonLink = {
+    sourceId: number
+    targetId: number
+    label?: string
+    color?: string
+} & LinkGUIEditability
+
+export declare type jsonNode = {
+    id: number
+    x?: number
+    y?: number
+    label?: string
+} & NodeGUIEditability &
+    NodeAppearance
 
 declare interface LinkGUIEditability {
-    deletable?: boolean;
-    labelEditable?: boolean;
+    deletable?: boolean
+    labelEditable?: boolean
 }
 
 declare interface NodeAppearance {
-    color?: string;
-    props?: NodeProps;
-    renderedSize?: NodeSize;
+    color?: string
+    props?: NodeProps
+    renderedSize?: NodeSize
 }
 
 declare type NodeCircle = {
-    shape: NodeShape.CIRCLE;
-    radius: number;
-};
-
-declare interface NodeGUIEditability {
-    fixedPosition?: FixedAxis;
-    deletable?: boolean;
-    labelEditable?: boolean;
-    allowIncomingLinks?: boolean;
-    allowOutgoingLinks?: boolean;
+    shape: NodeShape.CIRCLE
+    radius: number
 }
 
-declare type NodeProps = NodeCircle | NodeRect;
+declare interface NodeGUIEditability {
+    fixedPosition?: FixedAxis
+    deletable?: boolean
+    labelEditable?: boolean
+    allowIncomingLinks?: boolean
+    allowOutgoingLinks?: boolean
+}
+
+declare type NodeProps = NodeCircle | NodeRect
 
 /**
  * Rectangular Node Properties.
@@ -119,12 +298,12 @@ declare type NodeProps = NodeCircle | NodeRect;
  * - *Avoid higher ratios, if you still use them, use fixed edges and avoid placing them from the short to the long side.*
  */
 declare type NodeRect = {
-    shape: NodeShape.RECTANGLE;
-    width: number;
-    height: number;
-    cornerRadius: number;
-    reflexiveEdgeStart: 'MOVABLE' | SideType;
-};
+    shape: NodeShape.RECTANGLE
+    width: number
+    height: number
+    cornerRadius: number
+    reflexiveEdgeStart: 'MOVABLE' | SideType
+}
 
 /**
  * The node shapes are used to render the specific shape and attributes for the nodes
@@ -133,24 +312,30 @@ declare type NodeRect = {
  * The right hand side should be a basic SVG shape.
  */
 declare enum NodeShape {
-    CIRCLE = "circle",
-    RECTANGLE = "rect"
+    CIRCLE = 'circle',
+    RECTANGLE = 'rect'
 }
 
-declare type NodeSize = NodeSizeCircle | NodeSizeRect;
+declare type NodeSize = NodeSizeCircle | NodeSizeRect
 
 declare type NodeSizeCircle = {
-    radius: number;
-};
+    radius: number
+}
 
 declare type NodeSizeRect = {
-    width: number;
-    height: number;
-};
+    width: number
+    height: number
+}
 
-declare function printGraph(format?: string, includeNodePosition?: boolean, includeNodeProps?: boolean, includeColor?: boolean, includeEditability?: boolean): void;
+declare function printGraph(
+    format?: string,
+    includeNodePosition?: boolean,
+    includeNodeProps?: boolean,
+    includeColor?: boolean,
+    includeEditability?: boolean
+): void
 
-declare function resetView(): void;
+declare function resetView(): void
 
 /**
  * Exposed function that sets the color of nodes and links via their IDs.
@@ -158,9 +343,12 @@ declare function resetView(): void;
  * @param color
  * @param ids
  */
-declare function setColor(color: string, ids: string[] | number[] | string | number | undefined): void;
+declare function setColor(
+    color: string,
+    ids: string[] | number[] | string | number | undefined
+): void
 
-declare function setDefaults(configInput: GraphConfigurationInput): void;
+declare function setDefaults(configInput: GraphConfigurationPublic): void
 
 /**
  * Exposed function to set if nodes and links are deletable via GUI based on the provided IDs.
@@ -168,7 +356,10 @@ declare function setDefaults(configInput: GraphConfigurationInput): void;
  * @param isDeletable
  * @param ids
  */
-declare function setDeletable(isDeletable: boolean, ids: string[] | number[] | string | number | undefined): void;
+declare function setDeletable(
+    isDeletable: boolean,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Exposed function to set the editability parameters of nodes and links at once using an editability-object.
@@ -176,9 +367,12 @@ declare function setDeletable(isDeletable: boolean, ids: string[] | number[] | s
  * @param editability
  * @param ids
  * */
-declare function setEditability(editability: NodeGUIEditability | LinkGUIEditability, ids: string[] | number[] | string | number | undefined): void;
+declare function setEditability(
+    editability: NodeGUIEditability | LinkGUIEditability,
+    ids: string[] | number[] | string | number | undefined
+): void
 
-declare function setGraph(graphToSet: string | jsonGraph | undefined): void;
+declare function setGraph(graphToSet: string | jsonGraph | undefined): void
 
 /**
  * Exposed function that sets the label of nodes and links via their IDs.
@@ -186,7 +380,10 @@ declare function setGraph(graphToSet: string | jsonGraph | undefined): void;
  * @param label
  * @param ids
  */
-declare function setLabel(label: string, ids: string[] | number[] | string | number | undefined): void;
+declare function setLabel(
+    label: string,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Exposed function to set if the labels of nodes and links are editable via GUI based on the provided IDs.
@@ -194,7 +391,10 @@ declare function setLabel(label: string, ids: string[] | number[] | string | num
  * @param isLabelEditable
  * @param ids
  */
-declare function setLabelEditable(isLabelEditable: boolean, ids: string[] | number[] | string | number | undefined): void;
+declare function setLabelEditable(
+    isLabelEditable: boolean,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Exposed function to set the individual nodes properties.
@@ -210,7 +410,10 @@ declare function setLabelEditable(isLabelEditable: boolean, ids: string[] | numb
  * `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
  * @param ids
  */
-declare function setNodeProps(nodeProps: NodeProps, ids: string[] | number[] | string | number | undefined): void;
+declare function setNodeProps(
+    nodeProps: NodeProps,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Exposed function to set if a node can be dragged via GUI and is influenced by the simulation forces.
@@ -218,7 +421,10 @@ declare function setNodeProps(nodeProps: NodeProps, ids: string[] | number[] | s
  * @param fixedPosition
  * @param ids
  */
-declare function setNodesFixedPosition(fixedPosition: FixedAxis | boolean, ids: string[] | number[] | string | number | undefined): void;
+declare function setNodesFixedPosition(
+    fixedPosition: FixedAxis | boolean,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Exposed function to set the individual node shape via id.
@@ -226,7 +432,7 @@ declare function setNodesFixedPosition(fixedPosition: FixedAxis | boolean, ids: 
  * @param shape
  * @param ids
  */
-declare function setNodeShape(shape: NodeShape, ids: number[] | number | undefined): void;
+declare function setNodeShape(shape: NodeShape, ids: number[] | number | undefined): void
 
 /**
  * Exposed function to set the size of individual nodes via their IDs.
@@ -246,7 +452,7 @@ declare function setNodeShape(shape: NodeShape, ids: number[] | number | undefin
  *
  * @param ids
  */
-declare function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined): void;
+declare function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined): void
 
 /**
  * Exposed function to set if specified nodes allow incoming or outgoing links edited via GUI
@@ -256,34 +462,38 @@ declare function setNodeSize(size: NodeSize | number, ids: number[] | number | u
  * @param allowOutgoingLinks
  * @param ids
  */
-declare function setNodesLinkPermission(allowIncomingLinks: boolean, allowOutgoingLinks: boolean, ids: string[] | number[] | string | number | undefined): void;
+declare function setNodesLinkPermission(
+    allowIncomingLinks: boolean,
+    allowOutgoingLinks: boolean,
+    ids: string[] | number[] | string | number | undefined
+): void
 
 /**
  * Represents the possible sides of a rectangular shaped node where a path can be attached.
  */
 declare enum SideType {
-    RIGHT = "RIGHT",
-    BOTTOMRIGHT = "BOTTOMRIGHT",
-    BOTTOM = "BOTTOM",
-    BOTTOMLEFT = "BOTTOMLEFT",
-    LEFT = "LEFT",
-    TOPLEFT = "TOPLEFT",
-    TOP = "TOP",
-    TOPRIGHT = "TOPRIGHT"
+    RIGHT = 'RIGHT',
+    BOTTOMRIGHT = 'BOTTOMRIGHT',
+    BOTTOM = 'BOTTOM',
+    BOTTOMLEFT = 'BOTTOMLEFT',
+    LEFT = 'LEFT',
+    TOPLEFT = 'TOPLEFT',
+    TOP = 'TOP',
+    TOPRIGHT = 'TOPRIGHT'
 }
 
-declare function toggleFixedLinkDistance(isEnabled: boolean): void;
+declare function toggleFixedLinkDistance(isEnabled: boolean): void
 
-declare function toggleLinkLabels(isEnabled: boolean): void;
+declare function toggleLinkLabels(isEnabled: boolean): void
 
-declare function toggleNodeAutoGrow(isEnabled: boolean): void;
+declare function toggleNodeAutoGrow(isEnabled: boolean): void
 
-declare function toggleNodeCreationViaGUI(isEnabled: boolean): void;
+declare function toggleNodeCreationViaGUI(isEnabled: boolean): void
 
-declare function toggleNodeLabels(isEnabled: boolean): void;
+declare function toggleNodeLabels(isEnabled: boolean): void
 
-declare function toggleNodePhysics(isEnabled: boolean): void;
+declare function toggleNodePhysics(isEnabled: boolean): void
 
-declare function toggleZoom(isEnabled: boolean): void;
+declare function toggleZoom(isEnabled: boolean): void
 
-export { }
+export { GraphConfigurationPublic }
