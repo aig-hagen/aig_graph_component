@@ -171,6 +171,7 @@ const emit = defineEmits<{
 //exposing for API
 defineExpose({
     setDefaults,
+    getDefaults,
     getGraph,
     setGraph,
     printGraph,
@@ -197,7 +198,7 @@ defineExpose({
     resetView
 })
 
-type GraphConfigurationInput = Partial<
+export type GraphConfigurationPublic = Partial<
     Pick<
         GraphConfiguration,
         | 'zoomEnabled'
@@ -213,7 +214,7 @@ type GraphConfigurationInput = Partial<
     >
 >
 
-function setDefaults(configInput: GraphConfigurationInput) {
+function setDefaults(configInput: GraphConfigurationPublic) {
     //region graph-level
     // zoom
     if (configInput.zoomEnabled !== undefined) {
@@ -255,6 +256,21 @@ function setDefaults(configInput: GraphConfigurationInput) {
     restart()
 }
 
+function getDefaults(): GraphConfigurationPublic {
+    return {
+        zoomEnabled: config.zoomEnabled,
+        nodePhysicsEnabled: config.nodePhysicsEnabled,
+        fixedLinkDistanceEnabled: config.fixedLinkDistanceEnabled,
+        showNodeLabels: config.showNodeLabels,
+        showLinkLabels: config.showLinkLabels,
+        allowNodeCreationViaGUI: config.allowNodeCreationViaGUI,
+        nodeAutoGrowToLabelSize: config.nodeAutoGrowToLabelSize,
+        nodeProps: config.nodeProps,
+        nodeGUIEditability: config.nodeGUIEditability,
+        linkGUIEditability: config.linkGUIEditability
+    }
+}
+
 //region functions that are solely used as exposed ones
 function getGraph(
     format: string = 'json',
@@ -277,7 +293,7 @@ function getGraph(
             )
         )
     } else if (format.toLowerCase() === 'tgf') {
-        return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels, true, true)
+        return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
     } else {
         console.error('Invalid format while using getGraph(). Please choose "JSON" or "TGF".')
     }

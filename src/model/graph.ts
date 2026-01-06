@@ -155,16 +155,9 @@ export default class Graph {
     /** Formats the graph in trivial graph format.
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
-     * @param includeNodeColor TGF normally has no color option, this is just used for internal purposes
-     * @param includeLinkColor TGF normally has no color option, this is just used for internal purposes
      * @returns The graph in TGF format
      */
-    public toTGF(
-        includeNodeLabels: boolean = true,
-        includeLinkLabels: boolean = true,
-        includeNodeColor: boolean = false,
-        includeLinkColor: boolean = false
-    ): string {
+    public toTGF(includeNodeLabels: boolean = true, includeLinkLabels: boolean = true): string {
         if (this.nodes.length === 0 && this.links.length === 0) {
             return ''
         }
@@ -179,9 +172,6 @@ export default class Graph {
                 if (includeNodeLabels && node.label !== undefined) {
                     line += ` ${node.label}`
                 }
-                if (includeNodeColor && node.color !== undefined) {
-                    line += ` /COLOR:/${node.color}`
-                }
                 return line
             })
             .join('\n')
@@ -192,9 +182,6 @@ export default class Graph {
 
                 if (includeLinkLabels && link.label !== undefined) {
                     line += ` ${link.label}`
-                }
-                if (includeLinkColor && link.color !== undefined) {
-                    line += ` /COLOR:/${link.color}`
                 }
                 return line
             })
@@ -223,26 +210,41 @@ export default class Graph {
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true
     ): string {
-        let nodes = this.nodes.map((node) => {
-            return Object.fromEntries(
-                Object.entries(node).filter(([key]) => {
-                    return (
-                        key === 'id' ||
-                        (includeNodePosition && (key === 'x' || key === 'y')) ||
-                        (includeNodeLabels && key === 'label') ||
-                        (includeNodeProps && key === 'props') ||
-                        (includeNodeColor && key === 'color') ||
-                        (includeNodeEditability &&
-                            [
-                                'fixedPosition',
-                                'deletable',
-                                'labelEditable',
-                                'allowIncomingLinks',
-                                'allowOutgoingLinks'
-                            ].includes(key))
-                    )
-                })
-            )
+        const nodes = this.nodes.map((node) => {
+            const jsonNode: any = {
+                id: node.id
+            }
+            if (includeNodePosition) {
+                if (node.x !== undefined) jsonNode.x = node.x
+                if (node.y !== undefined) jsonNode.y = node.y
+            }
+            if (includeNodeLabels && node.label !== undefined) {
+                jsonNode.label = node.label
+            }
+            if (includeNodeProps && node.props !== undefined) {
+                jsonNode.props = node.props
+            }
+            if (includeNodeColor && node.color !== undefined) {
+                jsonNode.color = node.color
+            }
+            if (includeNodeEditability) {
+                if (node.fixedPosition !== undefined) {
+                    jsonNode.fixedPosition = node.fixedPosition
+                }
+                if (node.deletable !== undefined) {
+                    jsonNode.deletable = node.deletable
+                }
+                if (node.labelEditable !== undefined) {
+                    jsonNode.labelEditable = node.labelEditable
+                }
+                if (node.allowIncomingLinks !== undefined) {
+                    jsonNode.allowIncomingLinks = node.allowIncomingLinks
+                }
+                if (node.allowOutgoingLinks !== undefined) {
+                    jsonNode.allowOutgoingLinks = node.allowOutgoingLinks
+                }
+            }
+            return jsonNode
         })
 
         let links = this.links.map((link: GraphLink) => {

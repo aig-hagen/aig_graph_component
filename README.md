@@ -87,7 +87,7 @@ There are props set at graph level, and some at an individual level.
     - expects a [node GUI editability object](#editability-convenience-function)
 - `linkGUIEditability`
     - defines how links can be edited via the GUI
-    - expects a [node GUI editability object](#editability-convenience-function)
+    - expects a [link GUI editability object](#editability-convenience-function)
 
 #### Example config input object
 
@@ -649,7 +649,7 @@ as well as the previously rendered size `node: {id, renderedSize, baseSize}, pre
 <template>
     <graph-component
         @node-clicked="function(clickedNode, button){
-            //change the color on left click
+            <!--change the color on left click-->
             if(button === 0){
                 instance.setColor('#8FBC8F', clickedNode.id)
             }
