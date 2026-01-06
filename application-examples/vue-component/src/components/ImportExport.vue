@@ -100,7 +100,7 @@ function showError(title: string, message: any) {
 </script>
 
 <template>
-    <v-dialog v-model="dialog" max-width="900px">
+    <v-dialog v-model="dialog" scrollable max-width="900px">
         <template #activator="{ props }">
             <v-tooltip location="bottom" :open-delay="750" text="Import/Export">
                 <template #activator="{ props: onTooltip }">
@@ -157,14 +157,14 @@ function showError(title: string, message: any) {
                         <h3 class="heading">Preview</h3>
                         <pre v-show="exportFormat === 'JSON'">{{ props.graphAsJson }}</pre>
                         <pre v-show="exportFormat === 'TGF'">{{ props.graphAsTgf }}</pre>
-                        <v-card-text
-                            >This export action will <strong>copy</strong> the graph as JSON or in
-                            trivial graph format to your clipboard.
-                        </v-card-text>
+
                     </v-window-item>
                 </v-window>
             </v-card-text>
-
+            <v-card-text
+            >This export action will <strong>copy</strong> the graph as JSON or in
+                trivial graph format to your clipboard.
+            </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn color="secondary" variant="text" :disabled="!isSubmittable" @click="onOk()"

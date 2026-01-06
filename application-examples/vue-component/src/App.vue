@@ -1,10 +1,12 @@
-<script setup lang="ts"></script>
 <script setup lang="ts">
 import { onMounted, ref, useTemplateRef } from 'vue'
 
 import {
     GraphComponent,
-    type GraphConfigurationPublic
+    type GraphConfigurationPublic,
+    type LinkGUIEditability,
+    type NodeGUIEditability,
+    type NodeProps
 } from '../dependencies/graph-component/graph-component.js'
 import ImportExport from './components/ImportExport.vue'
 import Settings from './components/Settings.vue'
@@ -32,24 +34,34 @@ onMounted(() => {
 
     initFromLocalStorage()
 })
+
 function updateIndividualSettings(
     nodeIds: number[],
-    linkIds: string[],
+    nodeProps: NodeProps,
     nodeColor: string,
-    linkColor: string
+    nodeEditability: NodeGUIEditability,
+    linkIds: string[],
+    linkColor: string,
+    linkEditability: LinkGUIEditability
 ) {
-    console.log('event')
-    console.log(nodeIds)
-    console.log(linkIds)
-    console.log(nodeColor)
-
-    if (nodeColor) {
-        console.log('inside node color')
-        graphComponentElement.value.setColor(nodeColor, nodeIds)
+    if (nodeIds) {
+        if (nodeProps) {
+            graphComponentElement.value.setNodeProps(nodeProps, nodeIds)
+        }
+        if (nodeColor) {
+            graphComponentElement.value.setColor(nodeColor, nodeIds)
+        }
+        if (nodeEditability) {
+            graphComponentElement.value.setEditability(nodeEditability, nodeIds)
+        }
     }
-    if (linkColor) {
-        console.log('inside link color')
-        graphComponentElement.value.setColor(linkColor, linkIds)
+    if (linkIds) {
+        if (linkColor) {
+            graphComponentElement.value.setColor(linkColor, linkIds)
+        }
+        if (linkEditability) {
+            graphComponentElement.value.setEditability(linkEditability, linkIds)
+        }
     }
 }
 
@@ -64,6 +76,9 @@ function initFromLocalStorage() {
     }
     if (localStorage.enableNodePhysics) {
         setDefaultsObject.nodePhysicsEnabled = stringToBoolean(localStorage.enableNodePhysics)
+    }
+    if (localStorage.nodeAutoGrow) {
+        setDefaultsObject.nodeAutoGrowToLabelSize = stringToBoolean(localStorage.nodeAutoGrow)
     }
     if (localStorage.showLinkLabels) {
         setDefaultsObject.showLinkLabels = stringToBoolean(localStorage.showLinkLabels)
@@ -165,9 +180,6 @@ function togglePersistInLocalStorage(isEnabled: boolean) {
                 @update-individual-settings="updateIndividualSettings"
                 @persist-in-local-storage="togglePersistInLocalStorage"
             ></settings>
-
-<style scoped></style>
-            <!--            <help></help>-->
         </div>
     </div>
 </template>

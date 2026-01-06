@@ -8,7 +8,8 @@ import {
     mdiHelp,
     mdiHelpCircleOutline,
     mdiImageFilterCenterFocus,
-    mdiPlusThick
+    mdiPlusThick,
+    mdiMenuDown
 } from '@mdi/js'
 
 export default createVuetify({
@@ -22,7 +23,8 @@ export default createVuetify({
             importExport: mdiFileImportOutline,
             resetView: mdiImageFilterCenterFocus,
             settings: mdiCogOutline,
-            helpCircle: mdiHelpCircleOutline
+            helpCircle: mdiHelpCircleOutline,
+            menuDown: mdiMenuDown
         },
         sets: {
             mdi

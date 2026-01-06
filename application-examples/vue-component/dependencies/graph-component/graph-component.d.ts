@@ -262,7 +262,7 @@ export declare type jsonNode = {
 } & NodeGUIEditability &
     NodeAppearance
 
-declare interface LinkGUIEditability {
+export declare interface LinkGUIEditability {
     deletable?: boolean
     labelEditable?: boolean
 }
@@ -273,12 +273,12 @@ declare interface NodeAppearance {
     renderedSize?: NodeSize
 }
 
-declare type NodeCircle = {
+export declare type NodeCircle = {
     shape: NodeShape.CIRCLE
     radius: number
 }
 
-declare interface NodeGUIEditability {
+export declare interface NodeGUIEditability {
     fixedPosition?: FixedAxis
     deletable?: boolean
     labelEditable?: boolean
@@ -286,7 +286,7 @@ declare interface NodeGUIEditability {
     allowOutgoingLinks?: boolean
 }
 
-declare type NodeProps = NodeCircle | NodeRect
+export declare type NodeProps = NodeCircle | NodeRect
 
 /**
  * Rectangular Node Properties.
@@ -297,7 +297,7 @@ declare type NodeProps = NodeCircle | NodeRect
  * - *For ratios between 1:3 and 1:10 prefer using fixed edges*
  * - *Avoid higher ratios, if you still use them, use fixed edges and avoid placing them from the short to the long side.*
  */
-declare type NodeRect = {
+export declare type NodeRect = {
     shape: NodeShape.RECTANGLE
     width: number
     height: number
@@ -311,7 +311,7 @@ declare type NodeRect = {
  *
  * The right hand side should be a basic SVG shape.
  */
-declare enum NodeShape {
+export declare enum NodeShape {
     CIRCLE = 'circle',
     RECTANGLE = 'rect'
 }
