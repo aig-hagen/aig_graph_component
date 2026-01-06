@@ -36,8 +36,7 @@ export type jsonGraph = {
 
 /**
  * Parses Trivial Graph Format with IDs and labels for nodes and links.
- * Additional (non-typical TGF) color option available.
- * Editability options are not available, if you need them you should use parseJSONGraph
+ * Color and Editability options are not available, if you need them you should use parseJSONGraph
  * @param file - Trivial Graph Format String to parse
  * */
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -50,22 +49,13 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (const node of nodesInput) {
-            let [, id, nodeLabel, nodeColor] = (
-                node.match(/(\w+) (.*) \/COLOR:\/(.+)/) ||
-                node.match(/(\w+) (.*)/) ||
-                node.match(/(\w+)/) ||
-                []
-            ).map((item) => item.trim())
-            //when there is no nodeLabel but a nodeColor
-            if (nodeLabel?.includes('/COLOR:/')) {
-                nodeColor = nodeLabel
-                nodeLabel = ''
-            }
+            let [, id, nodeLabel] = (node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []).map(
+                (item) => item.trim()
+            )
             if (id) {
                 nodes.push({
                     idImported: id,
-                    label: nodeLabel,
-                    color: nodeColor?.replace('/COLOR:/', '')
+                    label: nodeLabel
                 })
             }
         }
@@ -74,29 +64,21 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const links: parsedLink[] = []
     if (linksInput.length) {
         for (const link of linksInput) {
-            let [, source, target, linkLabel, linkColor] = (
-                link.match(/(\w+) (\w+) (.*) \/COLOR:\/(.+)/) ||
+            let [, source, target, linkLabel] = (
                 link.match(/(\w+) (\w+) (.*)/) ||
                 link.match(/(\w+) (\w+)/) ||
                 []
             ).map((item) => item.trim())
-            //when there is no linkLabel but a linkColor
-            if (linkLabel?.includes('/COLOR:/')) {
-                linkColor = linkLabel
-                linkLabel = ''
-            }
 
             if (source && target) {
                 links.push({
                     sourceIdImported: source,
                     targetIdImported: target,
-                    label: linkLabel,
-                    color: linkColor?.replace('/COLOR:/', '')
+                    label: linkLabel
                 })
             }
         }
     }
-
     return [nodes, links]
 }
 
