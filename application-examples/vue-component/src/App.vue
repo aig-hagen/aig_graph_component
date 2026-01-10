@@ -70,7 +70,6 @@ function initFromLocalStorage() {
 
     let setDefaultsObject: GraphConfigurationPublic = {}
 
-    //config
     if (localStorage.showNodeLabels) {
         setDefaultsObject.showNodeLabels = stringToBoolean(localStorage.showNodeLabels)
     }
@@ -91,6 +90,15 @@ function initFromLocalStorage() {
     if (localStorage.enableZoom) {
         setDefaultsObject.zoomEnabled = stringToBoolean(localStorage.enableZoom)
     }
+    if(localStorage.nodeProps){
+        setDefaultsObject.nodeProps = JSON.parse(localStorage.nodeProps)
+    }
+    if(localStorage.nodeGUIEditability){
+        setDefaultsObject.nodeGUIEditability = JSON.parse(localStorage.nodeGUIEditability)
+    }
+    if(localStorage.linkGUIEditability){
+        setDefaultsObject.linkGUIEditability = JSON.parse(localStorage.linkGUIEditability)
+    }
 
     if (localStorage.persistSettings) {
         persistInLocalStorage.value = stringToBoolean(localStorage.persistSettings)
@@ -100,8 +108,6 @@ function initFromLocalStorage() {
 }
 
 function togglePersistInLocalStorage(isEnabled: boolean) {
-    console.log('persist in local storage')
-    console.log(isEnabled)
     persistInLocalStorage.value = isEnabled
 }
 </script>

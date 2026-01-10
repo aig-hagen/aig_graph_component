@@ -5,11 +5,11 @@ import {
     mdiCogOutline,
     mdiDelete,
     mdiFileImportOutline,
-    mdiHelp,
     mdiHelpCircleOutline,
     mdiImageFilterCenterFocus,
     mdiPlusThick,
-    mdiMenuDown
+    mdiMenuDown,
+    mdiInformationOutline
 } from '@mdi/js'
 
 export default createVuetify({
@@ -19,12 +19,12 @@ export default createVuetify({
             ...aliases,
             addNode: mdiPlusThick,
             deleteGraph: mdiDelete,
-            help: mdiHelp,
             importExport: mdiFileImportOutline,
             resetView: mdiImageFilterCenterFocus,
             settings: mdiCogOutline,
             helpCircle: mdiHelpCircleOutline,
-            menuDown: mdiMenuDown
+            menuDown: mdiMenuDown,
+            info: mdiInformationOutline
         },
         sets: {
             mdi

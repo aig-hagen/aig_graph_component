@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import {computed, reactive, ref, shallowRef, watch} from 'vue'
 import {
     type GraphConfigurationPublic,
     type jsonGraph,
@@ -48,6 +48,92 @@ const toggleFixedLinkDistance = ref(props.config.fixedLinkDistanceEnabled)
 const toggleZoom = ref(props.config.zoomEnabled)
 const isPersist = ref(props.isPersistEnabled)
 
+//default node appearance
+const defaultNodeAppearance = reactive({
+    shape: null,
+    radius: null,
+    width: null,
+    height: null,
+    cornerRadius: null,
+    reflexiveEdgeStart: null
+})
+
+const defaultNodePropsToEmit = computed(() => {
+    if (defaultNodeAppearance.shape) {
+        if (defaultNodeAppearance.shape === 'circle') {
+            return {shape: defaultNodeAppearance.shape, radius: defaultNodeAppearance.radius}
+        } else if (defaultNodeAppearance.shape === 'rect') {
+            return {
+                shape: defaultNodeAppearance.shape,
+                width: defaultNodeAppearance.width,
+                height: defaultNodeAppearance.height,
+                cornerRadius: defaultNodeAppearance.cornerRadius,
+                reflexiveEdgeStart: defaultNodeAppearance.reflexiveEdgeStart
+            }
+        }
+    }
+})
+
+//default node editability
+const defaultNodeEditability = reactive({
+    deletable: null,
+    labelEditable: null,
+    fixedXAxis: null,
+    fixedYAxis: null,
+    allowIncomingLinks: null,
+    allowOutgoingLinks: null
+})
+
+const toggleDefaultFixedPos = computed({
+    get() {
+        return defaultNodeEditability.fixedXAxis || defaultNodeEditability.fixedYAxis
+    },
+    set(value) {
+        defaultNodeEditability.fixedXAxis = value
+        defaultNodeEditability.fixedYAxis = value
+    }
+})
+const toggleDefaultAllowLinks = computed({
+    get() {
+        return (
+            defaultNodeEditability.allowIncomingLinks || defaultNodeEditability.allowOutgoingLinks
+        )
+    },
+    set(value) {
+        defaultNodeEditability.allowIncomingLinks = value
+        defaultNodeEditability.allowOutgoingLinks = value
+    }
+})
+
+const defaultNodeEditabilityToEmit = computed(() => {
+    return {
+        deletable: defaultNodeEditability.deletable,
+        labelEditable: defaultNodeEditability.labelEditable,
+        fixedPosition: {
+            x: defaultNodeEditability.fixedXAxis,
+            y: defaultNodeEditability.fixedYAxis
+        },
+        allowIncomingLinks: defaultNodeEditability.allowIncomingLinks,
+        allowOutgoingLinks: defaultNodeEditability.allowOutgoingLinks
+    }
+})
+
+//default link editability
+
+
+// link editablility
+const defaultLinkEditability = reactive({
+    deletable: null,
+    labelEditable: null
+})
+
+const defaultLinkEditabilityToEmit = computed(() => {
+    return {
+        deletable: defaultLinkEditability.deletable,
+        labelEditable: defaultLinkEditability.labelEditable
+    }
+})
+
 watch(dialog, (open) => {
     if (open) {
         toggleNodeLabels.value = props.config.showNodeLabels
@@ -60,6 +146,9 @@ watch(dialog, (open) => {
         toggleNodeAutoGrowToLabelSize.value = props.config.nodeAutoGrowToLabelSize
 
         isPersist.value = props.isPersistEnabled
+
+        initFromConfigForNodes(defaultNodeAppearance, defaultNodeEditability, true)
+        initFromConfigForLinks(defaultLinkEditability, true)
     }
 })
 //endregion
@@ -122,7 +211,7 @@ const reflexiveEdgeStartToSelect = [
 const nodePropsToEmit = computed(() => {
     if (nodeAppearance.shape) {
         if (nodeAppearance.shape === 'circle') {
-            return { shape: nodeAppearance.shape, radius: nodeAppearance.radius }
+            return {shape: nodeAppearance.shape, radius: nodeAppearance.radius}
         } else if (nodeAppearance.shape === 'rect') {
             return {
                 shape: nodeAppearance.shape,
@@ -135,8 +224,7 @@ const nodePropsToEmit = computed(() => {
     }
 })
 
-// node editablility
-
+// node editability
 const nodeEditability = reactive({
     deletable: null,
     labelEditable: null,
@@ -188,9 +276,9 @@ watch(
         if (nodes.length === 1) {
             initFromNode(nodes[0]!)
         } else if (selectedSomeNodes.value) {
-            initFromGraphLevelConfigForNodes()
+            initFromConfigForNodes(nodeAppearance, nodeEditability)
         } else {
-            clearElementForm()
+            clearElementForm(true, false)
         }
     }
 )
@@ -215,7 +303,7 @@ const linksToSelect = computed<graphElementLinkSelect[]>(() => {
     )
 })
 const selectedAllLinks = computed(() => {
-    return linksSelected.value.length === nodesToSelect.value.length
+    return linksSelected.value.length === linksToSelect.value.length
 })
 const selectedSomeLinks = computed(() => {
     return linksSelected.value.length > 0
@@ -248,9 +336,9 @@ watch(
         if (links.length === 1) {
             initFromLink(links[0]!)
         } else if (selectedSomeLinks.value) {
-            initFromGraphLevelConfigForLinks()
+            initFromConfigForLinks(linkEditability, false)
         } else {
-            clearElementForm()
+            clearElementForm(false, true)
         }
     }
 )
@@ -304,18 +392,33 @@ function initFromNode(nodeId: number) {
     }
 }
 
-function initFromGraphLevelConfigForNodes() {
-    Object.assign(nodeAppearance, {
-        shape: props.config.nodeProps?.shape,
-        radius: (props.config.nodeProps as NodeCircle).radius,
-        width: (props.config.nodeProps as NodeRect).width,
-        height: (props.config.nodeProps as NodeRect).height,
-        cornerRadius: (props.config.nodeProps as NodeRect).cornerRadius,
-        reflexiveEdgeStart: (props.config.nodeProps as NodeRect).reflexiveEdgeStart,
-        color: null
-    })
+function initFromConfigForNodes(
+    nodeAppearanceObject: object,
+    nodeEditabilityObject: object,
+    isForGraphLevelNodeSettings = false
+) {
+    if (isForGraphLevelNodeSettings) {
+        Object.assign(nodeAppearanceObject, {
+            shape: props.config.nodeProps?.shape,
+            radius: (props.config.nodeProps as NodeCircle).radius,
+            width: (props.config.nodeProps as NodeRect).width,
+            height: (props.config.nodeProps as NodeRect).height,
+            cornerRadius: (props.config.nodeProps as NodeRect).cornerRadius,
+            reflexiveEdgeStart: (props.config.nodeProps as NodeRect).reflexiveEdgeStart
+        })
+    } else {
+        Object.assign(nodeAppearanceObject, {
+            shape: props.config.nodeProps?.shape,
+            radius: (props.config.nodeProps as NodeCircle).radius,
+            width: (props.config.nodeProps as NodeRect).width,
+            height: (props.config.nodeProps as NodeRect).height,
+            cornerRadius: (props.config.nodeProps as NodeRect).cornerRadius,
+            reflexiveEdgeStart: (props.config.nodeProps as NodeRect).reflexiveEdgeStart,
+            color: null
+        })
+    }
 
-    Object.assign(nodeEditability, {
+    Object.assign(nodeEditabilityObject, {
         deletable: props.config.nodeGUIEditability?.deletable,
         labelEditable: props.config.nodeGUIEditability?.labelEditable,
         fixedXAxis: props.config.nodeGUIEditability?.fixedPosition?.x,
@@ -337,44 +440,51 @@ function initFromLink(linkId: string) {
     }
 }
 
-function initFromGraphLevelConfigForLinks() {
-    Object.assign(linkEditability, {
+function initFromConfigForLinks(linkEditabilityObject: object, isForGraphLevelNodeSettings = false) {
+    Object.assign(linkEditabilityObject, {
         deletable: props.config.linkGUIEditability?.deletable,
         labelEditable: props.config.linkGUIEditability?.labelEditable
     })
-    linkColor.value = ''
+    if (!isForGraphLevelNodeSettings) {
+        linkColor.value = ''
+    }
 }
 
-function clearElementForm() {
-    //node appearance
-    Object.assign(nodeAppearance, {
-        shape: null,
-        radius: null,
-        width: null,
-        height: null,
-        cornerRadius: null,
-        reflexiveEdgeStart: null,
-        color: null
-    })
+function clearElementForm(clearNodes = true, clearLinks = true) {
 
-    //node editability
-    Object.assign(nodeEditability, {
-        deletable: null,
-        labelEditable: null,
-        fixedXAxis: null,
-        fixedYAxis: null,
-        allowIncomingLinks: null,
-        allowOutgoingLinks: null
-    })
+    if (clearNodes) {
+        //node appearance
+        Object.assign(nodeAppearance, {
+            shape: null,
+            radius: null,
+            width: null,
+            height: null,
+            cornerRadius: null,
+            reflexiveEdgeStart: null,
+            color: null
+        })
 
-    //link appearance
-    linkColor.value = ''
+        //node editability
+        Object.assign(nodeEditability, {
+            deletable: null,
+            labelEditable: null,
+            fixedXAxis: null,
+            fixedYAxis: null,
+            allowIncomingLinks: null,
+            allowOutgoingLinks: null
+        })
+    }
 
-    //link editability
-    Object.assign(linkEditability, {
-        deletable: null,
-        labelEditable: null
-    })
+    if (clearLinks) {
+        //link appearance
+        linkColor.value = ''
+
+        //link editability
+        Object.assign(linkEditability, {
+            deletable: null,
+            labelEditable: null
+        })
+    }
 }
 
 function itemProps(item: { id: string | number; label: string }) {
@@ -402,16 +512,23 @@ function toggleAllLinks() {
 
 function handleLocalStorage() {
     if (isPersist.value) {
+        //Node Settings
         localStorage.showNodeLabels = toggleNodeLabels.value
         localStorage.enableNodePhysics = toggleNodePhysics.value
         localStorage.nodeAutoGrow = toggleNodeAutoGrowToLabelSize.value
 
+        //Link Settings
         localStorage.showLinkLabels = toggleLinkLabels.value
         localStorage.enableFixedLinkDistance = toggleFixedLinkDistance.value
 
+        //Miscellaneous
         localStorage.enableZoom = toggleZoom.value
-
         localStorage.persistSettings = isPersist.value
+
+        //More Settings
+        localStorage.nodeProps = JSON.stringify(defaultNodePropsToEmit.value)
+        localStorage.nodeGUIEditability = JSON.stringify(defaultNodeEditabilityToEmit.value)
+        localStorage.linkGUIEditability = JSON.stringify(defaultLinkEditabilityToEmit.value)
     }
     localStorage.wasHere = true
 }
@@ -423,8 +540,11 @@ function onSave() {
             showNodeLabels: toggleNodeLabels.value,
             nodePhysicsEnabled: toggleNodePhysics.value,
             nodeAutoGrowToLabelSize: toggleNodeAutoGrowToLabelSize.value,
+            nodeProps: defaultNodePropsToEmit.value,
+            nodeGUIEditability: defaultNodeEditabilityToEmit.value,
             showLinkLabels: toggleLinkLabels.value,
             fixedLinkDistanceEnabled: toggleFixedLinkDistance.value,
+            linkGUIEditability: defaultLinkEditabilityToEmit.value,
             zoomEnabled: toggleZoom.value
         })
         emit('persist-in-local-storage', isPersist.value)
@@ -476,10 +596,10 @@ function onClose() {
                 <v-card-title>
                     <v-tabs v-model="levelTab">
                         <v-tab color="secondary" density="compact" variant="elevated"
-                            >Graph Level
+                        >Graph Level
                         </v-tab>
                         <v-tab color="secondary" density="compact" variant="elevated"
-                            >Element Level
+                        >Element Level
                         </v-tab>
                     </v-tabs>
                 </v-card-title>
@@ -492,7 +612,7 @@ function onClose() {
                                     <v-col cols="5">
                                         <v-row>
                                             <v-card-subtitle class="py-5"
-                                                >Node Settings
+                                            >Node Settings
                                             </v-card-subtitle>
                                         </v-row>
 
@@ -526,7 +646,7 @@ function onClose() {
                                     <v-col cols="5">
                                         <v-row>
                                             <v-card-subtitle class="py-5"
-                                                >Link Settings
+                                            >Link Settings
                                             </v-card-subtitle>
                                         </v-row>
                                         <v-row>
@@ -546,7 +666,7 @@ function onClose() {
                                         </v-row>
                                         <v-row class="my-0 py-0">
                                             <v-card-subtitle class="px-0"
-                                                >Miscellaneous
+                                            >Miscellaneous
                                             </v-card-subtitle>
                                         </v-row>
                                         <v-row class="py-0 my-0">
@@ -557,6 +677,237 @@ function onClose() {
                                             />
                                         </v-row>
                                     </v-col>
+                                    <v-expansion-panels>
+                                        <v-expansion-panel elevation="0" color="#FFFFFF" bg-color="#1A313103">
+                                            <v-expansion-panel-title style="color:grey">
+                                                More Settings
+                                                <v-spacer></v-spacer>
+                                                <v-tooltip text="These settings can also be applied at element level.
+                                                When set at graph level, they become the default for newly created elements
+                                                that do not have their own individual settings specified."
+                                                           :open-delay="TOOLTIP_OPEN_DELAY">
+                                                    <template #activator="{props}">
+                                                        <v-icon v-bind="props" size="small" icon="$info"
+                                                                class="mr-2 opacity-60"></v-icon>
+                                                    </template>
+                                                </v-tooltip>
+                                            </v-expansion-panel-title>
+                                            <v-expansion-panel-text>
+                                                <v-row>
+                                                    <v-col cols="5">
+                                                        <v-expansion-panel-text>
+                                                            <!--                                 Default Node Appearance-->
+                                                            <v-row>
+                                                                <v-card-subtitle class="py-5"
+                                                                >Node Appearance
+                                                                </v-card-subtitle>
+                                                            </v-row>
+
+                                                            <v-row>
+                                                                <v-select
+                                                                    v-model="defaultNodeAppearance.shape"
+                                                                    :items="nodeShapesToSelect"
+                                                                    label="Shape"
+                                                                    variant="solo"
+                                                                    clearable
+                                                                ></v-select>
+                                                                <!--  Default Node Radius-->
+                                                                <v-number-input
+                                                                    v-model="defaultNodeAppearance.radius"
+                                                                    v-if="
+                                                                defaultNodeAppearance.shape ===
+                                                                'circle'
+                                                            "
+                                                                    :min="1"
+                                                                    :max="250"
+                                                                    control-variant="hidden"
+                                                                    label="Radius"
+                                                                ></v-number-input>
+                                                            </v-row>
+                                                            <v-row
+                                                                v-if="
+                                                            defaultNodeAppearance.shape === 'rect'
+                                                        "
+                                                                class="mt-0"
+                                                            >
+                                                                <!-- width -->
+                                                                <v-number-input
+                                                                    v-model="defaultNodeAppearance.width"
+                                                                    v-if="
+                                                                defaultNodeAppearance.shape ===
+                                                                'rect'
+                                                            "
+                                                                    :min="1"
+                                                                    :max="500"
+                                                                    control-variant="hidden"
+                                                                    label="Width"
+                                                                ></v-number-input>
+                                                                <!-- height-->
+                                                                <v-number-input
+                                                                    v-model="defaultNodeAppearance.height"
+                                                                    v-if="
+                                                                defaultNodeAppearance.shape ===
+                                                                'rect'
+                                                            "
+                                                                    :min="1"
+                                                                    :max="500"
+                                                                    control-variant="hidden"
+                                                                    label="Height"
+                                                                ></v-number-input>
+                                                            </v-row>
+                                                            <v-row
+                                                                v-if="
+                                                            defaultNodeAppearance.shape === 'rect'
+                                                        "
+                                                                class="mt-0"
+                                                            >
+                                                                <v-number-input
+                                                                    v-model="
+                                                                defaultNodeAppearance.cornerRadius
+                                                            "
+                                                                    v-if="
+                                                                defaultNodeAppearance.shape ===
+                                                                'rect'
+                                                            "
+                                                                    :min="0"
+                                                                    :max="8"
+                                                                    control-variant="stacked"
+                                                                    label="Corner Radius"
+                                                                >
+                                                                </v-number-input>
+                                                                <v-select
+                                                                    v-model="
+                                                                defaultNodeAppearance.reflexiveEdgeStart
+                                                            "
+                                                                    :v-bind="props"
+                                                                    :items="reflexiveEdgeStartToSelect"
+                                                                    label="Reflexive Edge Start"
+                                                                    single-line
+                                                                >
+
+                                                                </v-select>
+                                                            </v-row>
+                                                        </v-expansion-panel-text>
+                                                    </v-col>
+                                                    <v-spacer></v-spacer>
+                                                    <v-col cols="5"></v-col>
+                                                </v-row>
+                                                <v-row>
+                                                    <v-col cols="5">
+                                                        <v-card-subtitle class="py-5">Node Editability</v-card-subtitle>
+                                                        <v-expansion-panel-text>
+                                                            <!--                                  Default Node Editability-->
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Deletable"
+                                                                    color="secondary"
+                                                                    v-model="
+                                                                defaultNodeEditability.deletable
+                                                            "
+                                                                >
+                                                                </v-switch>
+                                                            </v-row>
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Label Editable"
+                                                                    color="secondary"
+                                                                    variant="text"
+                                                                    v-model="
+                                                                defaultNodeEditability.labelEditable
+                                                            "
+                                                                >
+                                                                </v-switch>
+                                                            </v-row>
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Fixed Position"
+                                                                    color="secondary"
+                                                                    variant="text"
+                                                                    v-model="toggleDefaultFixedPos"
+                                                                >
+                                                                </v-switch>
+                                                            </v-row>
+                                                            <v-row>
+                                                                <v-checkbox-btn
+                                                                    class="mt-n8 mb-8"
+                                                                    v-if="toggleDefaultFixedPos"
+                                                                    v-model="
+                                                                defaultNodeEditability.fixedXAxis
+                                                            "
+                                                                    label="Fixed x-Position"
+                                                                    color="secondary"
+                                                                ></v-checkbox-btn>
+                                                                <v-checkbox-btn
+                                                                    class="mt-n8 mb-8"
+                                                                    v-if="toggleDefaultFixedPos"
+                                                                    v-model="
+                                                                defaultNodeEditability.fixedYAxis
+                                                            "
+                                                                    label="Fixed y-Position"
+                                                                    color="secondary"
+                                                                ></v-checkbox-btn>
+                                                            </v-row>
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Allow Links"
+                                                                    color="secondary"
+                                                                    variant="text"
+                                                                    v-model="toggleDefaultAllowLinks"
+                                                                >
+                                                                </v-switch>
+                                                            </v-row>
+                                                            <v-row class="mt-0">
+                                                                <v-checkbox-btn
+                                                                    class="mt-n8 mb-8"
+                                                                    v-if="toggleDefaultAllowLinks"
+                                                                    v-model="
+                                                                defaultNodeEditability.allowIncomingLinks
+                                                            "
+                                                                    label="Incoming"
+                                                                    color="secondary"
+                                                                ></v-checkbox-btn>
+                                                                <v-checkbox-btn
+                                                                    class="mt-n8 mb-8"
+
+                                                                    v-if="toggleDefaultAllowLinks"
+                                                                    v-model="
+                                                                defaultNodeEditability.allowOutgoingLinks
+                                                            "
+                                                                    label="Outgoing"
+                                                                    color="secondary"
+                                                                ></v-checkbox-btn>
+                                                            </v-row>
+                                                        </v-expansion-panel-text>
+                                                    </v-col>
+                                                    <v-spacer></v-spacer>
+                                                    <v-col cols="5">
+                                                        <v-card-subtitle class="py-5">Link Editability</v-card-subtitle>
+                                                        <v-expansion-panel-text>
+                                                            <!-- Default Link Editability-->
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Deletable"
+                                                                    color="secondary"
+                                                                    v-model="defaultLinkEditability.deletable"
+                                                                >
+                                                                </v-switch>
+                                                            </v-row>
+                                                            <v-row class="my-0 py-0">
+                                                                <v-switch
+                                                                    label="Label Editable"
+                                                                    color="secondary"
+                                                                    variant="text"
+                                                                    v-model="defaultLinkEditability.labelEditable"
+                                                                >
+                                                                </v-switch>
+                                                            </v-row
+                                                            >
+                                                        </v-expansion-panel-text>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-expansion-panel-text>
+                                        </v-expansion-panel>
+                                    </v-expansion-panels>
                                 </v-row>
                             </v-card-text>
                         </v-window-item>
@@ -564,14 +915,13 @@ function onClose() {
                         <!--                  Element Level-->
                         <v-window-item>
                             <v-card-text>
+                                <!--  Element Level Id Selection-->
                                 <v-row>
+                                    <!-- Node Id Selection -->
                                     <v-col cols="5">
                                         <v-row>
-                                            <v-card-subtitle class="py-5"
-                                                >Node Settings
-                                            </v-card-subtitle>
+                                            <v-card-subtitle class="py-5">Node Settings</v-card-subtitle>
                                         </v-row>
-                                        <!--                                  Node Id Selection-->
                                         <v-row>
                                             <v-select
                                                 v-model="nodesSelected"
@@ -611,10 +961,61 @@ function onClose() {
                                                 </template>
                                             </v-select>
                                         </v-row>
-                                        <!--                                  Node Appearance-->
+                                    </v-col>
+                                    <v-spacer></v-spacer>
+                                    <!-- Link Id Selection -->
+                                    <v-col cols="5">
+                                        <v-row>
+                                            <v-card-subtitle class="py-5">Link Settings</v-card-subtitle>
+                                        </v-row>
+                                        <v-row>
+                                            <v-select
+                                                v-model="linksSelected"
+                                                :item-props="itemProps"
+                                                :items="linksToSelect"
+                                                item-title="label"
+                                                item-value="id"
+                                                multiple
+                                                label="Link ID Selection"
+                                                variant="solo-inverted"
+                                                single-line
+                                            >
+                                                <template
+                                                    v-if="linksToSelect.length > 2"
+                                                    v-slot:prepend-item
+                                                >
+                                                    <v-list-item
+                                                        title="Select All"
+                                                        @click="toggleAllLinks"
+                                                    >
+                                                        <template v-slot:prepend>
+                                                            <v-checkbox-btn
+                                                                :color="
+                                                                    selectedSomeLinks
+                                                                        ? 'secondary'
+                                                                        : undefined
+                                                                "
+                                                                :indeterminate="
+                                                                    selectedSomeLinks &&
+                                                                    !selectedAllLinks
+                                                                "
+                                                                :model-value="selectedAllLinks"
+                                                            ></v-checkbox-btn>
+                                                        </template>
+                                                    </v-list-item>
+                                                </template>
+                                            </v-select>
+                                        </v-row>
+                                    </v-col>
+                                </v-row>
+
+                                <!-- Element Level Appearance-->
+                                <v-row>
+                                    <!-- Element Level Node Appearance -->
+                                    <v-col cols="5">
                                         <v-row>
                                             <v-card-subtitle class="py-5"
-                                                >Node Appearance
+                                            >Node Appearance
                                             </v-card-subtitle>
                                         </v-row>
                                         <v-row>
@@ -706,129 +1107,35 @@ function onClose() {
                                                 </v-expansion-panel>
                                             </v-expansion-panels>
                                         </v-row>
-                                        <!--                                  Node Editability-->
-                                        <v-row>
-                                            <v-card-subtitle class="py-5"
-                                                >Node Editability
-                                            </v-card-subtitle>
-                                        </v-row>
-                                        <v-row class="my-0 py-0">
-                                            <v-switch
-                                                label="Deletable"
-                                                color="secondary"
-                                                v-model="nodeEditability.deletable"
-                                            >
-                                            </v-switch>
-                                        </v-row>
-                                        <v-row class="my-0 py-0">
-                                            <v-switch
-                                                label="Label Editable"
-                                                color="secondary"
-                                                variant="text"
-                                                v-model="nodeEditability.labelEditable"
-                                            >
-                                            </v-switch>
-                                        </v-row>
-                                        <v-row class="my-0 py-0">
-                                            <v-switch
-                                                label="Fixed Position"
-                                                color="secondary"
-                                                variant="text"
-                                                v-model="toggleFixedPos"
-                                            >
-                                            </v-switch>
-                                        </v-row>
-                                        <v-row>
-                                            <v-checkbox-btn
-                                                v-if="toggleFixedPos"
-                                                v-model="nodeEditability.fixedXAxis"
-                                                label="Fixed x-Position"
-                                                color="secondary"
-                                            ></v-checkbox-btn>
-                                            <v-checkbox-btn
-                                                v-if="toggleFixedPos"
-                                                v-model="nodeEditability.fixedYAxis"
-                                                label="Fixed y-Position"
-                                                color="secondary"
-                                            ></v-checkbox-btn>
-                                        </v-row>
-                                        <v-row class="my-0 py-0">
-                                            <v-switch
-                                                label="Allow Links"
-                                                color="secondary"
-                                                variant="text"
-                                                v-model="toggleAllowLinks"
-                                            >
-                                            </v-switch>
-                                        </v-row>
-                                        <v-row class="mt-0">
-                                            <v-checkbox-btn
-                                                v-if="toggleAllowLinks"
-                                                v-model="nodeEditability.allowIncomingLinks"
-                                                label="Incoming"
-                                                color="secondary"
-                                            ></v-checkbox-btn>
-                                            <v-checkbox-btn
-                                                v-if="toggleAllowLinks"
-                                                v-model="nodeEditability.allowOutgoingLinks"
-                                                label="Outgoing"
-                                                color="secondary"
-                                            ></v-checkbox-btn>
-                                        </v-row>
                                     </v-col>
                                     <v-spacer></v-spacer>
+                                    <!--Element Level Link Appearance-->
                                     <v-col cols="5">
                                         <v-row>
                                             <v-card-subtitle class="py-5"
-                                                >Link Settings
+                                            >Link Appearance
                                             </v-card-subtitle>
                                         </v-row>
+                                        <!-- just used for alignment-->
                                         <v-row>
-                                            <v-select
-                                                v-model="linksSelected"
-                                                :item-props="itemProps"
-                                                :items="linksToSelect"
-                                                item-title="label"
-                                                item-value="id"
-                                                multiple
-                                                label="Link ID Selection"
-                                                variant="solo-inverted"
-                                                single-line
+                                            <v-select disabled class="opacity-0"></v-select>
+                                        </v-row>
+                                        <v-row v-if="nodeAppearance.shape === 'rect'" class="mt-0">
+                                            <v-number-input disabled class="opacity-0"
                                             >
-                                                <template
-                                                    v-if="linksToSelect.length > 2"
-                                                    v-slot:prepend-item
-                                                >
-                                                    <v-list-item
-                                                        title="Select All"
-                                                        @click="toggleAllLinks"
-                                                    >
-                                                        <template v-slot:prepend>
-                                                            <v-checkbox-btn
-                                                                :color="
-                                                                    selectedSomeLinks
-                                                                        ? 'secondary'
-                                                                        : undefined
-                                                                "
-                                                                :indeterminate="
-                                                                    selectedSomeLinks &&
-                                                                    !selectedAllLinks
-                                                                "
-                                                                :model-value="selectedAllLinks"
-                                                            ></v-checkbox-btn>
-                                                        </template>
-                                                    </v-list-item>
-                                                </template>
+                                            </v-number-input>
+                                            <v-select disabled class="opacity-0"
+                                            >
                                             </v-select>
                                         </v-row>
-                                        <v-row>
-                                            <v-card-subtitle class="py-5"
-                                                >Link Appearance
-                                            </v-card-subtitle>
-                                        </v-row>
-                                        <v-row>
-                                            <!--                                        just used for alignment-->
-                                            <v-select disabled class="opacity-0"></v-select>
+                                        <v-row v-if="nodeAppearance.shape === 'rect'" class="mt-0">
+                                            <v-number-input
+                                                disabled class="opacity-0"
+                                            >
+                                            </v-number-input>
+                                            <v-select disabled class="opacity-0"
+                                            >
+                                            </v-select>
                                         </v-row>
                                         <v-row>
                                             <v-expansion-panels>
@@ -860,9 +1167,92 @@ function onClose() {
                                                 </v-expansion-panel>
                                             </v-expansion-panels>
                                         </v-row>
+                                    </v-col>
+                                </v-row>
+
+                                <!-- Element Level Editability-->
+                                <v-row>
+                                    <!-- Element Level Node Editability -->
+                                    <v-col cols="5">
                                         <v-row>
                                             <v-card-subtitle class="py-5"
-                                                >Link Appearance
+                                            >Node Editability
+                                            </v-card-subtitle>
+                                        </v-row>
+                                        <v-row class="my-0 py-0">
+                                            <v-switch
+                                                label="Deletable"
+                                                color="secondary"
+                                                v-model="nodeEditability.deletable"
+                                            >
+                                            </v-switch>
+                                        </v-row>
+                                        <v-row class="my-0 py-0">
+                                            <v-switch
+                                                label="Label Editable"
+                                                color="secondary"
+                                                variant="text"
+                                                v-model="nodeEditability.labelEditable"
+                                            >
+                                            </v-switch>
+                                        </v-row>
+                                        <v-row class="my-0 py-0">
+                                            <v-switch
+                                                label="Fixed Position"
+                                                color="secondary"
+                                                variant="text"
+                                                v-model="toggleFixedPos"
+                                            >
+                                            </v-switch>
+                                        </v-row>
+                                        <v-row>
+                                            <v-checkbox-btn
+                                                class="mt-n8 mb-8"
+                                                v-if="toggleFixedPos"
+                                                v-model="nodeEditability.fixedXAxis"
+                                                label="Fixed x-Position"
+                                                color="secondary"
+                                            ></v-checkbox-btn>
+                                            <v-checkbox-btn
+                                                class="mt-n8 mb-8"
+                                                v-if="toggleFixedPos"
+                                                v-model="nodeEditability.fixedYAxis"
+                                                label="Fixed y-Position"
+                                                color="secondary"
+                                            ></v-checkbox-btn>
+                                        </v-row>
+                                        <v-row class="my-0 py-0">
+                                            <v-switch
+                                                label="Allow Links"
+                                                color="secondary"
+                                                variant="text"
+                                                v-model="toggleAllowLinks"
+                                            >
+                                            </v-switch>
+                                        </v-row>
+                                        <v-row class="mt-0">
+                                            <v-checkbox-btn
+                                                class="mt-n8 mb-8"
+                                                v-if="toggleAllowLinks"
+                                                v-model="nodeEditability.allowIncomingLinks"
+                                                label="Incoming"
+                                                color="secondary"
+                                            ></v-checkbox-btn>
+                                            <v-checkbox-btn
+                                                class="mt-n8 mb-8"
+                                                v-if="toggleAllowLinks"
+                                                v-model="nodeEditability.allowOutgoingLinks"
+                                                label="Outgoing"
+                                                color="secondary"
+                                            ></v-checkbox-btn>
+                                        </v-row>
+                                    </v-col>
+                                    <v-spacer></v-spacer>
+                                    <!-- Element Level Link Editability-->
+                                    <v-col cols="5">
+                                        <v-row>
+                                            <v-card-subtitle class="py-5"
+                                            >Link Editability
                                             </v-card-subtitle>
                                         </v-row>
                                         <v-row class="my-0 py-0">
@@ -884,6 +1274,7 @@ function onClose() {
                                         </v-row>
                                     </v-col>
                                 </v-row>
+                                <v-spacer></v-spacer>
                             </v-card-text>
                         </v-window-item>
                     </v-window>
@@ -891,13 +1282,13 @@ function onClose() {
                 <v-card-actions>
                     <v-checkbox
                         v-if="levelTab == 0"
-                        label="Default Settings"
+                        label="Store Settings"
                         color="secondary"
                         v-model="isPersist"
                     ></v-checkbox>
-                    <v-spacer />
+                    <v-spacer/>
                     <v-btn color="secondary" :disabled="!isSaveable" variant="text" @click="onSave"
-                        >Save
+                    >Save
                     </v-btn>
                     <v-btn color="secondary" variant="text" @click="onClose"> Close</v-btn>
                 </v-card-actions>
