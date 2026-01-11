@@ -13,9 +13,9 @@
 ## Usage
 
 The graph component is available as a **custom element**
-allowing easy embedding into an HTML-file using the `<graph-component/>` tag.
-Refer to the explanation below and check out the [application-example-ce](application-example-ce) directory for
-integration examples.
+allowing easy embedding into an HTML-file using the `<graph-component/>` tag and as a **vue library**.
+Refer to the explanation below and check out the [application-examples](application-examples) directory for
+further examples.
 
 You can create your graph using the GUI, or interact with it
 and customize its behaviour [via the API](#API).
@@ -31,12 +31,29 @@ Some properties can also be set for [individual elements](#individual-elements).
 ### Preparation
 
 To be able to call the following functions, we need to get the graph-components instance first.
-
+#### Custom Element
 ```javascript
 // when it is included as a custom element in an html file (<graph-component id='gc1'>)
 const instance = document.getElementById('gc1')._instance.exposed
 ```           
+#### Vue Library
+```vue
+<script>
+    import {onMounted, ref, useTemplateRef} from 'vue'
+    
+    const graphComponentElementRef = useTemplateRef<typeof GraphComponent>('graph-component')
+    let instance = ref()
+    
+    onMounted(()=>{
+        instance.value = graphComponentElementRef.value
+    })
+</script>
+<template>
+    <graph-component ref="graph-component"></graph-component>
+</template>
+```
 
+#### Development Mode
 ```javascript
 // when you run the component in development mode
 const instance = document.getElementById('app').__vue_app__._instance.exposed
