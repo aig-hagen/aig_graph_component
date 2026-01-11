@@ -18,15 +18,3 @@ components as well as the programmatic interaction with the component.
 In your Vue App you need to:   
 * import the Graph Component
 * mount it as a component and use it in the template as `<graph-component>`
-
-## Which graph-editor.js to choose?
-### API Directory
-* __Programmatic__ interaction possible
-* __LaTex__ Support
-* No menu bar
-
-### Menu Directory
-_Still V3.0, will be updated with V3.3_
-* Ideal for __GUI__ Usage with __Menu Bar__
-* No programmatic interaction possible
-* No LaTeX support
