@@ -1,8 +1,27 @@
 {
-    "name": "graph-component",
-    "version": "3.2.0",
-    "private": true,
+    "name": "@aig-hagen/graph-component",
+    "description": "A simple tool that lets you quickly and interactively create, modify and display graphs.",
+    "version": "3.3.0",
     "type": "module",
+    "exports": {
+        "./ce": "./dist/ce",
+        "./lib": {
+            "import": "./dist/lib/graph-component.js",
+            "types": "./dist/lib/index.d.ts"
+        }
+    },
+    "homepage": "https://github.com/aig-hagen/aig_graph_component#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/aig-hagen/aig_graph_component.git"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "license": "MIT",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "dev": "vite",
         "build": "run-p type-check \"build-only-*\" --",
