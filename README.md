@@ -3,24 +3,77 @@
 > A simple tool that lets you quickly and interactively **create**, **modify** and **display graphs**.
 >
 > The focus lies on smaller graphs and manual creation.
-> Available as a standalone editor or as a component to integrate into your own project.
->
-> https://graphtool.aig.fernuni-hagen.de/ (_currently V2.0_)
->
+ Available as a [standalone editor](https://graphtool.aig.fernuni-hagen.de/) or as a [component](#usage) to integrate into your own project.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 ![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
 
 ## Usage
 
-The graph component is available as a **custom element**
-allowing easy embedding into an HTML-file using the `<graph-component/>` tag and as a **vue library**.
-Refer to the explanation below and check out the [application-examples](application-examples) directory for
-further examples.
+The Graph Component is provided as a **Custom Element** and as a **Vue Component**, 
+available on [GitHub Packages](https://github.com/aig-hagen/aig_graph_component/pkgs/npm/graph-component).
 
-You can create your graph using the GUI, or interact with it
-and customize its behaviour [via the API](#API).
+You can install the npm package by running the following steps:
+- configure your `.npmrc` by adding `@aig-hagen:registry=https://npm.pkg.github.com` and your token `//npm.pkg.github.com/:_authToken=TOKEN` 
+because this package is hosted at GitHub packages, for more information see [GitHub Docs (npm registry)](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
+- install the graph-component via `npm install @aig-hagen/graph-component@latest`
+
+For integration refer to the explanation below.
+
+
+### Custom Element
+
+Allows easy embedding into your *HTML-file*.
+
+> [!NOTE]
+> Npm is only needed to obtain the prebuilt Custom Element. 
+> After that, just copy the necessary files into your project and include them in your HTML page.
+
+- use the `<graph-component>` tag 
+- reference the `graph-component.js` script for the graph component functionality
+- reference the `load-mathjax.js` script for LaTeX integration 
+- link to`graph-component.css`
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8' />
+    <link rel='stylesheet' href='graph-component.css' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Graph Component</title>
+    <!-- MathJax for TeX notation -->
+    <script src='load-mathjax.js' async></script>
+</head>
+<body style='margin: 0; padding: 0'>
+    <graph-component id='gc1'></graph-component>
+<script src='graph-component.js'></script>
+```
+
+
+### Vue Component
+For integration in your *Vue project*.
+
+- import the GraphComponent
+- use `<GraphComponent>`in your template
+
+```vue
+
+<script>
+    import { GraphComponent } from '@aig-hagen/graph-component/lib'
+</script>
+<template>
+    <GraphComponent ref='graph-component'></GraphComponent>
+</template>
+```
+
+### Further Examples
+If you need further examples you can check out [application-examples](application-examples).
+
 
 ## API
+You can create your graph using the GUI, or interact with it
+and customize its behaviour via the API.
 
 How the initial behaviour of the component is set, is described in
 [setting defaults](#setting-defaults). This is the default behaviour of the graph
@@ -36,22 +89,26 @@ To be able to call the following functions, we need to get the graph-components 
 // when it is included as a custom element in an html file (<graph-component id='gc1'>)
 const instance = document.getElementById('gc1')._instance.exposed
 ```           
-#### Vue Library
+#### Vue Component
+Use a template ref to access the component object where you can access the API from.
+
+
 ```vue
 <script>
-    import {onMounted, ref, useTemplateRef} from 'vue'
-    
-    const graphComponentElementRef = useTemplateRef<typeof GraphComponent>('graph-component')
-    let instance = ref()
-    
-    onMounted(()=>{
-        instance.value = graphComponentElementRef.value
+    import { GraphComponent } from '@aig-hagen/graph-component/lib'
+
+    const graphComponent = useTemplateRef<typeof GraphComponent>('graph-component')
+
+    onMounted(() => {
+        //Example API usage on template ref
+        graphComponent.value!.createNode()
+        graphComponent.value!.toggleNodeAutoGrow(false)
     })
 </script>
 <template>
-    <graph-component ref="graph-component"></graph-component>
+    <GraphComponent ref='graph-component'></GraphComponent>
 </template>
-```
+``````
 
 #### Development Mode
 ```javascript
