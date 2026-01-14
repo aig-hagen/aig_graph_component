@@ -29,10 +29,10 @@ Allows easy embedding into your *HTML-file*.
 > Npm is only needed to obtain the prebuilt Custom Element. 
 > After that, just copy the necessary files into your project and include them in your HTML page.
 
-- use the `<graph-component>` tag 
 - reference the `graph-component.js` script for the graph component functionality
-- reference the `load-mathjax.js` script for LaTeX integration 
 - link to`graph-component.css`
+- reference the `load-mathjax.js` script for LaTeX integration (optional)
+- use the `<graph-component>` tag
 
 ```html
 <!DOCTYPE html>
@@ -42,7 +42,7 @@ Allows easy embedding into your *HTML-file*.
     <link rel='stylesheet' href='graph-component.css' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
     <title>Graph Component</title>
-    <!-- MathJax for TeX notation -->
+    <!-- optional MathJax for TeX notation -->
     <script src='load-mathjax.js' async></script>
 </head>
 <body style='margin: 0; padding: 0'>
@@ -55,12 +55,17 @@ Allows easy embedding into your *HTML-file*.
 For integration in your *Vue project*.
 
 - import the GraphComponent
+- import the styles
+- import the MathJax script for LaTeX integration (optional)
 - use `<GraphComponent>`in your template
 
 ```vue
 
 <script>
     import { GraphComponent } from '@aig-hagen/graph-component/lib'
+    import '@aig-hagen/graph-component/lib/graph-component.css'
+    // optional MathJax for Tex notation
+    import '@aig-hagen/graph-component/lib/load-mathjax.js'
 </script>
 <template>
     <GraphComponent ref='graph-component'></GraphComponent>
