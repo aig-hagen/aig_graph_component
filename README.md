@@ -754,6 +754,10 @@ graphComponent.addEventListener('node-clicked', function(e) {
 })
 ```
 
+## Browser compatibility
+
+For the best experience, please use **Firefox** or **Chromium-based browsers** and avoid WebKit-based ones. 
+
 ## Development
 
 ### Project Setup
