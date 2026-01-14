@@ -8,6 +8,8 @@ import {
     type NodeGUIEditability,
     type NodeProps
 } from '@aig-hagen/graph-component/lib'
+import '@aig-hagen/graph-component/lib/graph-component.css'
+import '@aig-hagen/graph-component/lib/load-mathjax.js'
 
 import ImportExport from './components/ImportExport.vue'
 import Settings from './components/Settings.vue'
