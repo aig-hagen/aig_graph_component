@@ -1,7 +1,7 @@
 {
     "name": "@aig-hagen/graph-component",
     "description": "A simple tool that lets you quickly and interactively create, modify and display graphs.",
-    "version": "3.7.0",
+    "version": "4.0.0",
     "type": "module",
     "exports": {
         "./ce": {
