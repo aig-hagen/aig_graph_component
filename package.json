@@ -37,6 +37,8 @@
         "type-check": "vue-tsc --build --force",
         "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
         "format": "prettier --write src/",
+        "docs": "typedoc",
+        "docs:serve": "npm run docs && npx serve docs",
         "test-ct": "playwright test -c playwright-ct.config.ts",
         "test-ct:update-snapshots": "playwright test --update-snapshots -c playwright-ct.config.ts"
     },
@@ -66,6 +68,8 @@
         "prettier": "^3.6.2",
         "sass": "^1.94.1",
         "scss": "^0.2.4",
+        "typedoc": "^0.28.16",
+        "typedoc-github-theme": "^0.3.1",
         "typescript": "^5.9.3",
         "vite": "7.2.2",
         "vite-plugin-dts": "^4.5.4",

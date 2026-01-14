@@ -1,0 +1,8 @@
+{
+    "entryPoints": ["./src/**/*.ts", "./src/**/*.vue"],
+    "tsconfig": "./tsconfig.app.json",
+    "exclude": ["node_modules"],
+    "out": "./docs",
+    "plugin": ["typedoc-github-theme"],
+    "theme": "typedoc-github-theme"
+}
