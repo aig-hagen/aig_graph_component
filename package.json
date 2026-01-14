@@ -1,10 +1,14 @@
 {
     "name": "@aig-hagen/graph-component",
     "description": "A simple tool that lets you quickly and interactively create, modify and display graphs.",
-    "version": "3.3.0",
+    "version": "3.7.0",
     "type": "module",
     "exports": {
-        "./ce": "./dist/ce",
+        "./ce": {
+            "import": "./dist/ce/graph-component.js",
+            "types": "./dist/ce/index.d.ts"
+        },
+        "./ce/*": "./dist/ce/*",
         "./lib": {
             "import": "./dist/lib/graph-component.js",
             "types": "./dist/lib/index.d.ts"
