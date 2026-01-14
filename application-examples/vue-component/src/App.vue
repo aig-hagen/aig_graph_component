@@ -7,14 +7,14 @@ import {
     type LinkGUIEditability,
     type NodeGUIEditability,
     type NodeProps
-} from '../dependencies/graph-component/graph-component.js'
+} from '@aig-hagen/graph-component/lib'
+
 import ImportExport from './components/ImportExport.vue'
 import Settings from './components/Settings.vue'
 
 const graphComponentElementRef = useTemplateRef<typeof GraphComponent>('graph-component')
 const isGraphComponentInitialized = ref(false)
 let graphComponentElement = ref()
-// let graphInstance = ref()
 
 const TOOLTIP_OPEN_DELAY = 750
 
@@ -22,15 +22,12 @@ const persistInLocalStorage = ref(true)
 
 onMounted(() => {
     graphComponentElement.value = graphComponentElementRef.value
-    // graphInstance.value = graphComponentElement.value._instance.exposed braucht man nicht, kann direkt auf graphCompnoentelement könnte man eig auch direkt auf dem ref?
 
     if (graphComponentElement) {
         isGraphComponentInitialized.value = true
     } else {
         throw Error('Graph Component Element not available')
     }
-
-    // )
 
     initFromLocalStorage()
 })
@@ -90,13 +87,13 @@ function initFromLocalStorage() {
     if (localStorage.enableZoom) {
         setDefaultsObject.zoomEnabled = stringToBoolean(localStorage.enableZoom)
     }
-    if(localStorage.nodeProps){
+    if (localStorage.nodeProps) {
         setDefaultsObject.nodeProps = JSON.parse(localStorage.nodeProps)
     }
-    if(localStorage.nodeGUIEditability){
+    if (localStorage.nodeGUIEditability) {
         setDefaultsObject.nodeGUIEditability = JSON.parse(localStorage.nodeGUIEditability)
     }
-    if(localStorage.linkGUIEditability){
+    if (localStorage.linkGUIEditability) {
         setDefaultsObject.linkGUIEditability = JSON.parse(localStorage.linkGUIEditability)
     }
 
@@ -115,8 +112,7 @@ function togglePersistInLocalStorage(isEnabled: boolean) {
 <template>
     <div class="d-flex pb-3">
         <div class="graph-component-container">
-            <!--            <GraphComponent ref="graph-component"></GraphComponent>-->
-            <graph-component ref="graph-component"></graph-component>
+            <GraphComponent ref="graph-component"></GraphComponent>
         </div>
         <div class="button-container">
             <v-tooltip location="bottom" :open-delay="TOOLTIP_OPEN_DELAY" text="Create Node">
