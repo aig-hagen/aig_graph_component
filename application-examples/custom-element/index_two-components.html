@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href='favicon.ico' />
+    <link rel="stylesheet" href='graph-component.css' />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Two Graph Components</title>
+</head>
+<body style="margin: 0; padding: 0">
+<div style='display: flex; position: relative; height: 100vh'>
+    <graph-component id='gc1' style='flex: 1; position: relative'></graph-component>
+    <graph-component id='gc2' style='flex: 1; position: relative'></graph-component>
+</div>
+<script src='graph-component.js'></script>
+<script>
+    // get the graph editor instance by its id, on this you will call all available functions
+    let inst1 = getGraphComponentById('gc1')
+    let inst2 = getGraphComponentById('gc2')
+
+    let graphAsObjectWithPositionColor = {
+        nodes: [
+            {id: 0, label: "a", x: 24, y: 24},
+            {id: 1, label: "b", color: "lavenderblush", x: 222, y: 111},
+            {id: 2, label: "c", x: 442, y: 442}
+        ],
+        links: [
+            {sourceId: 0, targetId: 1, label: "a to b"},
+            {sourceId: 2, targetId: 2, label: "c to c"}
+        ]
+    }
+
+    // display it in the first component
+    inst1.setGraph(graphAsObjectWithPositionColor)
+
+    // print the (currently displayed) graph with its node positions and color but without editability
+    inst1.printGraph('json', true, true, true, false)
+
+    // display the graph of the first component in the second component
+    inst2.setGraph(inst1.getGraph())
+
+    // use automatic graph-layout inside the second component and disable zoom
+    inst2.toggleNodePhysics(true)
+    inst2.toggleFixedLinkDistance(true)
+    inst2.toggleZoom(false)
+
+    // change the colors for the second components elements
+    inst2.setColor("bisque", [0,1,2])
+    inst2.setColor("#8FBC8F", ["0-1", "2-2"])
+
+
+    //This function can be used, to get the graph editor instance by its id.
+    function getGraphComponentById(id) {
+        return document.getElementById(id)._instance.exposed
+    }
+</script>
+</body>

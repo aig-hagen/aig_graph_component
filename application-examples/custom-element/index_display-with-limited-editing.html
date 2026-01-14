@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8' />
+    <link rel='icon' href='favicon.ico' />
+    <link rel='stylesheet' href='graph-component.css' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Display with limited editability</title>
+</head>
+<body style='margin: 0; padding: 0'>
+<div style='display: flex; position: relative; height: 100vh'>
+    <graph-component id='gc1' style='flex: 1; position: relative'></graph-component>
+</div>
+<script src='graph-component.js'></script>
+<script>
+    // get the graph editor instance by its id, on this you will call all available functions
+    let inst1 = document.getElementById('gc1')._instance.exposed
+
+    let graphAsTgf = '0 A\n 1 B\n#\n 0 1 A to B'
+
+    //with this config nodes are movable, but otherwise you can't edit them as well links
+    inst1.setDefaults({
+        allowNodeCreationViaGUI: false,
+        nodeGUIEditability: {
+            fixedPosition: { x: false, y: false },
+            deletable: false,
+            labelEditable: false,
+            allowIncomingLinks: false,
+            allowOutgoingLinks: false
+        },
+        linkGUIEditability: {
+            deletable: false,
+            labelEditable: false
+        }
+    })
+
+    inst1.setGraph(graphAsTgf)
+
+
+</script>
+</body>

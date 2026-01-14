@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8' />
+    <link rel='icon' href='favicon.ico' />
+    <link rel='stylesheet' href='graph-component.css' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Horizontal Movable Nodes</title>
+</head>
+<body style='margin: 0; padding: 0'>
+<div style='display: flex; position: relative; height: 100vh'>
+    <graph-component id='gc1' style='flex: 1; position: relative'></graph-component>
+</div>
+<script src='graph-component.js'></script>
+<script>
+    // get the graph editor instance by its id, on this you will call all available functions
+    let inst1 = document.getElementById('gc1')._instance.exposed
+
+    inst1.setDefaults({
+        nodeGUIEditability: {
+            fixedPosition: { x: false, y: true },
+        }
+    })
+
+    inst1.setGraph({
+        nodes: [
+            {id: 0, label: "a", x: 0, y: 222},
+            {id: 1, label: "b", x: 0, y: 222},
+            {id: 2, label: "c", x: 0, y: 222},
+            {id: 2, label: "x", x: 0, y: 333},
+            {id: 2, label: "y", x: 0, y: 333},
+            {id: 2, label: "z", x: 0, y: 333},
+        ],
+        links: []
+    })
+
+
+</script>
+</body>
