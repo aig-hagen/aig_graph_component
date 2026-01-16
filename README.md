@@ -47,7 +47,9 @@ Allows easy embedding into your *HTML-file*.
 </head>
 <body style='margin: 0; padding: 0'>
     <graph-component id='gc1'></graph-component>
-<script src='graph-component.js'></script>
+    <script src='graph-component.js'></script>
+</body>
+</html>
 ```
 
 
