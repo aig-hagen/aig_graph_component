@@ -5,8 +5,11 @@
 > The focus lies on smaller graphs and manual creation.
  Available as a [standalone editor](https://graphtool.aig.fernuni-hagen.de/) or as a [component](#usage) to integrate into your own project.
 
+![](https://github.com/aig-hagen/aig_graph_component/blob/main/application-examples/graphcomponent.gif)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 ![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
+
 
 ## Usage
 
