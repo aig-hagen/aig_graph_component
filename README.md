@@ -1,15 +1,24 @@
 # Graph-Component
 
-> A simple tool that lets you quickly and interactively **create**, **modify** and **display graphs**.
->
-> The focus lies on smaller graphs and manual creation.
- Available as a [standalone editor](https://graphtool.aig.fernuni-hagen.de/) or as a [component](#usage) to integrate into your own project.
+A simple tool that lets you quickly and interactively **create**, **modify** and **display graphs**.
+The focus lies on smaller graphs and manual creation.
 
 ![](https://github.com/aig-hagen/aig_graph_component/blob/main/application-examples/graphcomponent.gif)
+
+Available as:
+
+ - [Custom Element](#custom-element)
+ - [Vue component](#vue-component)
+ - [standalone editor](https://graphtool.aig.fernuni-hagen.de/)
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 ![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
 
+
+## Demo
+
+Try out the [standalone editor](https://graphtool.aig.fernuni-hagen.de/) or the [Causal Knowledge Base Editor](https://github.com/aig-hagen/aig-causal-knowledge-base-editor), which is built using this library.
 
 ## Usage
 
