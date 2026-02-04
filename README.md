@@ -8,8 +8,8 @@ The focus lies on smaller graphs and manual creation.
 Available as:
 
  - [Custom Element](#custom-element)
- - [Vue component](#vue-component)
- - [standalone editor](https://graphtool.aig.fernuni-hagen.de/)
+ - [Vue Component](#vue-component)
+ - [Standalone Editor](https://graphtool.aig.fernuni-hagen.de/)
 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
@@ -18,7 +18,7 @@ Available as:
 
 ## Demo
 
-Try out the [standalone editor](https://graphtool.aig.fernuni-hagen.de/) or the [Causal Knowledge Base Editor](https://github.com/aig-hagen/aig-causal-knowledge-base-editor), which is built using this library.
+Try out the [Standalone Editor](https://graphtool.aig.fernuni-hagen.de/) or the [Causal Knowledge Base Editor](https://github.com/aig-hagen/aig-causal-knowledge-base-editor), which is built using this library.
 
 ## Usage
 
