@@ -4,7 +4,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, unref } from 'vue'
 import GraphControls from '@/components/GraphControls.vue'
 //d3
 import * as d3 from 'd3'
-import type { D3ZoomEvent } from 'd3'
+import { type D3ZoomEvent, zoomIdentity } from 'd3'
 import { createZoom, type Zoom } from '@/d3/zoom'
 import { createDrag, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
@@ -32,7 +32,7 @@ import {
     EVENT_CAUSE
 } from '@/d3/event'
 //model
-import Graph from '@/model/graph'
+import Graph, { getBounds } from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
 import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
@@ -195,7 +195,8 @@ defineExpose({
     createNode: createNodePublic,
     getNodeFixedPosition,
     setNodeFixedPosition,
-    setNodePosition
+    setNodePosition,
+    centerView
 })
 
 type GraphConfigurationInput = Partial<
@@ -337,9 +338,17 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                     let r = graph.value.removeNode(d)
                     if (r !== undefined) {
                         let [removedNode, removedLinks] = r
-                        triggerNodeDeleted(removedNode, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
+                        triggerNodeDeleted(
+                            removedNode,
+                            graphHost.value,
+                            EVENT_CAUSE.PROGRAMMATIC_ACTION
+                        )
                         removedLinks.forEach((link) => {
-                            triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
+                            triggerLinkDeleted(
+                                link,
+                                graphHost.value,
+                                EVENT_CAUSE.PROGRAMMATIC_ACTION
+                            )
                         })
                     }
                 })
@@ -351,7 +360,11 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 .each(function (d) {
                     let removedLink = graph.value.removeLink(d)
                     if (removedLink !== undefined) {
-                        triggerLinkDeleted(removedLink, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
+                        triggerLinkDeleted(
+                            removedLink,
+                            graphHost.value,
+                            EVENT_CAUSE.PROGRAMMATIC_ACTION
+                        )
                     }
                 })
         }
@@ -1040,7 +1053,7 @@ function toggleNodeAutoGrow(isEnabled: boolean) {
 }
 
 function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {
-    config.nodeGroupsFn = nodeGroupsFn;
+    config.nodeGroupsFn = nodeGroupsFn
 }
 
 //endregion
@@ -1182,7 +1195,8 @@ function createNodePublic(
     isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
-    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks): number {
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
+): number {
     return createNode(
         EVENT_CAUSE.PROGRAMMATIC_ACTION,
         props,
@@ -1211,7 +1225,7 @@ function createNode(
     isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
-    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks,
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
 ): number {
     let newNode = graph.value.createNode(
         props,
@@ -1395,15 +1409,15 @@ function restart(alpha: number = 0.5): void {
                 return null
             }
         })
-        // Workaround WebKit issues relating to not correctly rerendering after changing marker. 
+        // Workaround WebKit issues relating to not correctly rerendering after changing marker.
         // https://bugs.webkit.org/show_bug.cgi?id=294206
         // The applied workaround is described in
         // https://stackoverflow.com/questions/3485365/how-can-i-force-webkit-to-redraw-repaint-to-propagate-style-changes
         .style('display', 'none')
-        .each(function() {
-            void (this as SVGGraphicsElement).getBBox();
+        .each(function () {
+            void (this as SVGGraphicsElement).getBBox()
         })
-        .style('display', null);
+        .style('display', null)
 
     // link label positioning, visibility and editability
     linkSelection
@@ -2254,7 +2268,7 @@ function _redrawNodeContainer(node: GraphNode) {
         // But then it should be enough to remove the foreign element and recreate it.
         const nextSibling = nodeContainer!.nextSibling
         nodeContainer!.remove()
-        nodeContainerParent.insertBefore(nodeContainer, nextSibling);
+        nodeContainerParent.insertBefore(nodeContainer, nextSibling)
     }
 }
 
@@ -2408,8 +2422,12 @@ function handleWindowResize() {
 }
 
 function _resetGraph(): void {
-    graph.value.links.forEach((link) => triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION))
-    graph.value.nodes.forEach((node) => triggerNodeDeleted(node, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION))
+    graph.value.links.forEach((link) =>
+        triggerLinkDeleted(link, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
+    )
+    graph.value.nodes.forEach((node) =>
+        triggerNodeDeleted(node, graphHost.value, EVENT_CAUSE.PROGRAMMATIC_ACTION)
+    )
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
@@ -2450,6 +2468,57 @@ function setNodePosition(position: { x: number; y: number }, id: number): void {
     restart()
 }
 
+interface CenterViewOptions {
+    marginTop?: number
+    marginBottom?: number
+    marginLeft?: number
+    marginRight?: number
+}
+
+function centerView(options?: CenterViewOptions, minScale?: number, maxScale?: number): void {
+    const optionsWithDefaultValues = {
+        marginTop: 0,
+        marginRight: 0,
+        marginBottom: 0,
+        marginLeft: 0
+    }
+    if (options !== undefined) {
+        Object.assign(optionsWithDefaultValues, options)
+    }
+    const { marginTop, marginRight, marginBottom, marginLeft } = optionsWithDefaultValues
+
+    if (canvas === undefined) {
+        return
+    }
+
+    const bounds = getBounds(graph.value)
+    if (bounds === null) {
+        return
+    }
+
+    const yMin = bounds.yMin - marginTop
+    const yMax = bounds.yMax + marginBottom
+    const xMin = bounds.xMin - marginLeft
+    const xMax = bounds.xMax + marginRight
+
+    const ySpan = yMax - yMin
+    const xSpan = xMax - xMin
+    const yScale = height / ySpan
+    const xScale = width / xSpan
+
+    let scale = Math.min(yScale, xScale)
+    if (minScale !== undefined) {
+        scale = Math.max(minScale, scale)
+    }
+    if (maxScale !== undefined) {
+        scale = Math.min(maxScale, scale)
+    }
+    let yOffset = yMin - (height / scale - ySpan) / 2
+    let xOffset = xMin - (width / scale - xSpan) / 2
+
+    const svg = graphHost.value.select<SVGElement>('svg')
+    svg.call(zoom.transform, zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
+}
 </script>
 
 <template>
@@ -2605,7 +2674,7 @@ function setNodePosition(position: { x: number; y: number }, id: number): void {
 
     &.controls-node-size {
         // `position: absolute;` Does not work as expected in WebKit browsers (e.g. Safari or Gnome Web)
-        // `position: fixed;` Works as expected for this use case. 
+        // `position: fixed;` Works as expected for this use case.
         // > It also shows a workaround: `position: fixed` can be used to prevent the issue. Problem is it can't be used just anywhere.
         // See https://www2.webkit.org/show_bug.cgi?id=23113#c27
         // TODO `position: fixed;` still has an issue when zooming in or out.

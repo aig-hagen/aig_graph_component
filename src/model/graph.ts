@@ -2,6 +2,7 @@ import { GraphLink } from '@/model/graph-link'
 import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
 import type { NodeProps } from '@/model/config'
+import { NodeShape } from './node-shape'
 
 interface ExportedNode {
     id: number
@@ -314,5 +315,57 @@ export default class Graph {
         })
 
         return JSON.stringify({ nodes, links }, null, 4)
+    }
+}
+
+
+export function getBounds(graph: Graph) {
+    if (graph.nodes.length === 0) {
+        return null
+    }
+
+    let yMin = Number.POSITIVE_INFINITY
+    let yMax = Number.NEGATIVE_INFINITY
+    let xMin = Number.POSITIVE_INFINITY
+    let xMax = Number.NEGATIVE_INFINITY
+
+    for (const node of graph.nodes) {
+        let nodeYMin
+        let nodeYMax
+        let nodeXMin
+        let nodeXMax
+
+        if (node.x === undefined || node.y === undefined) {
+            continue
+        }
+
+        if (node.props.shape === NodeShape.CIRCLE) {
+            const radius = node.props.radius
+            nodeYMin = node.y - radius
+            nodeYMax = node.y + radius
+            nodeXMin = node.x - radius
+            nodeXMax = node.x + radius
+        } else if (node.props.shape === NodeShape.RECTANGLE) {
+            const width = node.props.width
+            const height = node.props.height
+            nodeYMin = node.y - height / 2
+            nodeYMax = node.y + height / 2
+            nodeXMin = node.x - width / 2
+            nodeXMax = node.x + width / 2
+        } else {
+            throw new Error('Unknown node shape for node ' + JSON.stringify(node))
+        }
+
+        yMin = Math.min(yMin, nodeYMin)
+        yMax = Math.max(yMax, nodeYMax)
+        xMin = Math.min(xMin, nodeXMin)
+        xMax = Math.max(xMax, nodeXMax)
+    }
+
+    return {
+        yMin: yMin,
+        yMax: yMax,
+        xMin: xMin,
+        xMax: xMax
     }
 }
