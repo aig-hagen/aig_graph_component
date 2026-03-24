@@ -632,10 +632,10 @@ whereas fixedPosition will only be applied to nodes.*/
 
 ##### Shape and Size
 
-For changing both the shape and the base size of nodes, we can use the convenience function named `setnodeProps`.
+For changing both the shape and the base size of nodes, we can use the convenience function named `setNodeProps`.
 
 If we only want to update either the shape or the size individually, we can use `setNodeShape` and `setNodeSize`
-for individual nodes.
+for individual nodes. We can use `getNodeSize` to query the size.
 
 The `setNodeProps` expects a **node property object**:
 
@@ -683,6 +683,15 @@ instance.setNodeSize(42, 2)
 instance.setNodeShape('rect', [0, 1, 2])
 instance.setNodeSize({ width: 42, height: 24 }, [0, 2])
 instance.setNodeSize(42, 1) //width and height will be set to 42 in this case
+```
+
+To get the size of a node, we can use `getNodeSize(id)`.
+
+```javascript
+// rectangle
+instance.getNodeSize(2) // { width: 42, height: 24 }
+// circle
+instance.getNodeSize(2) // { radius: 42 }
 ```
 
 ##### Miscellaneous

@@ -181,6 +181,7 @@ defineExpose({
     setLabel,
     setColor,
     setNodeSize,
+    getNodeSize,
     setNodeShape,
     setNodeProps,
     setDeletable,
@@ -587,6 +588,19 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
     }
 
     restart()
+}
+
+function findNode(id: number): GraphNode {
+    const node = graph.value.nodes.find((node) => node.id === id)
+    if (node === undefined) {
+        throw new Error(`Node with id ${id} not found.`)
+    }
+    return node
+}
+
+function getNodeSize(id: number): NodeSize {
+    const node = findNode(id)
+    return node.getSize()
 }
 
 /**
