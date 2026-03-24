@@ -2558,13 +2558,6 @@ function _resetGraph(): void {
     fill: #eb9850;
     stroke: none;
     cursor: pointer;
-
-    &:not(.on-deletion):hover {
-        stroke: #006597;
-        stroke-dasharray: (8, 3);
-        stroke-width: 2;
-        filter: grayscale(30%);
-    }
 }
 
 .graph-controller__link-label-mathjax-container {
