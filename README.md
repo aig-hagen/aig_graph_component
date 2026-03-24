@@ -7,14 +7,12 @@ The focus lies on smaller graphs and manual creation.
 
 Available as:
 
- - [Custom Element](#custom-element)
- - [Vue Component](#vue-component)
- - [Standalone Editor](https://graphtool.aig.fernuni-hagen.de/)
-
+- [Custom Element](#custom-element)
+- [Vue Component](#vue-component)
+- [Standalone Editor](https://graphtool.aig.fernuni-hagen.de/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://opensource.org/licenses/MIT)
 ![Static Badge](https://www.mathjax.org/badge/mj_logo_60x20.png)
-
 
 ## Demo
 
@@ -22,23 +20,23 @@ Try out the [Standalone Editor](https://graphtool.aig.fernuni-hagen.de/) or the 
 
 ## Usage
 
-The Graph Component is provided as a **Custom Element** and as a **Vue Component**, 
+The Graph Component is provided as a **Custom Element** and as a **Vue Component**,
 available on [GitHub Packages](https://github.com/aig-hagen/aig_graph_component/pkgs/npm/graph-component).
 
 You can install the npm package by running the following steps:
-- configure your `.npmrc` by adding `@aig-hagen:registry=https://npm.pkg.github.com` and your token `//npm.pkg.github.com/:_authToken=TOKEN` 
-because this package is hosted at GitHub packages, for more information see [GitHub Docs (npm registry)](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
+
+- configure your `.npmrc` by adding `@aig-hagen:registry=https://npm.pkg.github.com` and your token `//npm.pkg.github.com/:_authToken=TOKEN`
+  because this package is hosted at GitHub packages, for more information see [GitHub Docs (npm registry)](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#installing-a-package)
 - install the graph-component via `npm install @aig-hagen/graph-component@latest`
 
 For integration refer to the explanation below.
 
-
 ### Custom Element
 
-Allows easy embedding into your *HTML-file*.
+Allows easy embedding into your _HTML-file_.
 
 > [!NOTE]
-> Npm is only needed to obtain the prebuilt Custom Element. 
+> Npm is only needed to obtain the prebuilt Custom Element.
 > After that, just copy the necessary files into your project and include them in your HTML page.
 
 - reference the `graph-component.js` script for the graph component functionality
@@ -49,24 +47,24 @@ Allows easy embedding into your *HTML-file*.
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset='UTF-8' />
-    <link rel='stylesheet' href='graph-component.css' />
-    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>Graph Component</title>
-    <!-- optional MathJax for TeX notation -->
-    <script src='load-mathjax.js' async></script>
-</head>
-<body style='margin: 0; padding: 0'>
-    <graph-component id='gc1'></graph-component>
-    <script src='graph-component.js'></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="graph-component.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Graph Component</title>
+        <!-- optional MathJax for TeX notation -->
+        <script src="load-mathjax.js" async></script>
+    </head>
+    <body style="margin: 0; padding: 0">
+        <graph-component id="gc1"></graph-component>
+        <script src="graph-component.js"></script>
+    </body>
 </html>
 ```
 
-
 ### Vue Component
-For integration in your *Vue project*.
+
+For integration in your _Vue project_.
 
 - import the GraphComponent
 - import the styles
@@ -74,23 +72,23 @@ For integration in your *Vue project*.
 - use `<GraphComponent>`in your template
 
 ```vue
-
 <script>
-    import { GraphComponent } from '@aig-hagen/graph-component/lib'
-    import '@aig-hagen/graph-component/lib/graph-component.css'
-    // optional MathJax for Tex notation
-    import '@aig-hagen/graph-component/lib/load-mathjax.js'
+import { GraphComponent } from '@aig-hagen/graph-component/lib'
+import '@aig-hagen/graph-component/lib/graph-component.css'
+// optional MathJax for Tex notation
+import '@aig-hagen/graph-component/lib/load-mathjax.js'
 </script>
 <template>
-    <GraphComponent ref='graph-component'></GraphComponent>
+    <GraphComponent ref="graph-component"></GraphComponent>
 </template>
 ```
 
 ### Further Examples
+
 If you need further examples you can check out [application-examples](application-examples).
 
-
 ## API
+
 You can create your graph using the GUI, or interact with it
 and customize its behaviour via the API.
 
@@ -103,37 +101,41 @@ Some properties can also be set for [individual elements](#individual-elements).
 ### Preparation
 
 To be able to call the following functions, we need to get the graph-components instance first.
+
 #### Custom Element
+
 ```javascript
 // when it is included as a custom element in an html file (<graph-component id='gc1'>)
 const instance = document.getElementById('gc1')._instance.exposed
-```           
-#### Vue Component
-Use a template ref to access the component object where you can access the API from.
+```
 
+#### Vue Component
+
+Use a template ref to access the component object where you can access the API from.
 
 ```vue
 <script>
-    import { GraphComponent } from '@aig-hagen/graph-component/lib'
+import { GraphComponent } from '@aig-hagen/graph-component/lib'
 
-    const graphComponent = useTemplateRef<typeof GraphComponent>('graph-component')
+const graphComponent = useTemplateRef<typeof GraphComponent>('graph-component')
 
-    onMounted(() => {
-        //Example API usage on template ref
-        graphComponent.value!.createNode()
-        graphComponent.value!.toggleNodeAutoGrow(false)
-    })
+onMounted(() => {
+    //Example API usage on template ref
+    graphComponent.value!.createNode()
+    graphComponent.value!.toggleNodeAutoGrow(false)
+})
 </script>
 <template>
-    <GraphComponent ref='graph-component'></GraphComponent>
+    <GraphComponent ref="graph-component"></GraphComponent>
 </template>
-``````
+```
 
 #### Development Mode
+
 ```javascript
 // when you run the component in development mode
 const instance = document.getElementById('app').__vue_app__._instance.exposed
-``` 
+```
 
 > [!NOTE]
 > When you run the app in development mode, this does not work after a hot-reload.
@@ -151,7 +153,7 @@ There are props set at graph level, and some at an individual level.
 > [!IMPORTANT]
 > Props that are set at graph level apply to all elements, regardless of when they were created.
 >
->For props that can also be set individually, the default behaviour will only apply
+> For props that can also be set individually, the default behaviour will only apply
 > to elements created after the default settings are set, and only if those elements do not have their own
 > individual settings specified.
 
@@ -164,11 +166,11 @@ There are props set at graph level, and some at an individual level.
 - `showLinkLabels`
 - `allowNodeCreationViaGUI`
     - whether graph nodes can be created via double-clicking on the canvas
-    - *for detailed element editability settings, see the [individual element level](#editability-1)*
+    - _for detailed element editability settings, see the [individual element level](#editability-1)_
 - `nodeAutoGrowToLabelSize`
-    - if set to true, the *nodes can grow dynamically* to match the labels size
+    - if set to true, the _nodes can grow dynamically_ to match the labels size
         - words in the label will stay on a single line (no horizontal wrapping)
-        - the *minimal size* is the set base node size ([individual node size](#shape-and-size))
+        - the _minimal size_ is the set base node size ([individual node size](#shape-and-size))
     - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
 
 #### Individual-Element-Level Props
@@ -186,37 +188,32 @@ There are props set at graph level, and some at an individual level.
 
 Example of a complete configuration input object:
 
-```typescript 
+```typescript
 // full config input object with rectangular shaped nodes
-instance.setDefaults(
-    {
-        zoomEnabled: false,
-        nodePhysicsEnabled: false,
-        fixedLinkDistanceEnabled: false,
-        showNodeLabels: true,
-        showLinkLabels: true,
-        allowNodeCreationViaGUI: true,
-        nodeAutoGrowToLabelSize: false,
-        nodeProps: {
-            shape: 'rect',
-            width: 42,
-            height: 24,
-            cornerRadius: 4,
-            reflexiveEdgeStart: 'MOVABLE'
-        },
-        nodeGUIEditability: {
-            fixedPosition: { x: false, y: false },
-            deletable: true,
-            labelEditable: true,
-            allowIncomingLinks: true,
-            allowOutgoingLinks: true
-        },
-        linkGUIEditability: {
-            deletable: true,
-            labelEditable: true
-        }
-    }
-)
+instance.setDefaults({
+    zoomEnabled: false,
+    nodePhysicsEnabled: false,
+    fixedLinkDistanceEnabled: false,
+    showNodeLabels: true,
+    showLinkLabels: true,
+    allowNodeCreationViaGUI: true,
+    nodeAutoGrowToLabelSize: false,
+    nodeProps: {
+        shape: 'rect',
+        width: 42,
+        height: 24,
+        cornerRadius: 4,
+        reflexiveEdgeStart: 'MOVABLE'
+    },
+    nodeGUIEditability: {
+        fixedPosition: { x: false, y: false },
+        deletable: true,
+        labelEditable: true,
+        allowIncomingLinks: true,
+        allowOutgoingLinks: true
+    },
+    linkGUIEditability: { deletable: true, labelEditable: true }
+})
 ```
 
 Alternatively, we can simply specify the props we want to override:
@@ -225,10 +222,7 @@ Alternatively, we can simply specify the props we want to override:
 // partial config object with circular nodes and restricted GUI editability
 instance.setDefaults({
     allowNodeCreationViaGUI: false,
-    nodeProps: {
-        shape: 'circle',
-        radius: 42
-    },
+    nodeProps: { shape: 'circle', radius: 42 },
     nodeGUIEditability: {
         deletable: false,
         labelEditable: false,
@@ -251,13 +245,13 @@ _Trivial Graph Format (TGF)_.
 // graph as object with optional normal and LaTeX label, color and x- and y- position
 let graphAsObject = {
     nodes: [
-        { id: 0, label: "$a_0$", x: 24, y: 24 },
-        { id: 1, label: "b", color: "lavenderblush", x: 222, y: 142 },
-        { id: 2, label: "c" }
+        { id: 0, label: '$a_0$', x: 24, y: 24 },
+        { id: 1, label: 'b', color: 'lavenderblush', x: 222, y: 142 },
+        { id: 2, label: 'c' }
     ],
     links: [
-        { sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b$" },
-        { sourceId: 2, targetId: 2, label: "c to c" }
+        { sourceId: 0, targetId: 1, label: '$a_0\\ to\\ b$' },
+        { sourceId: 2, targetId: 2, label: 'c to c' }
     ]
 }
 ```
@@ -268,13 +262,19 @@ In _JSON-like_ format the individual [editability options](#editability-1) can b
 // graph as object with some added editability options
 let graphAsObjectWithEditability = {
     nodes: [
-        { id: 0, label: "$a_0$", x: 24, fixedPosition: { x: true, y: false } },
-        { id: 1, label: "b", color: "lavenderblush", x: 222, y: 142, labelEditable: false },
-        { id: 2, label: "c", deletable: false, allowIncomingLinks: false, allowOutgoingLinks: false }
+        { id: 0, label: '$a_0$', x: 24, fixedPosition: { x: true, y: false } },
+        { id: 1, label: 'b', color: 'lavenderblush', x: 222, y: 142, labelEditable: false },
+        {
+            id: 2,
+            label: 'c',
+            deletable: false,
+            allowIncomingLinks: false,
+            allowOutgoingLinks: false
+        }
     ],
     links: [
-        { sourceId: 0, targetId: 1, label: "$a_0\\ to\\ b}$", deletable: true },
-        { sourceId: 2, targetId: 2, label: "c to c", labelEditable: false }
+        { sourceId: 0, targetId: 1, label: '$a_0\\ to\\ b}$', deletable: true },
+        { sourceId: 2, targetId: 2, label: 'c to c', labelEditable: false }
     ]
 }
 ```
@@ -283,14 +283,14 @@ let graphAsObjectWithEditability = {
 
 ```javascript
 //graph as tgf with optional normal and LaTeX label
-let graphAsTgf = "0 $a_0$\n 1 b\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c"
+let graphAsTgf = '0 $a_0$\n 1 b\n 2 c\n#\n 0 1 $a_0\\ to\\ b$\n 2 2 c to c'
 ```
 
-*Positioning and the editability options are only available in the object notation.*
+_Positioning and the editability options are only available in the object notation._
 
 #### Display a Graph
 
-To actually display a graph in the graph component, we use ```setGraph```.
+To actually display a graph in the graph component, we use `setGraph`.
 
 ```javascript
 instance.setGraph(graphAsObject)
@@ -368,8 +368,8 @@ instance.toggleLinkLabels(false)
 
 Also, there is the possibility that the **nodes can grow dynamically** to match the labels size,
 if the label exceeds the size of the node.
-If this is set, words in the label will stay on a single line (no horizontal wrapping takes places) and the *minimal
-size*
+If this is set, words in the label will stay on a single line (no horizontal wrapping takes places) and the _minimal
+size_
 will be the ones set in the `nodeProps`.
 If it is unset, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow.
 
@@ -396,7 +396,7 @@ More fine-granular editability options are also available at [individual element
 
 A force-directed automatic graph-layout can be enabled.
 When setting `toggleNodePhysics`, nodes repel each other and are attracted
-towards the initial center of the canvas *(before any zooming or panning)*.
+towards the initial center of the canvas _(before any zooming or panning)_.
 
 Additionally, links can be configured to maintain a fixed distance by setting `toggleFixedLinkDistance`,
 ensuring that all links have the same length between the center points of the connected nodes.
@@ -457,13 +457,13 @@ We can change the labels of existing nodes and links via their id with `setLabel
 
 > [!NOTE]
 > To use **LaTeX** inside labels you can enclose it in math delimiters `$$`.
-*(Use only one pair of delimiters per label).*
+> _(Use only one pair of delimiters per label)._
 
 ```javascript
 //setting a new label for the nodes with id 0 and 1 and the link between it
-instance.setLabel("new label", [0, 1, "1-0"])
+instance.setLabel('new label', [0, 1, '1-0'])
 //setting node with id 2 with a latex label
-instance.setLabel("$this\\ is\\ g_2$")
+instance.setLabel('$this\\ is\\ g_2$')
 ```
 
 ##### Changing Color
@@ -483,18 +483,18 @@ For changing the color of nodes and links, we use `setColor(color, id(s))`.
 
 ```javascript
 //setting the color for the node with id 0 using an html color name
-instance.setColor("bisque", 0)
+instance.setColor('bisque', 0)
 //setting the color for the node with id 0 and the node with id 1 using hexadecimal
-instance.setColor("#8FBC8F", [0, 1])
+instance.setColor('#8FBC8F', [0, 1])
 //setting the color for the link that originates from node with id 0 to node with id 1
-instance.setColor("orangered", "0-1")
+instance.setColor('orangered', '0-1')
 
 //setting the color for more nodes and links
-instance.setColor("#FFDAB9", [1, "0-1", "2-2"])
+instance.setColor('#FFDAB9', [1, '0-1', '2-2'])
 
 //setting the color for all currently existing nodes and links using RBG and HSLA
-instance.setColor("RGB(250,70,99)")
-instance.setColor("HSL(212,92%,45%,0.5)")
+instance.setColor('RGB(250,70,99)')
+instance.setColor('HSL(212,92%,45%,0.5)')
 ```
 
 ##### Delete Elements
@@ -508,9 +508,9 @@ instance.deleteElement(0)
 // delete node with id 4 and node with id 2
 instance.deleteElement([4, 2])
 // delete link that goes from node id 0 to node id 1
-instance.deleteElement("0-1")
+instance.deleteElement('0-1')
 // delete node with id 0 and the link that goes from node id 1 to node id 2
-instance.deleteElement([0, "1-2"])
+instance.deleteElement([0, '1-2'])
 // delete all currently existing nodes and links
 instance.deleteElement()
 ```
@@ -526,14 +526,14 @@ We can set whether nodes or links can be **deleted** with `setDeletable` and whe
 
 ```javascript
 // prohibit deletion via GUI for node 0 and 1 and the two edges connecting them
-instance.setDeletable(false, [0, 1, "0-1", "1-0"])
+instance.setDeletable(false, [0, 1, '0-1', '1-0'])
 // allow deletion via GUI for all currently existing nodes and links
 instance.setDeletable(true)
 ```
 
 ```javascript
 // prohibit label editing via GUI for the node with id 3 and the edge with the id 2-3
-instance.setLabelEditable(false, [3, "2-3"])
+instance.setLabelEditable(false, [3, '2-3'])
 // prohibit label editing via GUI for all currently existing nodes and links
 instance.setLabelEditable(false)
 ```
@@ -574,7 +574,7 @@ instance.setNodesLinkPermission(false, false)
 ##### Editability Convenience Function
 
 To set all the editability parameter at once, we can use `setEditability(editabilityObject, id(s))`
-with an *editability-object* and the specific ids as parameters.
+with an _editability-object_ and the specific ids as parameters.
 
 - Nodes editability object:`{deletable, labelEditable, fixedDistance: {x, y}, allowIncomingLinks, allowOutgoingLinks}`
 - Links editability object:`{deletable, labelEditable}`
@@ -588,11 +588,7 @@ instance.setEditability(
     {
         deletable: false,
         labelEditable: false,
-        fixedPosition:
-            {
-                x: true,
-                y: false
-            },
+        fixedPosition: { x: true, y: false },
         allowIncomingLinks: true,
         allowOutgoingLinks: true
     },
@@ -602,28 +598,16 @@ instance.setEditability(
 
 ```javascript
 // setting all possible link editability options at once for the link with ID 0-1 and 2-2
-instance.setEditability(
-    {
-        deletable: true,
-        labelEditable: false
-    },
-    ["0-1", "2-2"]
-)
+instance.setEditability({ deletable: true, labelEditable: false }, ['0-1', '2-2'])
 ```
 
 ```javascript
 // setting some editability for all currently existing nodes and links
-instance.setEditability(
-    {
-        deletable: false,
-        labelEditable: false,
-        fixedPosition:
-            {
-                x: true,
-                y: true
-            },
-    },
-)
+instance.setEditability({
+    deletable: false,
+    labelEditable: false,
+    fixedPosition: { x: true, y: true }
+})
 /*Deletable and labelEditable will be applied to both nodes and links, 
 whereas fixedPosition will only be applied to nodes.*/
 ```
@@ -641,7 +625,7 @@ The `setNodeProps` expects a **node property object**:
 
 - `{shape: 'circle', radius: number}`
 - `{shape: 'rect', width: number, height: number, cornerRadius: number, reflexiveEdgeStart: SideType | 'MOVABLE'}`
-    - For rectangular properties a *width-to-height* ratio smaller than 1:10 is recommended
+    - For rectangular properties a _width-to-height_ ratio smaller than 1:10 is recommended
     - The corner radius should be between 0 and 4
     - Regarding the `reflexiveEdgeStart` property:
         - For movable reflexive edges use `MOVABLE`
@@ -655,13 +639,8 @@ The `setNodeProps` expects a **node property object**:
 ```javascript
 //set node props for id 0, 1 and 2
 instance.setNodeProps(
-    {
-        shape: 'rect',
-        width: 42,
-        height: 24,
-        cornerRadius: 4,
-        reflexiveEdgeStart: 'MOVABLE'
-    }, [0, 1, 2]
+    { shape: 'rect', width: 42, height: 24, cornerRadius: 4, reflexiveEdgeStart: 'MOVABLE' },
+    [0, 1, 2]
 )
 ```
 
@@ -748,7 +727,6 @@ as well as the previously rendered size `node: {id, renderedSize, baseSize}, pre
 ##### Inside a Vue Library
 
 ```vue
-
 <template>
     <graph-component
         @node-clicked="function(clickedNode, button){
@@ -770,7 +748,7 @@ and the event arguments (payload) will be exposed as an array on the CustomEvent
 [^1]: https://vuejs.org/guide/extras/web-components.html#events
 
 ```javascript
-graphComponent.addEventListener('node-clicked', function(e) {
+graphComponent.addEventListener('node-clicked', function (e) {
     if (e.detail[1] === 0) {
         //change the color on left click
         instance.setColor('#8FBC8F', e.detail[0].id)
@@ -780,7 +758,7 @@ graphComponent.addEventListener('node-clicked', function(e) {
 
 ## Browser compatibility
 
-For the best experience, please use **Firefox** or **Chromium-based browsers** and avoid WebKit-based ones. 
+For the best experience, please use **Firefox** or **Chromium-based browsers** and avoid WebKit-based ones.
 
 ## Development
 
@@ -830,11 +808,10 @@ For more commands refer to the scripts section in [package.json](./package.json)
 
 #### Custom Element and LaTeX
 
-Depending on whether you want to build the **Custom Element** with *LaTeX* support
+Depending on whether you want to build the **Custom Element** with _LaTeX_ support
 or without it, you have to choose the corresponding method in [main.ce.ts](src/main.ce.ts).
 
 #### Styles
 
-To choose between inline style or an external graph-component.css file *(current default)*,
-you have the option for *custom element mode* in [vite.config.ts](vite.config.ts).
-
+To choose between inline style or an external graph-component.css file _(current default)_,
+you have the option for _custom element mode_ in [vite.config.ts](vite.config.ts).

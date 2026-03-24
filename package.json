@@ -36,7 +36,7 @@
         "build-types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist/types",
         "type-check": "vue-tsc --build --force",
         "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-        "format": "prettier --write src/",
+        "format": "prettier --write .",
         "docs": "typedoc",
         "docs:serve": "npm run docs && npx serve docs",
         "test-ct": "playwright test -c playwright-ct.config.ts",

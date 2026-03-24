@@ -157,13 +157,12 @@ function showError(title: string, message: any) {
                         <h3 class="heading">Preview</h3>
                         <pre v-show="exportFormat === 'JSON'">{{ props.graphAsJson }}</pre>
                         <pre v-show="exportFormat === 'TGF'">{{ props.graphAsTgf }}</pre>
-
                     </v-window-item>
                 </v-window>
             </v-card-text>
             <v-card-text
-            >This export action will <strong>copy</strong> the graph as JSON or in
-                trivial graph format to your clipboard.
+                >This export action will <strong>copy</strong> the graph as JSON or in trivial graph
+                format to your clipboard.
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
