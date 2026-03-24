@@ -72,9 +72,8 @@ export default defineConfig(({ command, mode }): UserConfig => {
             test: {
                 exclude: [
                     ...configDefaults.exclude,
-                    // Excluded from tests, because `.spec.` is used for component tests.
-                    // See playwright-ct.config.ts
-                    '**/*.spec.*'
+                    // Excluded component test from unit tests.
+                    '**/*.ct.{spec,test}.*'
                 ]
             },
             resolve: {

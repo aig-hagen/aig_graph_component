@@ -6,6 +6,7 @@ import { defineConfig, devices } from '@playwright/experimental-ct-vue'
  */
 export default defineConfig({
     testDir: './',
+    testMatch: '**/*.ct.{spec,test}.*',
     /* The base directory, relative to the config file, for snapshot files created with toMatchSnapshot and toHaveScreenshot. */
     snapshotDir: './__snapshots__',
     /* Maximum time one test can run for. */
