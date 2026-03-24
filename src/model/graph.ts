@@ -208,7 +208,8 @@ export default class Graph {
         includeNodeColor: boolean = true,
         includeLinkColor: boolean = true,
         includeNodeEditability: boolean = true,
-        includeLinkEditability: boolean = true
+        includeLinkEditability: boolean = true,
+        includeIdImported: boolean = true
     ): string {
         const nodes = this.nodes.map((node) => {
             const jsonNode: any = {
@@ -243,6 +244,9 @@ export default class Graph {
                 if (node.allowOutgoingLinks !== undefined) {
                     jsonNode.allowOutgoingLinks = node.allowOutgoingLinks
                 }
+            }
+            if (includeIdImported) {
+                jsonNode.idImported = node.idImported
             }
             return jsonNode
         })

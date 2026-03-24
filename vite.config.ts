@@ -1,6 +1,8 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, UserConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
+
 import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
 
@@ -67,6 +69,14 @@ export default defineConfig(({ command, mode }): UserConfig => {
         //dev
         return {
             plugins: [vue()],
+            test: {
+                exclude: [
+                    ...configDefaults.exclude,
+                    // Excluded from tests, because `.spec.` is used for component tests.
+                    // See playwright-ct.config.ts
+                    '**/*.spec.*'
+                ]
+            },
             resolve: {
                 alias: {
                     '@': fileURLToPath(new URL('./src', import.meta.url))

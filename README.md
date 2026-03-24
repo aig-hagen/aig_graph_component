@@ -317,6 +317,7 @@ is included.
 - includeNodeProps
 - includeColor
 - includeEditability
+- includeIdImported
 
 ```javascript
 // get graph in json format
