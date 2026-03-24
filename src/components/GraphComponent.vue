@@ -2590,7 +2590,11 @@ function _resetGraph(): void {
     cursor: pointer;
 
     &.controls-node-size {
-        position: absolute;
+        // position: absolute; Does not work as expected in WebKit browsers (e.g. Safari or Gnome Web)
+        // position: fixed; Works as expected for this use case.
+        // > It also shows a workaround: `position: fixed` can be used to prevent the issue. Problem is it can't be used just anywhere.
+        // See https://www2.webkit.org/show_bug.cgi?id=23113#c27
+        position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
@@ -2629,7 +2633,11 @@ function _resetGraph(): void {
     cursor: pointer;
 
     &.controls-node-size {
-        position: absolute;
+        // position: absolute; Does not work as expected in WebKit browsers (e.g. Safari or Gnome Web)
+        // position: fixed; Works as expected for this use case.
+        // > It also shows a workaround: `position: fixed` can be used to prevent the issue. Problem is it can't be used just anywhere.
+        // See https://www2.webkit.org/show_bug.cgi?id=23113#c27
+        position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
