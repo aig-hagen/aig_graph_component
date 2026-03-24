@@ -1,6 +1,5 @@
 import { test, expect, type MountResultJsx } from '@playwright/experimental-ct-vue'
 import GraphComponent from '@/components/GraphComponent.vue'
-import type { ComponentPublicInstance } from 'vue'
 
 test('show controls if empty', async ({ mount, page }) => {
     const component = await mount(<GraphComponent />)
@@ -12,7 +11,7 @@ test('show controls if empty', async ({ mount, page }) => {
 test('create loop', async ({ mount, page }) => {
     const position = { x: 150, y: 150 }
     const component = await mount(<GraphComponent />)
-    await component.dblclick({ position })
+    await createNode(component, position)
 
     await component.click({ position, button: 'right' })
 
@@ -22,7 +21,7 @@ test('create loop', async ({ mount, page }) => {
 test('update label', async ({ mount, page }) => {
     const position = { x: 150, y: 150 }
     const component = await mount(<GraphComponent />)
-    await component.dblclick({ position })
+    await createNode(component, position)
 
     await component.click({ position })
     // After click, input should be focused and we can type.
@@ -32,13 +31,34 @@ test('update label', async ({ mount, page }) => {
     await expect(page).toHaveScreenshot()
 })
 
-test('getNodeSize', async ({ mount }) => {
-    const position = { x: 150, y: 150 }
+test('expose getNodeSize', async ({ mount }) => {
     const component = await mount(<GraphComponent />)
-    await component.dblclick({ position })
+    await createNode(component, { x: 150, y: 150 })
+
     const nodeSize = await evaluateOnComponent(component, (instance) => instance.getNodeSize(0))
+
     expect(nodeSize).toEqual({ height: 48, width: 128 })
 })
+
+test('expose centerView', async ({ mount, page }) => {
+    const component = await mount(<GraphComponent />)
+    await createNode(component, { x: 150, y: 150 })
+    await createNode(component, { x: 300, y: 300 })
+    await evaluateOnComponent(component, (instance) => instance.toggleZoom(true))
+    // Auto growing labels currently break size of label when zooming.
+    // https://github.com/aig-hagen/aig_graph_component/issues/29
+    await evaluateOnComponent(component, (instance) => instance.toggleNodeAutoGrow(false))
+
+    await evaluateOnComponent(component, (instance) =>
+        instance.centerView({ top: 5, right: 25, bottom: 50, left: 100 })
+    )
+
+    await expect(page).toHaveScreenshot()
+})
+
+async function createNode(component: MountResultJsx, position: { x: number; y: number }) {
+    return await component.dblclick({ position })
+}
 
 // XXX: This is a discouraged pattern.
 // Components should communicate only via props and emits.

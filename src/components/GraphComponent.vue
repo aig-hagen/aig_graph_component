@@ -21,7 +21,7 @@ import {
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
 import { terminate } from '@/d3/event'
 //model
-import Graph from '@/model/graph'
+import Graph, { getBounds } from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
 import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
@@ -196,7 +196,8 @@ defineExpose({
     toggleFixedLinkDistance,
     toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
-    resetView
+    resetView,
+    centerView
 })
 
 export type GraphConfigurationPublic = Partial<
@@ -2452,6 +2453,64 @@ function _resetGraph(): void {
     graph.value = new Graph()
     graphHasNodes.value = false
     resetView()
+}
+
+function centerView(
+    margins?: {
+        top?: number
+        right?: number
+        bottom?: number
+        left?: number
+    },
+    minScale?: number,
+    maxScale?: number
+): void {
+    const marginsWithDefaultValues = {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+    }
+    if (margins !== undefined) {
+        Object.assign(marginsWithDefaultValues, margins)
+    }
+
+    if (canvas === undefined) {
+        return
+    }
+
+    if (zoom === undefined) {
+        return
+    }
+
+    const bounds = getBounds(graph.value)
+    if (bounds === null) {
+        return
+    }
+
+    const yMin = bounds.yMin - marginsWithDefaultValues.top
+    const yMax = bounds.yMax + marginsWithDefaultValues.bottom
+    const xMin = bounds.xMin - marginsWithDefaultValues.left
+    const xMax = bounds.xMax + marginsWithDefaultValues.right
+
+    const ySpan = yMax - yMin
+    const xSpan = xMax - xMin
+    const yScale = height / ySpan
+    const xScale = width / xSpan
+
+    let scale = Math.min(yScale, xScale)
+    if (minScale !== undefined) {
+        scale = Math.max(minScale, scale)
+    }
+    if (maxScale !== undefined) {
+        scale = Math.min(maxScale, scale)
+    }
+    console.log('scale', scale)
+    let yOffset = yMin - (height / scale - ySpan) / 2
+    let xOffset = xMin - (width / scale - xSpan) / 2
+
+    const svg = graphHost.value.select<SVGSVGElement>('svg')
+    svg.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
 }
 </script>
 

@@ -357,6 +357,17 @@ After zooming we can reset the canvas to its default position with `resetView`.
 instance.resetView()
 ```
 
+When zooming is enabled, we can use `centerView` to auto-fit the current graph contents inside the view, optionally with margins and scale limits.
+
+- `margins` (optional): object with `top`, `right`, `bottom`, `left` (numbers, defaults to `0`).
+- `minScale` (optional): minimum zoom level.
+- `maxScale` (optional): maximum zoom level.
+
+```javascript
+// fit the graph with custom canvas margins and constraints
+instance.centerView({ top: 5, right: 25, bottom: 50, left: 100 }, 0.5, 2)
+```
+
 #### Labels and Auto Resize
 
 We can set if nodes and links should have labels.
