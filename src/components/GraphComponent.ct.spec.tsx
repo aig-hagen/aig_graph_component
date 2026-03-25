@@ -59,6 +59,25 @@ test('expose centerView', async ({ graph, page }) => {
     await expect(page).toHaveScreenshot()
 })
 
+test('move nodes independently', async ({ graph, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    const node = await graph.createNode({ x: 300, y: 300 })
+
+    node.drag(0, 50)
+
+    await expect(page).toHaveScreenshot()
+})
+
+test('move node group', async ({ graph, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    const node = await graph.createNode({ x: 300, y: 300 })
+    await graph.evaluateOnComponent((instance) => instance.setNodeGroupsFn(() => new Set([0, 1])))
+
+    node.drag(0, 50)
+
+    await expect(page).toHaveScreenshot()
+})
+
 interface Position {
     x: number
     y: number
@@ -108,5 +127,14 @@ class NodeFixture {
         // After click, input should be focused and we can type.
         await this.page.keyboard.type(text)
         await this.page.keyboard.press('Enter')
+    }
+
+    async drag(dx: number, dy: number) {
+        await this.page.mouse.move(this.position.x, this.position.y)
+        await this.page.mouse.down()
+        await this.page.mouse.move(this.position.x + dx, this.position.y + dy)
+        await this.page.mouse.up()
+        this.position.x += dx
+        this.position.y += dy
     }
 }

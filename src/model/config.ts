@@ -62,6 +62,8 @@ export interface GraphConfiguration {
 
     //canvas
     readonly isCanvasBoundToView: boolean
+
+    nodeGroupsFn: (id: number) => Set<number>
 }
 
 export class GraphConfigDefault implements GraphConfiguration {
@@ -104,6 +106,8 @@ export class GraphConfigDefault implements GraphConfiguration {
     zoomEnabled = false
 
     markerBoxSize = 4
+
+    nodeGroupsFn: (id: number) => Set<number> = () => new Set<number>()
 
     private _markerPadding = 2 * this.markerBoxSize
 

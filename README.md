@@ -172,6 +172,10 @@ There are props set at graph level, and some at an individual level.
         - words in the label will stay on a single line (no horizontal wrapping)
         - the _minimal size_ is the set base node size ([individual node size](#shape-and-size))
     - if set to false, the nodes have a fixed size, and label words may wrap to the next line or potentially overflow
+- `nodeGroupsFn`
+    - a function that defines node grouping: `(nodeId: number) => Set<number>`
+    - returns the set of node IDs that should move together with the given node
+    - by default, nodes have no groups (empty set is returned)
 
 #### Individual-Element-Level Props
 

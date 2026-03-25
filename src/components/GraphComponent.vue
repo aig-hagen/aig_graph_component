@@ -132,7 +132,7 @@ let isVirtualKeyboardProbablyOpen = false
 /* Stores the position where the last pointer down occurred on a node.*/
 let lastPointerDownOnNodePosition: { x: number; y: number } = { x: -100000, y: -100000 }
 
-const graph = ref(new Graph())
+let graph = new Graph()
 const graphHasNodes = ref(false)
 const config = reactive(new GraphConfigDefault())
 let simulation: any = undefined
@@ -197,7 +197,8 @@ defineExpose({
     toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
     resetView,
-    centerView
+    centerView,
+    setNodeGroupsFn
 })
 
 export type GraphConfigurationPublic = Partial<
@@ -284,7 +285,7 @@ function getGraph(
 ) {
     if (format.toLowerCase() === 'json') {
         return JSON.parse(
-            graph.value.toJSON(
+            graph.toJSON(
                 includeNodePosition,
                 config.showNodeLabels,
                 config.showLinkLabels,
@@ -297,7 +298,7 @@ function getGraph(
             )
         )
     } else if (format.toLowerCase() === 'tgf') {
-        return graph.value.toTGF(config.showNodeLabels, config.showLinkLabels)
+        return graph.toTGF(config.showNodeLabels, config.showLinkLabels)
     } else {
         console.error('Invalid format while using getGraph(). Please choose "JSON" or "TGF".')
     }
@@ -321,7 +322,7 @@ function printGraph(
 ) {
     if (format.toLowerCase() === 'json') {
         console.log(
-            graph.value.toJSON(
+            graph.toJSON(
                 includeNodePosition,
                 config.showNodeLabels,
                 config.showLinkLabels,
@@ -334,7 +335,7 @@ function printGraph(
             )
         )
     } else {
-        console.log(graph.value.toTGF(config.showNodeLabels, config.showLinkLabels))
+        console.log(graph.toTGF(config.showNodeLabels, config.showLinkLabels))
     }
 }
 
@@ -351,7 +352,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             nodeSelection!
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    let r = graph.value.removeNode(d)
+                    let r = graph.removeNode(d)
                     if (r !== undefined) {
                         let [removedNode, removedLinks] = r
                         emit('nodeDeleted', {
@@ -371,7 +372,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             linkSelection!
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    let removedLink = graph.value.removeLink(d)
+                    let removedLink = graph.removeLink(d)
                     if (removedLink !== undefined) {
                         emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
                     }
@@ -379,7 +380,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         }
     } else {
         nodeSelection!.each(function (d) {
-            let r = graph.value.removeNode(d)
+            let r = graph.removeNode(d)
             if (r !== undefined) {
                 let [removedNode, removedLinks] = r
                 emit('nodeDeleted', {
@@ -395,14 +396,14 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         })
 
         linkSelection!.each(function (d) {
-            let removedLink = graph.value.removeLink(d)
+            let removedLink = graph.removeLink(d)
             if (removedLink !== undefined) {
                 emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
             }
         })
     }
 
-    graphHasNodes.value = graph.value.nodes.length > 0
+    graphHasNodes.value = graph.nodes.length > 0
     restart()
 }
 
@@ -475,7 +476,7 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
             .style('fill', color)
 
         //if no ids are provided, the color is set for all currently existing links
-        _deleteNotNeededColorMarker(graph.value.links.map((link) => link.id))
+        _deleteNotNeededColorMarker(graph.links.map((link) => link.id))
         linkSelection!
             .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
             .each((d) => (d.color = color))
@@ -592,7 +593,7 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
 }
 
 function findNode(id: number): GraphNode {
-    const node = graph.value.nodes.find((node) => node.id === id)
+    const node = graph.nodes.find((node) => node.id === id)
     if (node === undefined) {
         throw new Error(`Node with id ${id} not found.`)
     }
@@ -1040,7 +1041,7 @@ function toggleNodePhysics(isEnabled: boolean): void {
 
 function toggleFixedLinkDistance(isEnabled: boolean): void {
     config.fixedLinkDistanceEnabled = isEnabled
-    setFixedLinkDistance(simulation, graph.value, config, isEnabled)
+    setFixedLinkDistance(simulation, graph, config, isEnabled)
 }
 
 function toggleLinkLabels(isEnabled: boolean) {
@@ -1098,12 +1099,12 @@ function initData() {
             }
         }
     )
-    initMarkers(canvas, graphHostId.value, config, graph.value.getNonDefaultLinkColors())
+    initMarkers(canvas, graphHostId.value, config, graph.getNonDefaultLinkColors())
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
-    simulation = createSimulation(graph.value, config, width, height, () => onTick())
-    drag = createDrag(simulation, width, height, config)
+    simulation = createSimulation(graph, config, width, height, () => onTick())
+    drag = createDrag(simulation, width, height, config, graph)
     nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
 }
@@ -1203,7 +1204,7 @@ function createLink(
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
 ): string | undefined {
-    let newLink = graph.value.createLink(
+    let newLink = graph.createLink(
         sourceId,
         targetId,
         label,
@@ -1251,7 +1252,7 @@ function createNode(
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
     allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
 ): number {
-    let newNode = graph.value.createNode(
+    let newNode = graph.createNode(
         props,
         x ?? width / 2,
         y ?? height / 2,
@@ -1265,7 +1266,7 @@ function createNode(
         allowOutgoingLinks
     )
     emit('nodeCreated', { id: newNode.id, label: newNode.label, x: newNode.x, y: newNode.y })
-    updateCollide(simulation, graph.value, config)
+    updateCollide(simulation, graph, config)
     graphHasNodes.value = true
     restart()
 
@@ -1294,7 +1295,7 @@ function onTick(): void {
  */
 function _updatePathType(d: GraphLink) {
     let oldPathType = d.pathType
-    d.pathType = getPathType(d.source, d.target, graph.value)
+    d.pathType = getPathType(d.source, d.target, graph)
     if (oldPathType !== d.pathType) {
         restart()
     }
@@ -1318,7 +1319,7 @@ function _updateDraggableLinkPath(): void {
             draggableLink!.attr('d', () => {
                 if (source.id === target.id) {
                     return reflexivePath(source, [width / 2, height / 2], config)
-                } else if (graph.value.hasBidirectionalConnection(source, target)) {
+                } else if (graph.hasBidirectionalConnection(source, target)) {
                     return linePath(source, target, config)
                 } else {
                     return arcPath(source, target, config)
@@ -1336,7 +1337,7 @@ function _updateDraggableLinkPath(): void {
 //region restart
 function restart(alpha: number = 0.5): void {
     linkSelection = linkSelection!
-        .data(graph.value.links, (d: GraphLink) => d.id)
+        .data(graph.links, (d: GraphLink) => d.id)
         .join((enter) => {
             const linkGroup = enter.append('g').classed('graph-controller__link-container', true)
 
@@ -1465,7 +1466,7 @@ function restart(alpha: number = 0.5): void {
         .text((d: GraphLink) => (d.label ? d.label : 'add label'))
 
     nodeSelection = nodeSelection!
-        .data(graph.value.nodes, (d) => d.id)
+        .data(graph.nodes, (d) => d.id)
         .join(
             (enter) => {
                 //node container
@@ -1503,7 +1504,7 @@ function restart(alpha: number = 0.5): void {
 
                     if (_hasShapeChange(d, currentShape)) {
                         _replaceNodeShapeAndLabel(currentShape, nodeContainer)
-                        updateCollide(simulation, graph.value, config)
+                        updateCollide(simulation, graph, config)
                     } else {
                         _updateNodeAndLabelSize(nodeContainer)
                     }
@@ -1534,7 +1535,7 @@ function restart(alpha: number = 0.5): void {
         updateNodeLabelResizeObserverSelection()
     }
 
-    simulation.nodes(graph.value.nodes)
+    simulation.nodes(graph.nodes)
     simulation.alpha(alpha).restart()
 }
 
@@ -1864,7 +1865,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
  * @param node
  */
 function _onPointerDownDeleteNode(node: GraphNode): void {
-    let r = graph.value.removeNode(node)
+    let r = graph.removeNode(node)
     if (r !== undefined) {
         let [removedNode, removedLinks] = r
         emit('nodeDeleted', {
@@ -1876,9 +1877,9 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
         removedLinks.forEach((removedLink) => {
             emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
         })
-        updateCollide(simulation, graph.value, config)
+        updateCollide(simulation, graph, config)
     }
-    graphHasNodes.value = graph.value.nodes.length > 0
+    graphHasNodes.value = graph.nodes.length > 0
     _resetDraggableLink()
     restart()
 }
@@ -2094,12 +2095,12 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
  */
 function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
-    let removedLink = graph.value.removeLink(link)
+    let removedLink = graph.removeLink(link)
     if (removedLink !== undefined) {
         emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
     }
     if (color) {
-        if (!graph.value.hasNonDefaultLinkColor(color)) {
+        if (!graph.hasNonDefaultLinkColor(color)) {
             deleteLinkMarkerColored(canvas!, graphHostId.value, color)
         }
     }
@@ -2355,7 +2356,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
         )
     }
     const findNodeByImportedId = (importedId: number | string) =>
-        graph.value.nodes.find((node) => node.idImported === importedId)
+        graph.nodes.find((node) => node.idImported === importedId)
 
     for (let parsedLink of links) {
         let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
@@ -2382,20 +2383,20 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
  */
 function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
     for (let id of idsOfLinkColorToChange) {
-        const currentColorOfLink = graph.value.links
+        const currentColorOfLink = graph.links
             .filter((link) => link.id === id)
             .map((link) => link.color)
             .shift()
 
         if (currentColorOfLink) {
             //the color of the link we are about to change doesn't exist on another link -> marker can be deleted
-            if (!graph.value.hasNonDefaultLinkColor(currentColorOfLink, id)) {
+            if (!graph.hasNonDefaultLinkColor(currentColorOfLink, id)) {
                 deleteLinkMarkerColored(canvas!, graphHostId.value, currentColorOfLink)
             }
             //the link color we are about to change exists in other links
             else {
                 //check if this other links will also have a color change (then the marker for this color can be deleted)
-                const linkIdsWithColorToChange = graph.value.getLinkIdsWithNonDefaultLinkColors(
+                const linkIdsWithColorToChange = graph.getLinkIdsWithNonDefaultLinkColors(
                     currentColorOfLink,
                     id
                 )
@@ -2439,10 +2440,10 @@ function handleWindowResize() {
 }
 
 function _resetGraph(): void {
-    graph.value.links.forEach((removedLink) =>
+    graph.links.forEach((removedLink) =>
         emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
     )
-    graph.value.nodes.forEach((removedNode) =>
+    graph.nodes.forEach((removedNode) =>
         emit('nodeDeleted', {
             id: removedNode.id,
             label: removedNode.label,
@@ -2450,7 +2451,7 @@ function _resetGraph(): void {
             y: removedNode.y
         })
     )
-    graph.value = new Graph()
+    graph = new Graph()
     graphHasNodes.value = false
     resetView()
 }
@@ -2483,7 +2484,7 @@ function centerView(
         return
     }
 
-    const bounds = getBounds(graph.value)
+    const bounds = getBounds(graph)
     if (bounds === null) {
         return
     }
@@ -2511,6 +2512,10 @@ function centerView(
 
     const svg = graphHost.value.select<SVGSVGElement>('svg')
     svg.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
+}
+
+function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {
+    config.nodeGroupsFn = nodeGroupsFn
 }
 </script>
 

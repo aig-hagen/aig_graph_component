@@ -5,6 +5,7 @@ import type { Simulation } from '@/d3/simulation'
 import { GraphNode } from '@/model/graph-node'
 import { NodeShape } from '@/model/node-shape'
 import type { GraphConfiguration, NodeSizeCircle, NodeSizeRect } from '@/model/config'
+import type Graph from '@/model/graph'
 
 export type Drag = d3.DragBehavior<SVGGElement, GraphNode, GraphNode>
 
@@ -12,7 +13,8 @@ export function createDrag(
     simulation: Simulation,
     width: number,
     height: number,
-    config: GraphConfiguration
+    config: GraphConfiguration,
+    graph: Graph
 ): Drag {
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
@@ -32,6 +34,7 @@ export function createDrag(
             if (d.fixedPosition?.y !== true) {
                 d.fy = d.y
             }
+            updateMembers(config, d, graph)
         })
         .on('drag', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (d.fixedPosition?.x !== true) {
@@ -64,6 +67,7 @@ export function createDrag(
                     )
                 }
             }
+            updateMembers(config, d, graph)
         })
         .on('end', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
             if (event.active === 0) {
@@ -75,5 +79,50 @@ export function createDrag(
             if (d.fixedPosition?.y !== true) {
                 d.fy = undefined
             }
+            updateMembers(config, d, graph)
         })
+}
+
+function updateMembers(config: GraphConfiguration, node: GraphNode, graph: Graph) {
+    const memberIdSet = config.nodeGroupsFn(node.id)
+    const members = graph.nodes.filter((node) => memberIdSet.has(node.id))
+
+    if (node.x !== undefined) {
+        if (node.fx === undefined) {
+            for (const member of members) {
+                if (member.x === undefined) {
+                    continue
+                }
+                const diffX = member.x - node.x
+                member.fx = node.x + diffX
+            }
+        } else {
+            for (const member of members) {
+                if (member.x === undefined) {
+                    continue
+                }
+                const diffX = member.x - node.x
+                member.fx = node.fx + diffX
+            }
+        }
+    }
+    if (node.y !== undefined) {
+        if (node.fy === undefined) {
+            for (const member of members) {
+                if (member.y === undefined) {
+                    continue
+                }
+                const diffY = member.y - node.y
+                member.fy = node.y + diffY
+            }
+        } else {
+            for (const member of members) {
+                if (member.y === undefined) {
+                    continue
+                }
+                const diffY = member.y - node.y
+                member.fy = node.fy + diffY
+            }
+        }
+    }
 }
