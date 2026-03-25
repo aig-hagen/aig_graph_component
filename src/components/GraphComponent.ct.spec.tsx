@@ -63,7 +63,7 @@ test('move nodes independently', async ({ graph, page }) => {
     await graph.createNode({ x: 150, y: 150 })
     const node = await graph.createNode({ x: 300, y: 300 })
 
-    node.drag(0, 50)
+    await node.drag(0, 50)
 
     await expect(page).toHaveScreenshot()
 })
@@ -73,7 +73,7 @@ test('move node group', async ({ graph, page }) => {
     const node = await graph.createNode({ x: 300, y: 300 })
     await graph.evaluateOnComponent((instance) => instance.setNodeGroupsFn(() => new Set([0, 1])))
 
-    node.drag(0, 50)
+    await node.drag(0, 50)
 
     await expect(page).toHaveScreenshot()
 })
@@ -89,9 +89,22 @@ class GraphFixture {
         private page: Page
     ) {}
 
+    private async getAllNodeIds(): Promise<string[]> {
+        return await this.component
+            .locator('rect[id^="root-node-"]')
+            .evaluateAll((elements) => elements.map((el) => el.id))
+    }
+
     async createNode(position: Position) {
+        const idsBefore = await this.getAllNodeIds()
         await this.page.mouse.dblclick(position.x, position.y)
-        return new NodeFixture(this.page, position)
+        const idsAfter = await this.getAllNodeIds()
+        const newIds = idsAfter.filter((id) => !idsBefore.includes(id))
+        if (newIds.length !== 1) {
+            throw new Error(`Expected 1 new node, but found ${newIds.length}`)
+        }
+        const newId = newIds[0]!
+        return new NodeFixture(this.component, this.page, newId)
     }
 
     // XXX: This is a discouraged pattern.
@@ -114,27 +127,58 @@ class GraphFixture {
 
 class NodeFixture {
     constructor(
+        private component: MountResultJsx,
         private page: Page,
-        private position: Position
+        private id: string
     ) {}
 
+    async getPosition(): Promise<Position> {
+        const position = await this.component.evaluate((rootEl, id) => {
+            const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+            if (!svg) throw new Error('SVG element not found')
+
+            const rect = svg.querySelector<SVGRectElement>(`rect#${id}`)
+            if (!rect) throw new Error(`Node rect '#${id}' not found`)
+
+            // We could use the locator for `rect#${id}` to perform actions (e.g., clicks).
+            // But using `this.page` and position simulates real user viewport interactions more closely.
+            const rectX = parseFloat(rect.getAttribute('x')!)
+            const rectY = parseFloat(rect.getAttribute('y')!)
+            const rectW = parseFloat(rect.getAttribute('width')!)
+            const rectH = parseFloat(rect.getAttribute('height')!)
+
+            // one point in node-local coords (center)
+            const localPoint = svg.createSVGPoint()
+            localPoint.x = rectX + rectW / 2
+            localPoint.y = rectY + rectH / 2
+
+            const ctm = rect.getCTM()
+            if (!ctm) throw new Error('Node CTM is unavailable')
+
+            const globalPoint = localPoint.matrixTransform(ctm)
+            return { x: globalPoint.x, y: globalPoint.y }
+        }, this.id)
+        return position
+    }
+
     async createSelfLoop() {
-        await this.page.mouse.click(this.position.x, this.position.y, { button: 'right' })
+        const position = await this.getPosition()
+        await this.page.mouse.click(position.x, position.y, { button: 'right' })
     }
 
     async enterLabel(text: string) {
-        await this.page.mouse.click(this.position.x, this.position.y)
+        const position = await this.getPosition()
+        await this.page.mouse.click(position.x, position.y)
         // After click, input should be focused and we can type.
         await this.page.keyboard.type(text)
         await this.page.keyboard.press('Enter')
     }
 
     async drag(dx: number, dy: number) {
-        await this.page.mouse.move(this.position.x, this.position.y)
+        const position = await this.getPosition()
+        await this.page.mouse.move(position.x, position.y)
         await this.page.mouse.down()
-        await this.page.mouse.move(this.position.x + dx, this.position.y + dy)
+        await this.page.mouse.move(position.x + dx, position.y + dy)
         await this.page.mouse.up()
-        this.position.x += dx
-        this.position.y += dy
     }
 }
