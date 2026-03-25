@@ -2506,7 +2506,6 @@ function centerView(
     if (maxScale !== undefined) {
         scale = Math.min(maxScale, scale)
     }
-    console.log('scale', scale)
     let yOffset = yMin - (height / scale - ySpan) / 2
     let xOffset = xMin - (width / scale - xSpan) / 2
 

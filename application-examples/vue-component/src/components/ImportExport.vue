@@ -40,7 +40,6 @@ const fileInputRules = [
 function readFile() {
     if (fileInput.value) {
         let file = fileInput.value as unknown as File
-        console.log(file)
         const fileExtension = file.name.split('.').pop()?.toLowerCase()
 
         file.text()
