@@ -44,52 +44,48 @@ export function updateCollide(
     graph: UnwrapRef<Graph> | Graph,
     config: GraphConfiguration
 ): Simulation {
-    const justCircles =
-        !graph.nodes || graph.nodes.length === 0
-            ? config.nodeProps.shape === NodeShape.CIRCLE
-            : graph.nodes.every((node) => node.props.shape === NodeShape.CIRCLE)
+    let collideCircle = null
+    let collideBox = null
 
-    if (justCircles) {
-        return simulation
-            .force(
-                'collideCircle',
-                d3
-                    .forceCollide<GraphNode>()
-                    .radius((d) => (d.renderedSize as NodeSizeCircle).radius)
-            )
-            .force('collideBox', null)
-    } else {
-        return simulation
-            .force(
-                'collideBox',
-                bboxCollide((d: GraphNode) => {
-                    if (d.props.shape === NodeShape.CIRCLE) {
-                        return [
-                            [
-                                -(d.renderedSize as NodeSizeCircle).radius,
-                                -(d.renderedSize as NodeSizeCircle).radius
-                            ],
-                            [
-                                (d.renderedSize as NodeSizeCircle).radius,
-                                (d.renderedSize as NodeSizeCircle).radius
-                            ]
+    if (config.collisionDetectionEnabled) {
+        const justCircles =
+            !graph.nodes || graph.nodes.length === 0
+                ? config.nodeProps.shape === NodeShape.CIRCLE
+                : graph.nodes.every((node) => node.props.shape === NodeShape.CIRCLE)
+
+        if (justCircles) {
+            collideCircle = d3
+                .forceCollide<GraphNode>()
+                .radius((d) => (d.renderedSize as NodeSizeCircle).radius)
+        } else {
+            collideBox = bboxCollide((d: GraphNode) => {
+                if (d.props.shape === NodeShape.CIRCLE) {
+                    return [
+                        [
+                            -(d.renderedSize as NodeSizeCircle).radius,
+                            -(d.renderedSize as NodeSizeCircle).radius
+                        ],
+                        [
+                            (d.renderedSize as NodeSizeCircle).radius,
+                            (d.renderedSize as NodeSizeCircle).radius
                         ]
-                    } else if (d.props.shape === NodeShape.RECTANGLE) {
-                        return [
-                            [
-                                -0.5 * (d.renderedSize as NodeSizeRect).width,
-                                -0.5 * (d.renderedSize as NodeSizeRect).height
-                            ],
-                            [
-                                0.5 * (d.renderedSize as NodeSizeRect).width,
-                                0.5 * (d.renderedSize as NodeSizeRect).height
-                            ]
+                    ]
+                } else if (d.props.shape === NodeShape.RECTANGLE) {
+                    return [
+                        [
+                            -0.5 * (d.renderedSize as NodeSizeRect).width,
+                            -0.5 * (d.renderedSize as NodeSizeRect).height
+                        ],
+                        [
+                            0.5 * (d.renderedSize as NodeSizeRect).width,
+                            0.5 * (d.renderedSize as NodeSizeRect).height
                         ]
-                    }
-                })
-            )
-            .force('collideCircle', null)
+                    ]
+                }
+            })
+        }
     }
+    return simulation.force('collideCircle', collideCircle).force('collideBox', collideBox)
 }
 
 /**

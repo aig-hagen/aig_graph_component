@@ -161,6 +161,9 @@ There are props set at graph level, and some at an individual level.
 
 - `zoomEnabled`
 - `nodePhysicsEnabled`
+- `collisionDetectionEnabled`
+    - whether to enable collision detection to prevent nodes from overlapping
+    - defaults to true
 - `fixedLinkDistanceEnabled`
 - `showNodeLabels`
 - `showLinkLabels`

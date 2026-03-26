@@ -43,6 +43,7 @@ export interface GraphConfiguration {
     nodeAutoGrowToLabelSize: boolean
     showNodeLabels: boolean
     nodePhysicsEnabled: boolean
+    collisionDetectionEnabled: boolean
 
     // links
     linkGUIEditability: LinkGUIEditability //also individual element option
@@ -94,6 +95,7 @@ export class GraphConfigDefault implements GraphConfiguration {
     nodeAutoGrowToLabelSize = true
     showNodeLabels = true
     nodePhysicsEnabled = false
+    collisionDetectionEnabled = true
 
     private _linkGUIEditability: Required<LinkGUIEditability> = {
         deletable: true,

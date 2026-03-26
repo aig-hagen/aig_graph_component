@@ -193,6 +193,7 @@ defineExpose({
     toggleLinkLabels,
     toggleZoom,
     toggleNodePhysics,
+    toggleCollisionDetection,
     toggleFixedLinkDistance,
     toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
@@ -206,6 +207,7 @@ export type GraphConfigurationPublic = Partial<
         GraphConfiguration,
         | 'zoomEnabled'
         | 'nodePhysicsEnabled'
+        | 'collisionDetectionEnabled'
         | 'fixedLinkDistanceEnabled'
         | 'showNodeLabels'
         | 'showLinkLabels'
@@ -226,6 +228,9 @@ function setDefaults(configInput: GraphConfigurationPublic) {
     // simulation
     if (configInput.nodePhysicsEnabled !== undefined) {
         toggleNodePhysics(configInput.nodePhysicsEnabled)
+    }
+    if (configInput.collisionDetectionEnabled !== undefined) {
+        toggleCollisionDetection(configInput.collisionDetectionEnabled)
     }
     if (configInput.fixedLinkDistanceEnabled !== undefined) {
         toggleFixedLinkDistance(configInput.fixedLinkDistanceEnabled)
@@ -263,6 +268,7 @@ function getDefaults(): GraphConfigurationPublic {
     return {
         zoomEnabled: config.zoomEnabled,
         nodePhysicsEnabled: config.nodePhysicsEnabled,
+        collisionDetectionEnabled: config.collisionDetectionEnabled,
         fixedLinkDistanceEnabled: config.fixedLinkDistanceEnabled,
         showNodeLabels: config.showNodeLabels,
         showLinkLabels: config.showLinkLabels,
@@ -1037,6 +1043,11 @@ function setEditability(
 function toggleNodePhysics(isEnabled: boolean): void {
     config.nodePhysicsEnabled = isEnabled
     setNodeChargeAndAttraction(simulation, isEnabled, width, height)
+}
+
+function toggleCollisionDetection(isEnabled: boolean): void {
+    config.collisionDetectionEnabled = isEnabled
+    updateCollide(simulation, graph, config)
 }
 
 function toggleFixedLinkDistance(isEnabled: boolean): void {

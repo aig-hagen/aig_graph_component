@@ -49,7 +49,7 @@ test('expose centerView', async ({ graph, page }) => {
     await graph.createNode({ x: 300, y: 300 })
     await graph.evaluateOnComponent((instance) => instance.toggleZoom(true))
     // Auto growing labels currently break size of label when zooming.
-    // https://github.com/aig-hagen/aig_graph_component/issues/29
+    // See https://github.com/aig-hagen/aig_graph_component/issues/29
     await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
 
     await graph.evaluateOnComponent((instance) =>
@@ -74,6 +74,28 @@ test('move node group', async ({ graph, page }) => {
     await graph.evaluateOnComponent((instance) => instance.setNodeGroupsFn(() => new Set([0, 1])))
 
     await node.drag(0, 50)
+
+    await expect(page).toHaveScreenshot()
+})
+
+test('move nodes with collision', async ({ graph, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    const node = await graph.createNode({ x: 300, y: 300 })
+
+    await node.drag(-140, -140)
+
+    await expect(page).toHaveScreenshot()
+})
+
+test('move nodes without collision', async ({ graph, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    const node = await graph.createNode({ x: 300, y: 300 })
+    // Auto growing labels currently breaks overlapping.
+    // See https://github.com/aig-hagen/aig_graph_component/issues/29
+    await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
+    await graph.evaluateOnComponent((instance) => instance.toggleCollisionDetection(false))
+
+    await node.drag(-140, -140)
 
     await expect(page).toHaveScreenshot()
 })
@@ -177,8 +199,12 @@ class NodeFixture {
     async drag(dx: number, dy: number) {
         const position = await this.getPosition()
         await this.page.mouse.move(position.x, position.y)
+        await this.page.waitForTimeout(100)
         await this.page.mouse.down()
-        await this.page.mouse.move(position.x + dx, position.y + dy)
+        await this.page.waitForTimeout(100)
+        await this.page.mouse.move(position.x + dx, position.y + dy, { steps: 20 })
+        await this.page.waitForTimeout(100)
         await this.page.mouse.up()
+        await this.page.waitForTimeout(100)
     }
 }
