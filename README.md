@@ -728,8 +728,10 @@ Event Names:
 - `link-created`
 - `link-deleted`
 
-Additional information can be accessed which include `node: {id, label, x, y}` for nodes
-and `link: {id, label}` for links.
+Additional information can be accessed which include `node: {id, label, x, y}, cause` for nodes
+and `link: {id, label}, cause` for links, where `cause` indicates whether the event was triggered by a user action or a programmatic action.
+
+`cause` will be either 'user-action' or 'programmatic-action'.
 
 #### Click
 

@@ -19,7 +19,7 @@ import {
     updateCollide
 } from '@/d3/simulation'
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
-import { terminate } from '@/d3/event'
+import { EVENT_CAUSE, terminate } from '@/d3/event'
 //model
 import Graph, { getBounds } from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
@@ -155,16 +155,16 @@ let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
 
 const emit = defineEmits<{
-    nodeCreated: [node: { id: number; label?: string; x?: number; y?: number }]
+    nodeCreated: [node: { id: number; label?: string; x?: number; y?: number }, cause: EVENT_CAUSE]
     nodeClicked: [node: { id: number; label?: string; x?: number; y?: number }, button: number]
-    nodeDeleted: [node: { id: number; label?: string; x?: number; y?: number }]
+    nodeDeleted: [node: { id: number; label?: string; x?: number; y?: number }, cause: EVENT_CAUSE]
     nodeRenderedSizeChange: [
         node: { id: number; renderedSize: NodeSize; baseSize: NodeSize },
         previousRenderedSize: NodeSize
     ]
-    linkCreated: [link: { id: string; label?: string }]
+    linkCreated: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     linkClicked: [link: { id: string; label?: string }, button: number]
-    linkDeleted: [link: { id: string; label?: string }]
+    linkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     labelEdited: [parent: { id: number | string }, label: string]
 }>()
 
@@ -175,8 +175,8 @@ defineExpose({
     getGraph,
     setGraph,
     printGraph,
-    createNode,
-    createLink,
+    createNode: createNodePublic,
+    createLink: createLinkPublic,
     deleteElement,
     setLabel,
     setColor,
@@ -363,14 +363,22 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                     let r = graph.removeNode(d)
                     if (r !== undefined) {
                         let [removedNode, removedLinks] = r
-                        emit('nodeDeleted', {
-                            id: removedNode.id,
-                            label: removedNode.label,
-                            x: removedNode.x,
-                            y: removedNode.y
-                        })
+                        emit(
+                            'nodeDeleted',
+                            {
+                                id: removedNode.id,
+                                label: removedNode.label,
+                                x: removedNode.x,
+                                y: removedNode.y
+                            },
+                            EVENT_CAUSE.PROGRAMMATIC_ACTION
+                        )
                         removedLinks.forEach((removedLink) => {
-                            emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+                            emit(
+                                'linkDeleted',
+                                { id: removedLink.id, label: removedLink.label },
+                                EVENT_CAUSE.PROGRAMMATIC_ACTION
+                            )
                         })
                     }
                 })
@@ -382,7 +390,11 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 .each(function (d) {
                     let removedLink = graph.removeLink(d)
                     if (removedLink !== undefined) {
-                        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+                        emit(
+                            'linkDeleted',
+                            { id: removedLink.id, label: removedLink.label },
+                            EVENT_CAUSE.PROGRAMMATIC_ACTION
+                        )
                     }
                 })
         }
@@ -391,14 +403,22 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             let r = graph.removeNode(d)
             if (r !== undefined) {
                 let [removedNode, removedLinks] = r
-                emit('nodeDeleted', {
-                    id: removedNode.id,
-                    label: removedNode.label,
-                    x: removedNode.x,
-                    y: removedNode.y
-                })
+                emit(
+                    'nodeDeleted',
+                    {
+                        id: removedNode.id,
+                        label: removedNode.label,
+                        x: removedNode.x,
+                        y: removedNode.y
+                    },
+                    EVENT_CAUSE.PROGRAMMATIC_ACTION
+                )
                 removedLinks.forEach((removedLink) => {
-                    emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+                    emit(
+                        'linkDeleted',
+                        { id: removedLink.id, label: removedLink.label },
+                        EVENT_CAUSE.PROGRAMMATIC_ACTION
+                    )
                 })
             }
         })
@@ -406,7 +426,11 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         linkSelection!.each(function (d) {
             let removedLink = graph.removeLink(d)
             if (removedLink !== undefined) {
-                emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+                emit(
+                    'linkDeleted',
+                    { id: removedLink.id, label: removedLink.label },
+                    EVENT_CAUSE.PROGRAMMATIC_ACTION
+                )
             }
         })
     }
@@ -1106,6 +1130,7 @@ function initData() {
             if (config.allowNodeCreationViaGUI) {
                 createNode(
                     { ...config.nodeProps },
+                    EVENT_CAUSE.USER_ACTION,
                     d3.pointer(event, canvas!.node())[0],
                     d3.pointer(event, canvas!.node())[1]
                 )
@@ -1209,9 +1234,29 @@ function onZoom(event: D3ZoomEvent<any, any>, isEnabled: boolean = true): void {
  * @param isLabelEditableViaGUI
  * @returns The id of the newly created link or undefined if the link already exists or the source or target node id was invalid.
  */
+function createLinkPublic(
+    sourceId: number,
+    targetId: number,
+    label?: string,
+    linkColor?: string,
+    isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
+) {
+    createLink(
+        sourceId,
+        targetId,
+        EVENT_CAUSE.PROGRAMMATIC_ACTION,
+        label,
+        linkColor,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI
+    )
+}
+
 function createLink(
     sourceId: number,
     targetId: number,
+    cause: EVENT_CAUSE,
     label?: string,
     linkColor?: string,
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
@@ -1229,7 +1274,7 @@ function createLink(
         if (newLink.color) {
             createLinkMarkerColored(canvas!, graphHostId.value, config, newLink.color)
         }
-        emit('linkCreated', { id: newLink.id, label: newLink.label })
+        emit('linkCreated', { id: newLink.id, label: newLink.label }, cause)
         restart()
         return newLink.id
     } else {
@@ -1252,8 +1297,53 @@ function createLink(
  * @param allowOutgoingLinks
  * @returns The id of the newly created node.
  */
+function createNodePublic(
+    props: NodeProps = { ...config.nodeProps },
+    x?: number,
+    y?: number,
+    importedId?: string | number,
+    label?: string,
+    nodeColor?: string,
+    hasFixedPosition: FixedAxis = config.nodeGUIEditability.fixedPosition,
+    isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
+    allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
+) {
+    return createNode(
+        props,
+        EVENT_CAUSE.PROGRAMMATIC_ACTION,
+        x,
+        y,
+        importedId,
+        label,
+        nodeColor,
+        hasFixedPosition,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI,
+        allowIncomingLinks,
+        allowOutgoingLinks
+    )
+}
+
+/**
+ * Creates a new graph node and triggers the according event.
+ * @param props
+ * @param x
+ * @param y
+ * @param importedId
+ * @param label
+ * @param nodeColor
+ * @param hasFixedPosition
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @param allowIncomingLinks
+ * @param allowOutgoingLinks
+ * @returns The id of the newly created node.
+ */
 function createNode(
     props: NodeProps = { ...config.nodeProps },
+    cause: EVENT_CAUSE,
     x?: number,
     y?: number,
     importedId?: string | number,
@@ -1278,7 +1368,7 @@ function createNode(
         allowIncomingLinks,
         allowOutgoingLinks
     )
-    emit('nodeCreated', { id: newNode.id, label: newNode.label, x: newNode.x, y: newNode.y })
+    emit('nodeCreated', { id: newNode.id, label: newNode.label, x: newNode.x, y: newNode.y }, cause)
     updateCollide(simulation, graph, config)
     graphHasNodes.value = true
     restart()
@@ -1881,14 +1971,22 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
     let r = graph.removeNode(node)
     if (r !== undefined) {
         let [removedNode, removedLinks] = r
-        emit('nodeDeleted', {
-            id: removedNode.id,
-            label: removedNode.label,
-            x: removedNode.x,
-            y: removedNode.y
-        })
+        emit(
+            'nodeDeleted',
+            {
+                id: removedNode.id,
+                label: removedNode.label,
+                x: removedNode.x,
+                y: removedNode.y
+            },
+            EVENT_CAUSE.USER_ACTION
+        )
         removedLinks.forEach((removedLink) => {
-            emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+            emit(
+                'linkDeleted',
+                { id: removedLink.id, label: removedLink.label },
+                EVENT_CAUSE.USER_ACTION
+            )
         })
         updateCollide(simulation, graph, config)
     }
@@ -1983,7 +2081,7 @@ function _onPointerUpCreateLink(): void {
     if (source === undefined || target === undefined) {
         return
     }
-    createLink(source.id, target.id)
+    createLink(source.id, target.id, EVENT_CAUSE.USER_ACTION)
 }
 
 //endregion
@@ -2110,7 +2208,11 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
     let color = link.color
     let removedLink = graph.removeLink(link)
     if (removedLink !== undefined) {
-        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+        emit(
+            'linkDeleted',
+            { id: removedLink.id, label: removedLink.label },
+            EVENT_CAUSE.USER_ACTION
+        )
     }
     if (color) {
         if (!graph.hasNonDefaultLinkColor(color)) {
@@ -2356,6 +2458,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
     for (let parsedNode of nodes) {
         createNode(
             parsedNode.props ?? config.nodeProps,
+            EVENT_CAUSE.PROGRAMMATIC_ACTION,
             parsedNode.x,
             parsedNode.y,
             parsedNode.idImported,
@@ -2378,6 +2481,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
             createLink(
                 srcNode.id,
                 targetNode.id,
+                EVENT_CAUSE.PROGRAMMATIC_ACTION,
                 parsedLink.label,
                 parsedLink.color,
                 parsedLink.deletable,
@@ -2454,15 +2558,23 @@ function handleWindowResize() {
 
 function _resetGraph(): void {
     graph.links.forEach((removedLink) =>
-        emit('linkDeleted', { id: removedLink.id, label: removedLink.label })
+        emit(
+            'linkDeleted',
+            { id: removedLink.id, label: removedLink.label },
+            EVENT_CAUSE.PROGRAMMATIC_ACTION
+        )
     )
     graph.nodes.forEach((removedNode) =>
-        emit('nodeDeleted', {
-            id: removedNode.id,
-            label: removedNode.label,
-            x: removedNode.x,
-            y: removedNode.y
-        })
+        emit(
+            'nodeDeleted',
+            {
+                id: removedNode.id,
+                label: removedNode.label,
+                x: removedNode.x,
+                y: removedNode.y
+            },
+            EVENT_CAUSE.PROGRAMMATIC_ACTION
+        )
     )
     graph = new Graph()
     graphHasNodes.value = false
@@ -2557,16 +2669,18 @@ function setNodePosition(
 </script>
 
 <template>
-    <div class="graph-controller__graph-host uninitialised" />
-    <div v-show="!graphHasNodes">
-        <graph-controls
-            class="graph-controller__info-text-background"
-            show-controls-graph
-            :show-latex-info="true"
-            :show-controls-environment="false"
-            :show-header="true"
-            :platform-type="platformType"
-        ></graph-controls>
+    <div>
+        <div class="graph-controller__graph-host uninitialised" />
+        <div v-show="!graphHasNodes">
+            <graph-controls
+                class="graph-controller__info-text-background"
+                show-controls-graph
+                :show-latex-info="true"
+                :show-controls-environment="false"
+                :show-header="true"
+                :platform-type="platformType"
+            ></graph-controls>
+        </div>
     </div>
 </template>
 
