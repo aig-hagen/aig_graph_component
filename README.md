@@ -589,6 +589,22 @@ instance.setNodesLinkPermission(true, false, [2, 3])
 instance.setNodesLinkPermission(false, false)
 ```
 
+##### Node Position
+
+We can get and set the position of individual nodes using `getNodePosition` and `setNodePosition`.
+
+`getNodePosition(id)` returns the current position of the node with the given ID as `{x: number, y: number}`.
+
+`setNodePosition(position, fixedPosition?, id)` sets the position of the node with the given ID to the provided position object `{x: number, y: number}`, and optionally sets whether the position should be fixed.
+
+```javascript
+// get the position of node with id 1
+const pos = instance.getNodePosition(1) // {x: 100, y: 200}
+
+// set the position of node with id 1 to (150, 250) and fix it
+instance.setNodePosition({ x: 150, y: 250 }, { x: true, y: true }, 1)
+```
+
 ##### Editability Convenience Function
 
 To set all the editability parameter at once, we can use `setEditability(editabilityObject, id(s))`

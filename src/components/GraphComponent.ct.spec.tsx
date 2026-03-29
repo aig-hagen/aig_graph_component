@@ -41,16 +41,16 @@ test('expose getNodeSize', async ({ graph }) => {
 
     const nodeSize = await graph.evaluateOnComponent((instance) => instance.getNodeSize(0))
 
-    expect(nodeSize).toEqual({ height: 48, width: 128 })
+    expect(nodeSize).toStrictEqual({ height: 48, width: 128 })
 })
 
 test('expose centerView', async ({ graph, page }) => {
-    await graph.createNode({ x: 150, y: 150 })
-    await graph.createNode({ x: 300, y: 300 })
     await graph.evaluateOnComponent((instance) => instance.toggleZoom(true))
     // Auto growing labels currently break size of label when zooming.
     // See https://github.com/aig-hagen/aig_graph_component/issues/29
     await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
+    await graph.createNode({ x: 150, y: 150 })
+    await graph.createNode({ x: 300, y: 300 })
 
     await graph.evaluateOnComponent((instance) =>
         instance.centerView({ top: 5, right: 25, bottom: 50, left: 100 })
@@ -88,15 +88,84 @@ test('move nodes with collision', async ({ graph, page }) => {
 })
 
 test('move nodes without collision', async ({ graph, page }) => {
-    await graph.createNode({ x: 150, y: 150 })
-    const node = await graph.createNode({ x: 300, y: 300 })
     // Auto growing labels currently breaks overlapping.
     // See https://github.com/aig-hagen/aig_graph_component/issues/29
     await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
     await graph.evaluateOnComponent((instance) => instance.toggleCollisionDetection(false))
+    await graph.createNode({ x: 150, y: 150 })
+    const node = await graph.createNode({ x: 300, y: 300 })
 
     await node.drag(-140, -140)
 
+    await expect(page).toHaveScreenshot()
+})
+
+test('expose getNodePosition for non-fixed node', async ({ graph }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    const position = await graph.evaluateOnComponent((instance) => instance.getNodePosition(0))
+
+    expect(position).toStrictEqual({ x: 150, y: 150 })
+})
+
+test('expose getNodePosition for fixed node', async ({ graph }) => {
+    await graph.evaluateOnComponent((instance) =>
+        instance.setEditability(
+            {
+                fixedPosition: {
+                    x: true,
+                    y: true
+                }
+            },
+            undefined
+        )
+    )
+    await graph.createNode({ x: 150, y: 150 })
+
+    const position = await graph.evaluateOnComponent((instance) => instance.getNodePosition(0))
+
+    expect(position).toStrictEqual({ x: 150, y: 150 })
+})
+
+test('expose setNodePosition', async ({ graph, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    await graph.evaluateOnComponent((instance) =>
+        instance.setNodePosition(
+            {
+                x: 25,
+                y: 50
+            },
+            undefined,
+            0
+        )
+    )
+
+    const position = await graph.evaluateOnComponent((instance) => instance.getNodePosition(0))
+    expect(position).toStrictEqual({ x: 64, y: 50 })
+    await expect(page).toHaveScreenshot()
+})
+
+test('setting node position can fix', async ({ graph, page }) => {
+    const node = await graph.createNode({ x: 150, y: 150 })
+
+    await graph.evaluateOnComponent((instance) =>
+        instance.setNodePosition(
+            {
+                x: 100,
+                y: 100
+            },
+            {
+                x: true,
+                y: false
+            },
+            0
+        )
+    )
+
+    await node.drag(100, 100)
+    const position = await graph.evaluateOnComponent((instance) => instance.getNodePosition(0))
+    expect(position).toStrictEqual({ x: 100, y: 200 })
     await expect(page).toHaveScreenshot()
 })
 

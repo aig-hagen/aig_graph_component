@@ -199,7 +199,9 @@ defineExpose({
     toggleNodeAutoGrow,
     resetView,
     centerView,
-    setNodeGroupsFn
+    setNodeGroupsFn,
+    getNodePosition,
+    setNodePosition
 })
 
 export type GraphConfigurationPublic = Partial<
@@ -2526,6 +2528,31 @@ function centerView(
 
 function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {
     config.nodeGroupsFn = nodeGroupsFn
+}
+
+function getNodePosition(id: number): { x: number; y: number } {
+    const node = findNode(id)
+    const x = node.x
+    if (x === undefined) {
+        throw new Error(`Node with id ${id} has no x position`)
+    }
+    const y = node.y
+    if (y === undefined) {
+        throw new Error(`Node with id ${id} has no y position`)
+    }
+    return { x: x, y: y }
+}
+
+function setNodePosition(
+    position: { x: number; y: number },
+    fixedPosition: FixedAxis | undefined,
+    id: number
+): void {
+    const node = findNode(id)
+    node.x = position.x
+    node.y = position.y
+    node.fixedPosition = fixedPosition
+    restart()
 }
 </script>
 
