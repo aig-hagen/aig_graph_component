@@ -2,6 +2,8 @@ import { test as base, expect, type MountResultJsx } from '@playwright/experimen
 import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
 
+const DEFAULT_WAIT_FOR_RERENDER_MS = 50
+
 // Use fixtures for cleaner tests.
 // See https://playwright.dev/docs/test-fixtures
 const test = base.extend<{ component: MountResultJsx; graph: GraphFixture }>({
@@ -52,7 +54,7 @@ test('expose centerView', async ({ graph, page }) => {
     await graph.createNode({ x: 150, y: 150 })
     await graph.createNode({ x: 300, y: 300 })
 
-    await graph.evaluateOnComponent((instance) =>
+    await graph.evaluateOnComponentWithWait((instance) =>
         instance.centerView({ top: 5, right: 25, bottom: 50, left: 100 })
     )
 
@@ -130,7 +132,7 @@ test('expose getNodePosition for fixed node', async ({ graph }) => {
 test('expose setNodePosition', async ({ graph, page }) => {
     await graph.createNode({ x: 150, y: 150 })
 
-    await graph.evaluateOnComponent((instance) =>
+    await graph.evaluateOnComponentWithWait((instance) =>
         instance.setNodePosition(
             {
                 x: 25,
@@ -149,7 +151,7 @@ test('expose setNodePosition', async ({ graph, page }) => {
 test('setting node position can fix', async ({ graph, page }) => {
     const node = await graph.createNode({ x: 150, y: 150 })
 
-    await graph.evaluateOnComponent((instance) =>
+    await graph.evaluateOnComponentWithWait((instance) =>
         instance.setNodePosition(
             {
                 x: 100,
@@ -195,6 +197,7 @@ class GraphFixture {
             throw new Error(`Expected 1 new node, but found ${newIds.length}`)
         }
         const newId = newIds[0]!
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         return new NodeFixture(this.component, this.page, newId)
     }
 
@@ -214,6 +217,16 @@ class GraphFixture {
             fn = eval(fnSerialized)
             return fn(instance)
         }, fnSerialized)
+    }
+
+    // Use if evaluate causes some side effect like moving node etc.
+    // Otherwise, use `evaluateOnComponent` to avoid unnecessary waits.
+    async evaluateOnComponentWithWait<ReturnT>(
+        fn: (instance: InstanceType<typeof GraphComponent>) => ReturnT
+    ) {
+        const result = await this.evaluateOnComponent(fn)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        return result
     }
 }
 
@@ -269,12 +282,12 @@ class NodeFixture {
     async drag(dx: number, dy: number) {
         const position = await this.getPosition()
         await this.page.mouse.move(position.x, position.y)
-        await this.page.waitForTimeout(100)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         await this.page.mouse.down()
-        await this.page.waitForTimeout(100)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         await this.page.mouse.move(position.x + dx, position.y + dy, { steps: 20 })
-        await this.page.waitForTimeout(100)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         await this.page.mouse.up()
-        await this.page.waitForTimeout(100)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
     }
 }
