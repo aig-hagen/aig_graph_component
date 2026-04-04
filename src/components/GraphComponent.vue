@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import {
+    computed,
+    onMounted,
+    onUnmounted,
+    reactive,
+    ref,
+    shallowRef,
+    useTemplateRef,
+    type Ref
+} from 'vue'
 //component
 import GraphControls from '@/components/GraphControls.vue'
 //d3
@@ -58,62 +67,27 @@ import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
 //other
 import Bowser from 'bowser'
 
-const graphHost = computed(() => {
-    //this is the case for production mode (one and multiple components)
-    const hosts = document.querySelectorAll('graph-component')
+const { id = 'gc' } = defineProps<{
+    id?: string
+}>()
 
-    let graphHost = undefined
-    for (let i = 0; i < hosts.length; i++) {
-        const hostElement = hosts[i]
-        //@ts-ignore
-        const hostShadow = d3.select<HTMLElement, undefined>(hostElement.shadowRoot)
-
-        let graphHostToInit
-        //with (open) shadow root
-        if (!hostShadow.empty()) {
-            graphHostToInit = hostShadow.select<HTMLDivElement>(
-                '.graph-controller__graph-host.uninitialised'
-            )
-        }
-        //w/o shadow root
-        else {
-            graphHostToInit = d3.select<HTMLDivElement, undefined>(
-                '.graph-controller__graph-host.uninitialised'
-            )
-        }
-
-        if (!graphHostToInit.empty()) {
-            graphHostToInit.classed('uninitialised', false)
-            graphHost = graphHostToInit
-            break
-        }
-    }
-
-    // this is the case for dev mode (one component)
-    if (graphHost === undefined) {
-        graphHost = d3.select<HTMLDivElement, undefined>(
-            '.graph-controller__graph-host.uninitialised'
-        )
-        graphHost.classed('uninitialised', false)
-    }
-
-    return graphHost
-})
+const graphHostRef = useTemplateRef<HTMLDivElement>('graph-host')
+const graphHost: Ref<d3.Selection<HTMLDivElement, undefined, null, undefined>> = shallowRef(
+    undefined!
+)
 
 const graphHostId = computed(() => {
-    // w/o shadow root
-    let parent = graphHost.value.node()!.parentElement
-    // with open shadow root
-    if (!parent) {
-        let hostShadow = graphHost.value.node()!.getRootNode() as ShadowRoot
-        parent = hostShadow.host! as HTMLElement
-    }
-
-    let id = parent.getAttribute('id')
-    return id ? id : 'gc'
+    return id
 })
 
 onMounted(() => {
+    const hostElement = graphHostRef.value
+    if (hostElement === null) {
+        throw new Error('Graph host element not found')
+    }
+    const graphHostToInit = d3.select<HTMLDivElement, undefined>(hostElement)
+    graphHostToInit.classed('uninitialised', false)
+    graphHost.value = graphHostToInit
     initData()
     window.addEventListener('resize', handleWindowResize)
 })
@@ -2669,8 +2643,8 @@ function setNodePosition(
 </script>
 
 <template>
-    <div>
-        <div class="graph-controller__graph-host uninitialised" />
+    <div class="graph-controller" :id="id" v-bind="$attrs">
+        <div ref="graph-host" class="graph-controller__graph-host uninitialised" />
         <div v-show="!graphHasNodes">
             <graph-controls
                 class="graph-controller__info-text-background"
@@ -2690,7 +2664,7 @@ function setNodePosition(
     width: 100%;
     height: 100%;
     touch-action: none;
-    background-color: lightgrey;
+    background-color: red;
 }
 
 .graph-controller__graph-canvas {

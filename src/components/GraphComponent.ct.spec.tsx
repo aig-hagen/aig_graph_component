@@ -6,7 +6,7 @@ import type { Page } from 'playwright/test'
 // See https://playwright.dev/docs/test-fixtures
 const test = base.extend<{ component: MountResultJsx; graph: GraphFixture }>({
     component: async ({ mount }, use) => {
-        const component = await mount(<GraphComponent />)
+        const component = await mount(<GraphComponent id="test-graph" />)
         await use(component)
     },
     graph: async ({ component, page }, use) => {
@@ -182,7 +182,7 @@ class GraphFixture {
 
     private async getAllNodeIds(): Promise<string[]> {
         return await this.component
-            .locator('rect[id^="root-node-"]')
+            .locator('rect[id^="test-graph-"]')
             .evaluateAll((elements) => elements.map((el) => el.id))
     }
 
@@ -208,8 +208,9 @@ class GraphFixture {
     ) {
         const fnSerialized = fn.toString()
         return await this.component.evaluate((rootEl, fnSerialized) => {
-            const instance = (rootEl as any)._vnode.component.subTree.component
-                .exposed as InstanceType<typeof GraphComponent>
+            const instance = (rootEl as any).__vnode.ctx.exposed as InstanceType<
+                typeof GraphComponent
+            >
             fn = eval(fnSerialized)
             return fn(instance)
         }, fnSerialized)
