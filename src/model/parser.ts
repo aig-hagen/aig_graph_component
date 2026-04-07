@@ -17,15 +17,15 @@ export type parsedLink = {
 } & LinkGUIEditability
 
 export type jsonNode = {
-    id: number
+    id: number | string
     x?: number
     y?: number
     label?: string
 } & NodeGUIEditability &
     NodeAppearance
 export type jsonLink = {
-    sourceId: number
-    targetId: number
+    sourceId: number | string
+    targetId: number | string
     label?: string
     color?: string
 } & LinkGUIEditability
