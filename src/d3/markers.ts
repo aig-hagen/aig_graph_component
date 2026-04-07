@@ -36,7 +36,7 @@ export function createLinkMarkerColored(
     config: GraphConfiguration,
     color: string
 ) {
-    if (canvas.select(`#${graphHostId}-link-arrow-` + escapeColor(color)).empty()) {
+    if (canvas.select(`#${CSS.escape(graphHostId)}-link-arrow-` + escapeColor(color)).empty()) {
         createLinkMarker(
             canvas,
             config,
@@ -62,14 +62,16 @@ export function deleteLinkMarkerColored(
     color: string
 ) {
     canvas
-        .select<SVGMarkerElement>(`#${graphHostId}-link-arrow-` + escapeColor(color))
+        .select<SVGMarkerElement>(`#${CSS.escape(graphHostId)}-link-arrow-` + escapeColor(color))
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })
         .remove()
 
     canvas
-        .select<SVGMarkerElement>(`#${graphHostId}-link-arrow-reverse-` + escapeColor(color))
+        .select<SVGMarkerElement>(
+            `#${CSS.escape(graphHostId)}-link-arrow-reverse-` + escapeColor(color)
+        )
         .select<SVGDefsElement>(function (): any {
             return this.parentNode!
         })

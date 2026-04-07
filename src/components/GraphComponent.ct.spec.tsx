@@ -2,13 +2,13 @@ import { test as base, expect, type MountResultJsx } from '@playwright/experimen
 import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
 
-const DEFAULT_WAIT_FOR_RERENDER_MS = 50
+const DEFAULT_WAIT_FOR_RERENDER_MS = 100
 
 // Use fixtures for cleaner tests.
 // See https://playwright.dev/docs/test-fixtures
 const test = base.extend<{ component: MountResultJsx; graph: GraphFixture }>({
     component: async ({ mount }, use) => {
-        const component = await mount(<GraphComponent id="test-graph" />)
+        const component = await mount(<GraphComponent id="1-test-graph" />)
         await use(component)
     },
     graph: async ({ component, page }, use) => {
@@ -171,6 +171,35 @@ test('setting node position can fix', async ({ graph, page }) => {
     await expect(page).toHaveScreenshot()
 })
 
+test('setting graph', async ({ graph, page }) => {
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.setGraph({
+            nodes: [
+                {
+                    id: 0,
+                    label: 'a',
+                    x: 100,
+                    y: 100
+                },
+                {
+                    id: 1,
+                    label: 'b',
+                    x: 400,
+                    y: 200
+                }
+            ],
+            links: [
+                {
+                    sourceId: 0,
+                    targetId: 1
+                }
+            ]
+        })
+    )
+
+    await expect(page).toHaveScreenshot()
+})
+
 interface Position {
     x: number
     y: number
@@ -184,7 +213,7 @@ class GraphFixture {
 
     private async getAllNodeIds(): Promise<string[]> {
         return await this.component
-            .locator('rect[id^="test-graph-"]')
+            .locator('rect[id^="1-test-graph-"]')
             .evaluateAll((elements) => elements.map((el) => el.id))
     }
 
@@ -242,7 +271,7 @@ class NodeFixture {
             const svg = rootEl.querySelector('svg') as SVGSVGElement | null
             if (!svg) throw new Error('SVG element not found')
 
-            const rect = svg.querySelector<SVGRectElement>(`rect#${id}`)
+            const rect = svg.querySelector<SVGRectElement>(`rect#${CSS.escape(id)}`)
             if (!rect) throw new Error(`Node rect '#${id}' not found`)
 
             // We could use the locator for `rect#${id}` to perform actions (e.g., clicks).

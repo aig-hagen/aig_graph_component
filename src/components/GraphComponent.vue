@@ -1394,7 +1394,9 @@ function _updateDraggableLinkPath(): void {
 
     const isSourceOnDeletion = d3
         .select(
-            graphHost.value.node()!.querySelector(`#${graphHostId.value + '-node-' + source!.id}`)!
+            graphHost.value
+                .node()!
+                .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + source!.id}`)!
         )
         .classed('on-deletion')
 
@@ -1880,7 +1882,7 @@ function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
     let nodeElement = graphHost.value
         .node()!
-        .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!
+        .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
     let nodeContainer = d3.select(nodeElement.parentElement)
@@ -2028,7 +2030,7 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
 function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
     let nodeById = graphHost.value
         .node()!
-        .querySelector(`#${graphHostId.value + '-node-' + node.id}`)!
+        .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
     let nodeElement = d3.select(nodeById)
     let nodeContainer = d3.select(nodeById.parentElement)
 
@@ -2157,7 +2159,7 @@ function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
 function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
     let linkElement = graphHost.value
         .node()!
-        .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
+        .querySelector(`#${CSS.escape(graphHostId.value) + '-link-' + link.id}`)
 
     d3.select(linkElement).classed('on-deletion', true)
 
@@ -2211,7 +2213,7 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
 function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
     let linkElement = graphHost.value
         .node()!
-        .querySelector(`#${graphHostId.value + '-link-' + link.id}`)
+        .querySelector(`#${CSS.escape(graphHostId.value) + '-link-' + link.id}`)
 
     if (d3.select(linkElement).classed('on-deletion')) {
         if (linkElement instanceof SVGPathElement) {
@@ -2359,7 +2361,7 @@ function _handleLinkMjxContainer(link: GraphLink) {
     const linkContainer = graphHost.value
         .node()!
         .querySelector<SVGTextPathElement>(
-            `#${graphHostId.value + '-link-' + link.id}`
+            `#${CSS.escape(graphHostId.value) + '-link-' + link.id}`
         )!.parentElement
 
     linkContainer!.querySelector('mjx-container')?.remove()
@@ -2380,7 +2382,9 @@ function _handleLinkMjxContainer(link: GraphLink) {
 function _redrawNodeContainer(node: GraphNode) {
     const nodeContainer = graphHost.value
         .node()!
-        .querySelector<SVGGElement>(`#${graphHostId.value + '-node-' + node.id}`)!.parentElement
+        .querySelector<SVGGElement>(
+            `#${CSS.escape(graphHostId.value) + '-node-' + node.id}`
+        )!.parentElement
 
     if (nodeContainer) {
         const nodeContainerParent = nodeContainer!.parentElement
@@ -2672,7 +2676,6 @@ function setNodePosition(
     width: 100%;
     height: 100%;
     touch-action: none;
-    background-color: red;
 }
 
 .graph-controller__graph-canvas {
