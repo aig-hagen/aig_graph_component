@@ -1,4 +1,4 @@
-export const enum EVENT_CAUSE {
+export enum EVENT_CAUSE {
     /**
      * Indicates that an event was caused by a user action.
      */
