@@ -130,14 +130,14 @@ let nodeLabelResizeObserver: ResizeObserver
 
 const emit = defineEmits<{
     nodeCreated: [node: { id: number; label?: string; x?: number; y?: number }, cause: EVENT_CAUSE]
-    nodeClicked: [node: { id: number; label?: string; x?: number; y?: number }, button: number]
+    nodeClicked: [node: { id: number; label?: string; x?: number; y?: number }, event: PointerEvent]
     nodeDeleted: [node: { id: number; label?: string; x?: number; y?: number }, cause: EVENT_CAUSE]
     nodeRenderedSizeChange: [
         node: { id: number; renderedSize: NodeSize; baseSize: NodeSize },
         previousRenderedSize: NodeSize
     ]
     linkCreated: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
-    linkClicked: [link: { id: string; label?: string }, button: number]
+    linkClicked: [link: { id: string; label?: string }, event: PointerEvent]
     linkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     labelEdited: [parent: { id: number | string }, label: string]
 }>()
@@ -1378,6 +1378,14 @@ function _updatePathType(d: GraphLink) {
     }
 }
 
+function getClickEventPayload(event: PointerEvent) {
+    // Expose the full event (and not only for example `event.button`),
+    // to give user of this library more freedom for custom actions.
+    // For example the can call `event.preventDefault()` lets user prevent the
+    // the browser to changing the focus.
+    return event
+}
+
 /**
  * Updates the draggable link path according to the needed shape.
  */
@@ -1433,7 +1441,7 @@ function restart(alpha: number = 0.5): void {
                 })
                 .on('pointerout', (event: PointerEvent) => onPointerOutLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphLink) => {
-                    emit('linkClicked', { id: d.id, label: d.label }, event.button)
+                    emit('linkClicked', { id: d.id, label: d.label }, getClickEventPayload(event))
                     onPointerDownDeleteLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphLink) => {
@@ -1561,7 +1569,7 @@ function restart(alpha: number = 0.5): void {
                         emit(
                             'nodeClicked',
                             { id: d.id, label: d.label, x: d.x, y: d.y },
-                            event.button
+                            getClickEventPayload(event)
                         )
                         lastPointerDownOnNodePosition = { x: event.x, y: event.y }
                         onPointerDownNode(event, d)
