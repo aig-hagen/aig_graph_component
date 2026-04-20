@@ -225,6 +225,46 @@ test('setting graph', async ({ graph, page }) => {
     await expect(page).toHaveScreenshot()
 })
 
+test('restore zoom', async ({ graph, page }) => {
+    await graph.evaluateOnComponent((instance) => instance.toggleZoom(true))
+    await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
+    await graph.createNode({ x: 100, y: 100 })
+    await graph.createNode({ x: 400, y: 200 })
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.centerView({ top: 5, right: 25, bottom: 50, left: 100 })
+    )
+
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.setGraph(
+            {
+                nodes: [
+                    {
+                        id: 0,
+                        label: 'a',
+                        x: 100,
+                        y: 100
+                    },
+                    {
+                        id: 1,
+                        label: 'b',
+                        x: 400,
+                        y: 200
+                    }
+                ],
+                links: [
+                    {
+                        sourceId: 0,
+                        targetId: 1
+                    }
+                ]
+            },
+            true
+        )
+    )
+
+    await expect(page).toHaveScreenshot()
+})
+
 test('dragging nodes triggers event', async ({ graph, events }) => {
     const node = await graph.createNode({ x: 150, y: 150 })
 

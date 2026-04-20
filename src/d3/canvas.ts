@@ -6,14 +6,19 @@ export type GraphHost = d3.Selection<HTMLDivElement, undefined, HTMLElement | nu
 
 export type Canvas = d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined>
 
+export type CanvasResult = {
+    canvas: Canvas
+    svg: d3.Selection<SVGSVGElement, undefined, HTMLElement | null, undefined>
+}
+
 export function createCanvas(
     host: GraphHost,
     zoom: Zoom,
     onPointerMoved: (event: PointerEvent) => void,
     onPointerUp: (event: PointerEvent) => void,
     onDoubleClick: (event: PointerEvent) => void
-): Canvas {
-    const canvasGroup = host
+): CanvasResult {
+    const svg = host
         .append('svg')
         .attr('class', 'graph-controller__graph-canvas')
         .style('background-color', 'white')
@@ -23,7 +28,8 @@ export function createCanvas(
         .on('dblclick', (event: PointerEvent) => onDoubleClick(event))
         .call(zoom)
         .on('dblclick.zoom', null)
-        .append('g')
 
-    return canvasGroup
+    const canvasGroup = svg.append('g')
+
+    return { canvas: canvasGroup, svg }
 }

@@ -115,15 +115,19 @@ let height: number = 400
 let zoom: Zoom | undefined
 let drag: Drag
 let canvas: Canvas | undefined
+let svg: d3.Selection<SVGSVGElement, undefined, HTMLElement | null, undefined> | undefined
 let linkSelection: LinkSelection | undefined
 let nodeSelection: NodeSelection | undefined
 let draggableLink: DraggableLink | undefined
 let draggableLinkSourceNode: GraphNode | undefined
 let draggableLinkTargetNode: GraphNode | undefined
 let draggableLinkEnd: [number, number] | undefined
-let xOffset = 0
-let yOffset = 0
-let scale = 1
+const INIT_X_OFFSET = 0
+const INIT_Y_OFFSET = 0
+const INIT_SCALE = 1
+let xOffset = INIT_X_OFFSET
+let yOffset = INIT_Y_OFFSET
+let scale = INIT_SCALE
 let longRightClickTimerNode: ReturnType<typeof setTimeout>
 let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
@@ -172,7 +176,7 @@ defineExpose({
     toggleFixedLinkDistance,
     toggleNodeCreationViaGUI,
     toggleNodeAutoGrow,
-    resetView,
+    resetView: resetViewPublic,
     centerView,
     setNodeGroupsFn,
     getNodePosition,
@@ -287,11 +291,11 @@ function getGraph(
     }
 }
 
-function setGraph(graphToSet: string | jsonGraph | undefined) {
+function setGraph(graphToSet: string | jsonGraph | undefined, restoreZoom: boolean = false) {
     if (typeof graphToSet === 'object' || typeof graphToSet === 'string') {
-        _onHandleGraphImport(graphToSet)
+        _onHandleGraphImport(graphToSet, restoreZoom)
     } else {
-        _resetGraph()
+        _resetGraph(restoreZoom)
     }
 }
 
@@ -1066,7 +1070,7 @@ function toggleNodeLabels(isEnabled: boolean) {
 
 function toggleZoom(isEnabled: boolean) {
     config.zoomEnabled = isEnabled
-    resetView()
+    resetView(false)
 }
 
 function toggleNodeCreationViaGUI(isEnabled: boolean) {
@@ -1096,7 +1100,7 @@ function initData() {
         (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
         config.zoomEnabled
     )
-    canvas = createCanvas(
+    const { canvas: canvasGroup, svg: svgSelection } = createCanvas(
         graphHost.value!,
         zoom,
         (event) => (config.allowNodeCreationViaGUI ? onPointerMovedBeginningFromNode(event) : null),
@@ -1106,12 +1110,15 @@ function initData() {
                 createNode(
                     { ...config.nodeProps },
                     EVENT_CAUSE.USER_ACTION,
-                    d3.pointer(event, canvas!.node())[0],
-                    d3.pointer(event, canvas!.node())[1]
+                    d3.pointer(event, canvasGroup.node())[0],
+                    d3.pointer(event, canvasGroup.node())[1]
                 )
             }
         }
     )
+    canvas = canvasGroup
+    svg = svgSelection
+    svg.call(zoom.transform, d3.zoomIdentity.translate(xOffset, yOffset).scale(scale))
     initMarkers(canvas, graphHostId.value, config, graph.getNonDefaultLinkColors())
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
@@ -2416,7 +2423,7 @@ function _resetDraggableLink(): void {
  * and displays it in the graph component.
  *
  * @param importContent - The graph data to import, either as a TGF string or a JSON object.*/
-function _onHandleGraphImport(importContent: string | jsonGraph) {
+function _onHandleGraphImport(importContent: string | jsonGraph, restoreZoom: boolean) {
     let nodes, links
     try {
         if (typeof importContent === 'string') {
@@ -2432,7 +2439,7 @@ function _onHandleGraphImport(importContent: string | jsonGraph) {
         return
     }
 
-    _resetGraph()
+    _resetGraph(restoreZoom)
     _parseToGraph(nodes, links)
 }
 
@@ -2515,13 +2522,19 @@ function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
     }
 }
 
-function resetView(): void {
+function resetViewPublic(): void {
+    resetView()
+}
+
+function resetView(restoreZoom: boolean = false): void {
     simulation.stop()
     graphHost.value!.selectChildren().remove()
     zoom = undefined
-    xOffset = 0
-    yOffset = 0
-    scale = 1
+    if (!restoreZoom) {
+        xOffset = INIT_X_OFFSET
+        yOffset = INIT_Y_OFFSET
+        scale = INIT_SCALE
+    }
     canvas = undefined
     draggableLink = undefined
     linkSelection = undefined
@@ -2540,10 +2553,10 @@ function handleWindowResize() {
     if (isVirtualKeyboardProbablyOpen) {
         return
     }
-    resetView()
+    resetView(false)
 }
 
-function _resetGraph(): void {
+function _resetGraph(restoreZoom: boolean): void {
     graph.links.forEach((removedLink) =>
         emit(
             'linkDeleted',
@@ -2565,7 +2578,7 @@ function _resetGraph(): void {
     )
     graph = new Graph()
     graphHasNodes.value = false
-    resetView()
+    resetView(restoreZoom)
 }
 
 function centerView(
@@ -2621,8 +2634,7 @@ function centerView(
     let yOffset = yMin - (height / scale - ySpan) / 2
     let xOffset = xMin - (width / scale - xSpan) / 2
 
-    const svg = graphHost.value.select<SVGSVGElement>('svg')
-    svg.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
+    svg?.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
 }
 
 function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {

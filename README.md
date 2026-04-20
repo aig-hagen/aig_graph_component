@@ -306,7 +306,12 @@ instance.setGraph(graphFromInstance)
 
 //if you call it without arguments, it will delete the graph currently displayed in the component
 instance.setGraph()
+
+// Set new graph and preserver zoom level and pan position
+instance.setGraph(graphAsObject, true)
 ```
+
+The `setGraph` method accepts an optional second parameter `restoreZoom` (boolean, default: `false`). When set to `true`, the current zoom level and pan position are preserved instead of resetting to the default view.
 
 #### Getting a displayed graph
 
