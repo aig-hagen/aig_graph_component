@@ -758,6 +758,13 @@ Event Name: `node-rendered-size-change`
 As additional information the nodes id, the new rendered size and the minimal size is provided,
 as well as the previously rendered size `node: {id, renderedSize, baseSize}, previousRenderedSize`.
 
+#### Nodes Moved
+
+Event Name: `nodes-moved`
+
+This event is emitted when node positions change and provides an array of position snapshots:
+`positions: [{nodeId, x, y}, ...]`.
+
 #### Listening for Events
 
 ##### Inside a Vue Library

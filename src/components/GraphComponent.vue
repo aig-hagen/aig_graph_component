@@ -28,7 +28,7 @@ import {
     updateCollide
 } from '@/d3/simulation'
 import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
-import { EVENT_CAUSE, terminate } from '@/d3/event'
+import { EVENT_CAUSE, getPositionSnapshots, terminate, type PositionSnapshot } from '@/d3/event'
 //model
 import Graph, { getBounds } from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
@@ -140,6 +140,7 @@ const emit = defineEmits<{
     linkClicked: [link: { id: string; label?: string }, event: PointerEvent]
     linkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     labelEdited: [parent: { id: number | string }, label: string]
+    nodesMoved: [positions: PositionSnapshot[]]
 }>()
 
 //exposing for API
@@ -1115,8 +1116,8 @@ function initData() {
     draggableLink = createDraggableLink(canvas)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
-    simulation = createSimulation(graph, config, width, height, () => onTick())
-    drag = createDrag(simulation, width, height, config, graph)
+    simulation = createSimulation(graph, config, width, height, () => onTick(), emitNodesMoved)
+    drag = createDrag(simulation, width, height, config, graph, emitNodesMoved)
     nodeLabelResizeObserver = createNodeLabelResizeObserver()
     restart()
 }
@@ -2651,6 +2652,10 @@ function setNodePosition(
     node.y = position.y
     node.fixedPosition = fixedPosition
     restart()
+}
+
+function emitNodesMoved() {
+    emit('nodesMoved', getPositionSnapshots(graph))
 }
 </script>
 

@@ -15,11 +15,17 @@ export function createSimulation(
     config: GraphConfiguration,
     width: number,
     height: number,
-    onTick: () => void
+    onTick: () => void,
+    afterEnd: () => void
 ): Simulation {
     let simulation = d3
         .forceSimulation<GraphNode, GraphLink>(graph!.nodes)
-        .on('tick', () => onTick())
+        .on('tick', () => {
+            onTick()
+        })
+        .on('end', () => {
+            afterEnd()
+        })
 
     simulation = updateCollide(simulation, graph, config)
 

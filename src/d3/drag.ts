@@ -14,7 +14,8 @@ export function createDrag(
     width: number,
     height: number,
     config: GraphConfiguration,
-    graph: Graph
+    graph: Graph,
+    afterEnd: () => void
 ): Drag {
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
@@ -80,6 +81,7 @@ export function createDrag(
                 d.fy = undefined
             }
             updateMembers(config, d, graph)
+            afterEnd()
         })
 }
 

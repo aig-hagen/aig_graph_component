@@ -1,14 +1,39 @@
 import { test as base, expect, type MountResultJsx } from '@playwright/experimental-ct-vue'
 import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
+import type { PositionSnapshot } from '@/main.lib'
 
 const DEFAULT_WAIT_FOR_RERENDER_MS = 100
 
+type EventState = {
+    onNodesMoved: {
+        last: PositionSnapshot[] | undefined
+        all: PositionSnapshot[][]
+    }
+}
+
 // Use fixtures for cleaner tests.
 // See https://playwright.dev/docs/test-fixtures
-const test = base.extend<{ component: MountResultJsx; graph: GraphFixture }>({
-    component: async ({ mount }, use) => {
-        const component = await mount(<GraphComponent id="1-test-graph" />)
+const test = base.extend<{ events: EventState; component: MountResultJsx; graph: GraphFixture }>({
+    events: async ({}, use) => {
+        const state: EventState = {
+            onNodesMoved: {
+                last: undefined,
+                all: []
+            }
+        }
+        await use(state)
+    },
+    component: async ({ events, mount }, use) => {
+        const component = await mount(
+            <GraphComponent
+                id="1-test-graph"
+                onNodesMoved={(positions) => {
+                    events.onNodesMoved.last = positions
+                    events.onNodesMoved.all.push(positions)
+                }}
+            />
+        )
         await use(component)
     },
     graph: async ({ component, page }, use) => {
@@ -200,9 +225,77 @@ test('setting graph', async ({ graph, page }) => {
     await expect(page).toHaveScreenshot()
 })
 
+test('dragging nodes triggers event', async ({ graph, events }) => {
+    const node = await graph.createNode({ x: 150, y: 150 })
+
+    await node.drag(100, 100)
+
+    expect(events.onNodesMoved.last).toEqual([
+        {
+            nodeId: 0,
+            x: 250,
+            y: 250
+        }
+    ])
+    expect(events.onNodesMoved.all).toHaveLength(1)
+})
+
+test('simulation triggers event', async ({ graph, events, page }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    await graph.createNode({ x: 175, y: 175 })
+
+    await waitForNodePositionsToSettle(page)
+    await page.waitForTimeout(15_000)
+    // NOTE Not sure, how deterministic d3 simulations are.
+    // But for now this works.
+    // When this starts breaking tests,
+    // `closeTo` can be used like `y: expect.closeTo(116)`.
+    expect(events.onNodesMoved.last).toEqual([
+        {
+            nodeId: 0,
+            x: 64,
+            y: 116.51542729288529
+        },
+        {
+            nodeId: 1,
+            x: 264.29219388563916,
+            y: 208.48457270711475
+        }
+    ])
+    expect(events.onNodesMoved.all).toHaveLength(1)
+})
+
 interface Position {
     x: number
     y: number
+}
+
+async function waitForNodePositionsToSettle(page: Page) {
+    await page.waitForFunction(() => {
+        const transforms = ((window as any).__waitForNodePositionsToSettle_transforms ||= new Array<
+            string | null
+        >())
+        const nodes = [...document.getElementsByClassName('graph-controller__node-container')]
+        let changeDetected = false
+        nodes.forEach((node, idx) => {
+            const saveTransform = transforms[idx]
+            const newTransform = node.getAttribute('transform')
+            if (saveTransform !== newTransform) {
+                transforms[idx] = newTransform
+                changeDetected = true
+            }
+        })
+        if (transforms.length > nodes.length) {
+            transforms.splice(nodes.length)
+            changeDetected = true
+        }
+        // Reset for next invocation of `waitForNodePositionsToSettle`.
+        if (!changeDetected) {
+            transforms.splice(0)
+        }
+        return !changeDetected
+    })
 }
 
 class GraphFixture {
@@ -226,7 +319,7 @@ class GraphFixture {
             throw new Error(`Expected 1 new node, but found ${newIds.length}`)
         }
         const newId = newIds[0]!
-        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        await waitForNodePositionsToSettle(this.page)
         return new NodeFixture(this.component, this.page, newId)
     }
 
@@ -317,6 +410,6 @@ class NodeFixture {
         await this.page.mouse.move(position.x + dx, position.y + dy, { steps: 20 })
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         await this.page.mouse.up()
-        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        await waitForNodePositionsToSettle(this.page)
     }
 }
