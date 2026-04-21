@@ -1,7 +1,7 @@
 import { test as base, expect, type MountResultJsx } from '@playwright/experimental-ct-vue'
 import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
-import type { PositionSnapshot } from '@/main.lib'
+import { NodeShape, type jsonGraph, type NodeProps, type PositionSnapshot } from '@/main.lib'
 
 const DEFAULT_WAIT_FOR_RERENDER_MS = 100
 
@@ -306,6 +306,107 @@ test('simulation triggers event', async ({ graph, events, page }) => {
     expect(events.onNodesMoved.all).toHaveLength(1)
 })
 
+test.describe('renders links', () => {
+    function getGraphForLinkDrawingTest(nodeProps?: NodeProps): jsonGraph {
+        return {
+            nodes: [
+                {
+                    id: 1,
+                    x: -150,
+                    y: -150,
+                    props: nodeProps
+                },
+                {
+                    id: 2,
+                    x: -150,
+                    y: 300,
+                    props: nodeProps
+                },
+                {
+                    id: 3,
+                    x: 150,
+                    y: -150,
+                    props: nodeProps
+                },
+                {
+                    id: 4,
+                    x: 150,
+                    y: 300,
+                    props: nodeProps
+                }
+            ],
+            links: [
+                {
+                    sourceId: 1,
+                    targetId: 2
+                },
+                {
+                    sourceId: 2,
+                    targetId: 1
+                },
+                {
+                    sourceId: 1,
+                    targetId: 3
+                },
+                {
+                    sourceId: 3,
+                    targetId: 1
+                },
+                {
+                    sourceId: 1,
+                    targetId: 1
+                },
+                {
+                    sourceId: 2,
+                    targetId: 2
+                },
+                {
+                    sourceId: 3,
+                    targetId: 3
+                },
+                {
+                    sourceId: 4,
+                    targetId: 4
+                },
+                {
+                    sourceId: 3,
+                    targetId: 4
+                }
+            ]
+        }
+    }
+
+    const cases: { label: string; props: NodeProps }[] = [
+        { label: 'with circles', props: { shape: NodeShape.CIRCLE, radius: 39 } },
+        {
+            label: 'with rectangles',
+            props: {
+                shape: NodeShape.RECTANGLE,
+                height: 47,
+                width: 32,
+                cornerRadius: 3,
+                reflexiveEdgeStart: 'MOVABLE'
+            }
+        }
+    ]
+    cases.forEach(({ label, props }) => {
+        test(label, async ({ graph, page }) => {
+            await graph.evaluateOnComponent((instance) => instance.toggleZoom(true))
+            await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
+            const graphData = getGraphForLinkDrawingTest(props)
+            await graph.evaluateOnComponentWithWait(
+                (instance, graphData) => instance.setGraph(graphData),
+                graphData
+            )
+            await graph.evaluateOnComponentWithWait((instance) =>
+                instance.centerView({ top: 50, right: 50, bottom: 50, left: 50 })
+            )
+
+            await expect(page).toHaveScreenshot()
+        })
+    })
+})
+
 interface Position {
     x: number
     y: number
@@ -368,25 +469,30 @@ class GraphFixture {
     // However, the graph component relies heavily on methods exposed via `defineExpose()`,
     // because it can also be used as a custom element.
     // This pattern is therefore kept in place to test those exposed methods.
-    async evaluateOnComponent<ReturnT>(
-        fn: (instance: InstanceType<typeof GraphComponent>) => ReturnT
+    async evaluateOnComponent<ReturnT, ArgT>(
+        fn: (instance: InstanceType<typeof GraphComponent>, arg: ArgT) => ReturnT,
+        arg?: ArgT
     ) {
         const fnSerialized = fn.toString()
-        return await this.component.evaluate((rootEl, fnSerialized) => {
-            const instance = (rootEl as any).__vnode.ctx.exposed as InstanceType<
-                typeof GraphComponent
-            >
-            fn = eval(fnSerialized)
-            return fn(instance)
-        }, fnSerialized)
+        return await this.component.evaluate(
+            (rootEl, [fnSerialized, arg]) => {
+                const instance = (rootEl as any).__vnode.ctx.exposed as InstanceType<
+                    typeof GraphComponent
+                >
+                fn = eval(fnSerialized as string)
+                return fn(instance, arg as ArgT)
+            },
+            [fnSerialized, arg as ArgT]
+        )
     }
 
     // Use if evaluate causes some side effect like moving node etc.
     // Otherwise, use `evaluateOnComponent` to avoid unnecessary waits.
-    async evaluateOnComponentWithWait<ReturnT>(
-        fn: (instance: InstanceType<typeof GraphComponent>) => ReturnT
+    async evaluateOnComponentWithWait<ReturnT, ArgT>(
+        fn: (instance: InstanceType<typeof GraphComponent>, arg: ArgT) => ReturnT,
+        arg?: ArgT
     ) {
-        const result = await this.evaluateOnComponent(fn)
+        const result = await this.evaluateOnComponent(fn, arg)
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         return result
     }
