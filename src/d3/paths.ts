@@ -118,17 +118,16 @@ function _linePathDeterminePathStartAndEnd(
     }
 
     if (target instanceof GraphNode) {
+        const markerPadding = config.markerPadding / 4
         pathEnd =
             target.props.shape === NodeShape.CIRCLE
                 ? {
                       x:
                           target.x! -
-                          ((target.renderedSize as NodeSizeCircle).radius + config.markerPadding) *
-                              normX,
+                          ((target.renderedSize as NodeSizeCircle).radius + markerPadding) * normX,
                       y:
                           target.y! -
-                          ((target.renderedSize as NodeSizeCircle).radius + config.markerPadding) *
-                              normY
+                          ((target.renderedSize as NodeSizeCircle).radius + markerPadding) * normY
                   }
                 : _getRectEdgePointForPath(
                       target.x!,
@@ -137,7 +136,7 @@ function _linePathDeterminePathStartAndEnd(
                       (target.renderedSize as NodeSizeRect).height,
                       -normX,
                       -normY,
-                      -config.markerPadding + 1
+                      -markerPadding + 1
                   )
     } else {
         //if the arrow end is a pointer position (for draggable link) and not (yet) a node
@@ -207,12 +206,13 @@ function _arcPathDeterminePathStartAndEnd(
         pathStart = _rotate(norm, -rotation.start).add([[pathStartPoint.x, pathStartPoint.y]])
     }
 
+    const doubleMarkerBoxSize = (2 * config.markerBoxSize) / config.arrowStrokeWidth
     if (target.props.shape === NodeShape.CIRCLE) {
         const endNorm = Matrix.multiply(norm, -1)
         pathEnd = _rotate(endNorm, rotation.end)
             .multiply((target.renderedSize as NodeSizeCircle).radius)
             .add(t)
-            .add(_rotate(endNorm, rotation.end).multiply(2 * config.markerBoxSize))
+            .add(_rotate(endNorm, rotation.end).multiply(doubleMarkerBoxSize))
     } else if (target.props.shape === NodeShape.RECTANGLE) {
         const pathEndPoint = _getRectEdgePointForPath(
             target.x!,
@@ -227,7 +227,7 @@ function _arcPathDeterminePathStartAndEnd(
 
         pathEnd = _rotate(endNorm, rotation.end)
             .add([[pathEndPoint.x, pathEndPoint.y]])
-            .add(_rotate(endNorm, rotation.end).multiply(2 * config.markerBoxSize))
+            .add(_rotate(endNorm, rotation.end).multiply(doubleMarkerBoxSize))
     }
 
     return { start: pathStart, end: pathEnd }
@@ -249,7 +249,7 @@ export function reflexivePath(
     config: GraphConfiguration
 ): string {
     const c = new Matrix([center])
-
+    const doubleMarkerBoxSize = (2 * config.markerBoxSize) / config.arrowStrokeWidth
     if (node.props.shape === NodeShape.CIRCLE) {
         const n = new Matrix([[node.x!, node.y!]])
         if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
@@ -264,7 +264,7 @@ export function reflexivePath(
         const end = _rotate(norm, -rotation)
             .multiply((node.renderedSize as NodeSizeCircle).radius)
             .add(n)
-            .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+            .add(_rotate(norm, -rotation).multiply(doubleMarkerBoxSize))
 
         return `M${start.get(0, 0)},${start.get(0, 1)}
               A${(node.renderedSize as NodeSizeCircle).radius},${(node.renderedSize as NodeSizeCircle).radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
@@ -312,7 +312,7 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
         let start, end
         let arcWidthRadius = 0.5 * (node.renderedSize as NodeSizeRect).width
         let arcHeightRadius = 0.5 * (node.renderedSize as NodeSizeRect).height
-
+        const doubleMarkerBoxSize = (2 * config.markerBoxSize) / config.arrowStrokeWidth
         const pathStartSide = _getPathAttachmentSideForRectReflexiveLink(
             delta.get(0, 0),
             delta.get(0, 1),
@@ -352,7 +352,7 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
             end = _rotate(norm, -rotation)
                 .multiply(0.5 * (node.renderedSize as NodeSizeRect).height - 1)
                 .add(n)
-                .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+                .add(_rotate(norm, -rotation).multiply(doubleMarkerBoxSize))
         } else {
             start = _rotate(norm, rotation)
                 .multiply(0.5 * (node.renderedSize as NodeSizeRect).height - 1)
@@ -361,7 +361,7 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
             end = _rotate(norm, -rotation)
                 .multiply(0.5 * (node.renderedSize as NodeSizeRect).width - 1)
                 .add(n)
-                .add(_rotate(norm, -rotation).multiply(2 * config.markerBoxSize))
+                .add(_rotate(norm, -rotation).multiply(doubleMarkerBoxSize))
         }
         return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
     } else {
@@ -535,7 +535,7 @@ function _getPathCoordinatesForRectReflexiveLink(
     const y = node.y!
     const widthOffset = 0.5 * (node.renderedSize as NodeSizeRect).width
     const heightOffset = 0.5 * (node.renderedSize as NodeSizeRect).height
-    const markerBoxSize = config.markerBoxSize
+    const markerBoxSize = config.markerBoxSize / config.arrowStrokeWidth
 
     const points = {
         [SideType.BOTTOMLEFT]: {

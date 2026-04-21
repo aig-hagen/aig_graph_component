@@ -49,6 +49,7 @@ export interface GraphConfiguration {
     linkGUIEditability: LinkGUIEditability //also individual element option
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
+    arrowStrokeWidth: number
 
     // graph component
     allowNodeCreationViaGUI: boolean
@@ -107,7 +108,7 @@ export class GraphConfigDefault implements GraphConfiguration {
     allowNodeCreationViaGUI = true
     zoomEnabled = false
 
-    markerBoxSize = 4
+    arrowStrokeWidth = 4
 
     nodeGroupsFn: (id: number) => Set<number> = () => new Set<number>()
 
@@ -199,6 +200,10 @@ export class GraphConfigDefault implements GraphConfiguration {
 
     public get markerPadding() {
         return this._markerPadding
+    }
+
+    public get markerBoxSize() {
+        return this.arrowStrokeWidth * 4
     }
 
     public get markerRef() {

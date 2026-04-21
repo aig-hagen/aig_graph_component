@@ -90,7 +90,7 @@ function createLinkMarker(
         .append('defs')
         .append('marker')
         .attr('id', id)
-        .attr('viewBox', config.markerPath)
+        .attr('markerUnits', 'userSpaceOnUse')
         .attr('refX', config.markerRef)
         .attr('refY', config.markerRef)
         .attr('markerWidth', config.markerBoxSize)

@@ -1120,7 +1120,7 @@ function initData() {
     svg = svgSelection
     svg.call(zoom.transform, d3.zoomIdentity.translate(xOffset, yOffset).scale(scale))
     initMarkers(canvas, graphHostId.value, config, graph.getNonDefaultLinkColors())
-    draggableLink = createDraggableLink(canvas)
+    draggableLink = createDraggableLink(canvas, config)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph, config, width, height, () => onTick(), emitNodesMoved)
@@ -1440,6 +1440,7 @@ function restart(alpha: number = 0.5): void {
                 .append('path')
                 .classed('graph-controller__link', true)
                 .style('stroke', (d) => (d.color ? d.color : ''))
+                .style('stroke-width', config.arrowStrokeWidth)
                 .attr('id', (d) => graphHostId.value + '-link-' + d.id)
 
             linkGroup
@@ -2703,11 +2704,10 @@ function emitNodesMoved() {
 
 .graph-controller__link {
     stroke: #004c97;
-    stroke-width: 4px;
     fill: none;
 
     &.hidden {
-        stroke-width: 0;
+        visibility: hidden;
     }
 
     &.draggable {
