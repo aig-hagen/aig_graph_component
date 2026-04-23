@@ -167,6 +167,10 @@ There are props set at graph level, and some at an individual level.
 - `fixedLinkDistanceEnabled`
 - `showNodeLabels`
 - `showLinkLabels`
+- `linkArrowType`
+    - the default arrow type for links
+    - possible values: `'SINGLE'`, `'DOUBLE'`
+    - defaults to `'SINGLE'`
 - `allowNodeCreationViaGUI`
     - whether graph nodes can be created via double-clicking on the canvas
     - _for detailed element editability settings, see the [individual element level](#editability-1)_
@@ -203,6 +207,7 @@ instance.setDefaults({
     fixedLinkDistanceEnabled: false,
     showNodeLabels: true,
     showLinkLabels: true,
+    linkArrowType: 'SINGLE',
     allowNodeCreationViaGUI: true,
     nodeAutoGrowToLabelSize: false,
     nodeProps: {
@@ -330,6 +335,7 @@ is included.
 - includeColor
 - includeEditability
 - includeIdImported
+- includeLinkArrowType
 
 ```javascript
 // get graph in json format
@@ -518,6 +524,24 @@ instance.setColor('#FFDAB9', [1, '0-1', '2-2'])
 //setting the color for all currently existing nodes and links using RBG and HSLA
 instance.setColor('RGB(250,70,99)')
 instance.setColor('HSL(212,92%,45%,0.5)')
+```
+
+##### Changing Arrow Type
+
+We can change the arrow type of one or more existing links by their id or change the arrow type of all existing links.
+The arrow type can be:
+
+- `'SINGLE'` - single arrowhead
+- `'DOUBLE'` - double arrowhead
+
+For changing the arrow type of links, we use `setLinkArrowType(arrowType, id(s))`.
+
+```javascript
+//setting the arrow type for the link that originates from node with id 0 to node with id 1
+instance.setLinkArrowType('DOUBLE', '0-1')
+
+//setting the arrow type for all currently existing links
+instance.setLinkArrowType('DOUBLE')
 ```
 
 ##### Delete Elements

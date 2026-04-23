@@ -91,8 +91,11 @@ function createLinkMarker(
         .append('marker')
         .attr('id', id)
         .attr('markerUnits', 'userSpaceOnUse')
-        .attr('refX', config.markerRef)
-        .attr('refY', config.markerRef)
+        // Setting `refX` to 0 would align the marker with the path without overlap.
+        // But if the do not overlap, a little white seperatar is rendered in between,
+        // making them appear disconnected.
+        .attr('refX', config.arrowStrokeWidth)
+        .attr('refY', config.arrowStrokeWidth * 2)
         .attr('markerWidth', config.markerBoxSize)
         .attr('markerHeight', config.markerBoxSize)
         .attr('orient', reverse ? 'auto-start-reverse' : 'auto')

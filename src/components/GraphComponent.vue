@@ -63,9 +63,12 @@ import {
     parseTGF
 } from '@/model/parser'
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
-import type { GraphLink, LinkGUIEditability } from '@/model/graph-link'
+import { type GraphLink, type LinkGUIEditability } from '@/model/graph-link'
 //other
 import Bowser from 'bowser'
+import { ArrowType } from '@/model/arrow-type'
+
+const DEFAULT_LINK_COLOR = '#004c97'
 
 const { id = 'gc' } = defineProps<{
     id?: string
@@ -131,7 +134,8 @@ let scale = INIT_SCALE
 let longRightClickTimerNode: ReturnType<typeof setTimeout>
 let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
-
+const COLOR_MASK_KEEP = 'white'
+const COLOR_MASK_REMOVE = 'black'
 const emit = defineEmits<{
     nodeCreated: [node: { id: number; label?: string; x?: number; y?: number }, cause: EVENT_CAUSE]
     nodeClicked: [node: { id: number; label?: string; x?: number; y?: number }, event: PointerEvent]
@@ -163,6 +167,7 @@ defineExpose({
     getNodeSize,
     setNodeShape,
     setNodeProps,
+    setLinkArrowType,
     setDeletable,
     setLabelEditable,
     setNodesLinkPermission,
@@ -197,6 +202,7 @@ export type GraphConfigurationPublic = Partial<
         | 'nodeProps'
         | 'nodeGUIEditability'
         | 'linkGUIEditability'
+        | 'linkArrowType'
     >
 >
 
@@ -240,6 +246,10 @@ function setDefaults(configInput: GraphConfigurationPublic) {
         config.nodeGUIEditability) as Required<NodeGUIEditability>
     config.linkGUIEditability = (configInput.linkGUIEditability ??
         config.linkGUIEditability) as Required<LinkGUIEditability>
+    // link arrow type
+    if (configInput.linkArrowType !== undefined) {
+        config.linkArrowType = configInput.linkArrowType
+    }
     //endregion
 
     restart()
@@ -257,7 +267,8 @@ function getDefaults(): GraphConfigurationPublic {
         nodeAutoGrowToLabelSize: config.nodeAutoGrowToLabelSize,
         nodeProps: config.nodeProps,
         nodeGUIEditability: config.nodeGUIEditability,
-        linkGUIEditability: config.linkGUIEditability
+        linkGUIEditability: config.linkGUIEditability,
+        linkArrowType: config.linkArrowType
     }
 }
 
@@ -473,11 +484,7 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
                 .style('fill', color)
         }
         for (const id of linkIds) {
-            linkSelection!
-                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
-                .filter((d) => d.id === id)
-                .each((d) => (d.color = color))
-                .style('stroke', color)
+            linkSelection!.filter((d) => d.id === id).each((d) => (d.color = color))
         }
     } else {
         //if no ids are provided, the color is set for all currently existing nodes
@@ -488,12 +495,27 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
 
         //if no ids are provided, the color is set for all currently existing links
         _deleteNotNeededColorMarker(graph.links.map((link) => link.id))
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
-            .each((d) => (d.color = color))
-            .style('stroke', color)
+        linkSelection!.each((d) => (d.color = color))
     }
     createLinkMarkerColored(canvas!, graphHostId.value, config, color)
+    restart()
+}
+
+/**
+ * Exposed function that sets the arrow type of links via their IDs.
+ * If no IDs are provided, it is set for all currently existing links.
+ * @param arrowType
+ * @param ids
+ */
+function setLinkArrowType(arrowType: ArrowType, ids: string[] | string | undefined) {
+    if (ids !== undefined) {
+        const [_, linkIds] = separateNodeAndLinkIds(ids)
+        for (const id of linkIds) {
+            linkSelection!.filter((d) => d.id === id).each((d) => (d.arrowType = arrowType))
+        }
+    } else {
+        linkSelection!.each((d) => (d.arrowType = arrowType))
+    }
     restart()
 }
 
@@ -1004,7 +1026,6 @@ function setEditability(
 
         for (const id of linkIds) {
             linkSelection!
-                .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
                 .filter((d) => d.id === id)
                 .each(function (d) {
                     d.deletable = editability.deletable ?? d.deletable
@@ -1033,12 +1054,10 @@ function setEditability(
             }
         })
 
-        linkSelection!
-            .selectAll<SVGPathElement, GraphLink>('.graph-controller__link')
-            .each(function (d) {
-                d.deletable = editability.deletable ?? d.deletable
-                d.labelEditable = editability.labelEditable ?? d.labelEditable
-            })
+        linkSelection!.each(function (d) {
+            d.deletable = editability.deletable ?? d.deletable
+            d.labelEditable = editability.labelEditable ?? d.labelEditable
+        })
 
         checkForNotValidKeys(allEditabilityProps, Object.keys(editability), true)
     }
@@ -1119,7 +1138,10 @@ function initData() {
     canvas = canvasGroup
     svg = svgSelection
     svg.call(zoom.transform, d3.zoomIdentity.translate(xOffset, yOffset).scale(scale))
-    initMarkers(canvas, graphHostId.value, config, graph.getNonDefaultLinkColors())
+    initMarkers(canvas, graphHostId.value, config, [
+        COLOR_MASK_KEEP,
+        ...graph.getNonDefaultLinkColors()
+    ])
     draggableLink = createDraggableLink(canvas, config)
     linkSelection = createLinks(canvas)
     nodeSelection = createNodes(canvas)
@@ -1231,7 +1253,8 @@ function createLinkPublic(
         label,
         linkColor,
         isDeletableViaGUI,
-        isLabelEditableViaGUI
+        isLabelEditableViaGUI,
+        config.linkArrowType
     )
 }
 
@@ -1242,11 +1265,13 @@ function createLink(
     label?: string,
     linkColor?: string,
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
-    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable,
+    arrowType: ArrowType = config.linkArrowType
 ): string | undefined {
     let newLink = graph.createLink(
         sourceId,
         targetId,
+        arrowType,
         label,
         linkColor,
         isDeletableViaGUI,
@@ -1365,7 +1390,7 @@ function onTick(): void {
         .selectAll<
             SVGPathElement,
             GraphLink
-        >('.graph-controller__link, .graph-controller__link-click-box')
+        >('.graph-controller__link, .graph-controller__link-click-box, .graph-controller__link-mask-keep, .graph-controller__link-mask-remove')
         .attr('d', (d: GraphLink) => {
             _updatePathType(d)
             return generatePath(d, width, height, config)
@@ -1436,12 +1461,40 @@ function restart(alpha: number = 0.5): void {
         .join((enter) => {
             const linkGroup = enter.append('g').classed('graph-controller__link-container', true)
 
-            linkGroup
+            const linkGroupArrowGroup = linkGroup
+                .append('g')
+                .attr('mask', (d) => `url(#${graphHostId.value + '-link-' + d.id + '-mask'})`)
+
+            // Transparent rect so that `g` has a size an mask can be applied,
+            // even if the containing path is perfectly horizontal or vertical.
+            linkGroupArrowGroup
+                .append('rect')
+                .attr('fill', 'transparent')
+                .attr('width', config.doubleArrowWidth)
+                .attr('height', config.doubleArrowWidth)
+
+            linkGroupArrowGroup
                 .append('path')
                 .classed('graph-controller__link', true)
-                .style('stroke', (d) => (d.color ? d.color : ''))
-                .style('stroke-width', config.arrowStrokeWidth)
                 .attr('id', (d) => graphHostId.value + '-link-' + d.id)
+
+            const maskGroup = linkGroup
+                .append('mask')
+                .attr('width', '200%')
+                .attr('height', '200%')
+                .attr('id', (d) => graphHostId.value + '-link-' + d.id + '-mask')
+
+            maskGroup
+                .append('path')
+                .classed('graph-controller__link-mask-keep', true)
+                .style('stroke-width', config.doubleArrowWidth)
+                .style('stroke', COLOR_MASK_KEEP)
+
+            maskGroup
+                .append('path')
+                .classed('graph-controller__link-mask-remove', true)
+                .style('stroke-width', config.doubleArrowGap)
+                .style('fill', COLOR_MASK_KEEP)
 
             linkGroup
                 .append('path')
@@ -1501,9 +1554,14 @@ function restart(alpha: number = 0.5): void {
 
             return linkGroup
         })
-    // link marker positioning depending on path type reversion
+
     linkSelection
-        .selectChild('.graph-controller__link')
+        .select('.graph-controller__link')
+        .attr('stroke', (d) => (d.color ? d.color : DEFAULT_LINK_COLOR))
+        .attr('stroke-width', (d) =>
+            d.arrowType === ArrowType.DOUBLE ? config.doubleArrowWidth : config.arrowStrokeWidth
+        )
+        // link marker positioning depending on path type reversion
         .attr('marker-start', function (d) {
             if (d.pathType?.includes('REVERSE')) {
                 let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
@@ -1524,6 +1582,26 @@ function restart(alpha: number = 0.5): void {
                 }
                 markerName += ')'
                 return markerName
+            } else {
+                return null
+            }
+        })
+
+    linkSelection
+        .select('.graph-controller__link-mask-remove')
+        .attr('stroke', (d) =>
+            d.arrowType === ArrowType.DOUBLE ? COLOR_MASK_REMOVE : COLOR_MASK_KEEP
+        )
+        .attr('marker-start', function (d) {
+            if (d.pathType?.includes('REVERSE')) {
+                return `url(#${graphHostId.value}-link-arrow-reverse-${escapeColor(COLOR_MASK_KEEP)})`
+            } else {
+                return null
+            }
+        })
+        .attr('marker-end', function (d) {
+            if (!d.pathType?.includes('REVERSE')) {
+                return `url(#${graphHostId.value}-link-arrow-${escapeColor(COLOR_MASK_KEEP)})`
             } else {
                 return null
             }
@@ -1894,7 +1972,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
         .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
-    let nodeContainer = d3.select(nodeElement.parentElement)
+    let nodeContainer = d3.select(nodeElement.closest('.graph-controller__node-container'))
 
     if (node.props.shape === NodeShape.CIRCLE) {
         let arcGenerator = d3
@@ -2041,7 +2119,7 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
         .node()!
         .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
     let nodeElement = d3.select(nodeById)
-    let nodeContainer = d3.select(nodeById.parentElement)
+    let nodeContainer = d3.select(nodeById.closest('.graph-controller__node-container'))
 
     if (node.props.shape === NodeShape.CIRCLE) {
         nodeElement.classed('on-deletion', false)
@@ -2175,7 +2253,9 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
     if (linkElement instanceof SVGPathElement) {
         let linkPath = d3.select(linkElement),
             pathLength = linkElement.getTotalLength(),
-            textPath = linkElement.parentElement!.querySelector('text'),
+            textPath = linkElement
+                .closest('.graph-controller__link-container')!
+                .querySelector('text'),
             isReverse = Array.from(textPath!.classList).some((className) =>
                 className.includes('reverse')
             )
@@ -2371,7 +2451,8 @@ function _handleLinkMjxContainer(link: GraphLink) {
         .node()!
         .querySelector<SVGTextPathElement>(
             `#${CSS.escape(graphHostId.value) + '-link-' + link.id}`
-        )!.parentElement
+        )!
+        .closest('.graph-controller__link-container')
 
     linkContainer!.querySelector('mjx-container')?.remove()
 
@@ -2391,9 +2472,8 @@ function _handleLinkMjxContainer(link: GraphLink) {
 function _redrawNodeContainer(node: GraphNode) {
     const nodeContainer = graphHost.value
         .node()!
-        .querySelector<SVGGElement>(
-            `#${CSS.escape(graphHostId.value) + '-node-' + node.id}`
-        )!.parentElement
+        .querySelector<SVGGElement>(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
+        .closest('.graph-controller__node-container')
 
     if (nodeContainer) {
         const nodeContainerParent = nodeContainer!.parentElement
@@ -2480,7 +2560,8 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
                 parsedLink.label,
                 parsedLink.color,
                 parsedLink.deletable,
-                parsedLink.labelEditable
+                parsedLink.labelEditable,
+                parsedLink.arrowType
             )
             if (parsedLink.color) {
                 createLinkMarkerColored(canvas!, graphHostId.value, config, parsedLink.color)
@@ -2703,7 +2784,6 @@ function emitNodesMoved() {
 }
 
 .graph-controller__link {
-    stroke: #004c97;
     fill: none;
 
     &.hidden {

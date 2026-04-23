@@ -3,6 +3,7 @@ import { type FixedAxis, GraphNode } from '@/model/graph-node'
 import type { jsonLink } from '@/model/parser'
 import type { NodeProps } from '@/model/config'
 import { NodeShape } from './node-shape'
+import type { ArrowType } from './arrow-type'
 
 export default class Graph {
     private nodeIdCounter: number = 0
@@ -43,6 +44,7 @@ export default class Graph {
     public createLink(
         sourceId: number,
         targetId: number,
+        arrowType: ArrowType,
         label?: string,
         color?: string,
         deletable?: boolean,
@@ -68,6 +70,7 @@ export default class Graph {
         const link = new GraphLink(
             source,
             target,
+            arrowType,
             undefined,
             label,
             color,
@@ -200,6 +203,8 @@ export default class Graph {
      * @param includeLinkColor if link color should be included
      * @param includeNodeEditability if editability of node via GUI should be included
      * @param includeLinkEditability if editability of link via GUI should be included
+     * @param includeIdImported if ID from import data should be included
+     * @param includeLinkArrowType if arrow type of link should be included
      * @returns The graph in JSON format*/
     public toJSON(
         includeNodePosition: boolean = true,
@@ -210,7 +215,8 @@ export default class Graph {
         includeLinkColor: boolean = true,
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true,
-        includeIdImported: boolean = true
+        includeIdImported: boolean = true,
+        includeLinkArrowType: boolean = true
     ): string {
         const nodes = this.nodes.map((node) => {
             const jsonNode: any = {
@@ -260,6 +266,7 @@ export default class Graph {
                         key === 'targetId' ||
                         (includeLinkLabels && key === 'label') ||
                         (includeLinkColor && key === 'color') ||
+                        (includeLinkArrowType && key === 'arrowType') ||
                         (includeLinkEditability && ['deletable', 'labelEditable'].includes(key))
                     )
                 })
@@ -278,7 +285,8 @@ export default class Graph {
             label: link.label,
             color: link.color,
             deletable: link.deletable,
-            labelEditable: link.labelEditable
+            labelEditable: link.labelEditable,
+            arrowType: link.arrowType
         }
     }
 }

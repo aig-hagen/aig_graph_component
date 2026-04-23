@@ -1,7 +1,13 @@
 import { test as base, expect, type MountResultJsx } from '@playwright/experimental-ct-vue'
 import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
-import { NodeShape, type jsonGraph, type NodeProps, type PositionSnapshot } from '@/main.lib'
+import {
+    ArrowType,
+    NodeShape,
+    type jsonGraph,
+    type NodeProps,
+    type PositionSnapshot
+} from '@/main.lib'
 
 const DEFAULT_WAIT_FOR_RERENDER_MS = 100
 
@@ -307,7 +313,7 @@ test('simulation triggers event', async ({ graph, events, page }) => {
 })
 
 test.describe('renders links', () => {
-    function getGraphForLinkDrawingTest(nodeProps?: NodeProps): jsonGraph {
+    function getGraphForLinkDrawingTest(nodeProps: NodeProps, arrowType: ArrowType): jsonGraph {
         return {
             nodes: [
                 {
@@ -338,39 +344,48 @@ test.describe('renders links', () => {
             links: [
                 {
                     sourceId: 1,
-                    targetId: 2
+                    targetId: 2,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 2,
-                    targetId: 1
+                    targetId: 1,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 1,
-                    targetId: 3
+                    targetId: 3,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 3,
-                    targetId: 1
+                    targetId: 1,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 1,
-                    targetId: 1
+                    targetId: 1,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 2,
-                    targetId: 2
+                    targetId: 2,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 3,
-                    targetId: 3
+                    targetId: 3,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 4,
-                    targetId: 4
+                    targetId: 4,
+                    arrowType: arrowType
                 },
                 {
                     sourceId: 3,
-                    targetId: 4
+                    targetId: 4,
+                    arrowType: arrowType
                 }
             ]
         }
@@ -389,11 +404,18 @@ test.describe('renders links', () => {
             }
         }
     ]
-    cases.forEach(({ label, props }) => {
+
+    const casesWithArrowTypes = cases.flatMap(({ label, props }) => {
+        return [
+            { label, props, arrowType: ArrowType.SINGLE },
+            { label: label + '_double_arrow', props, arrowType: ArrowType.DOUBLE }
+        ]
+    })
+    casesWithArrowTypes.forEach(({ label, props, arrowType }) => {
         test(label, async ({ graph, page }) => {
             await graph.evaluateOnComponent((instance) => instance.toggleZoom(true))
             await graph.evaluateOnComponent((instance) => instance.toggleNodeAutoGrow(false))
-            const graphData = getGraphForLinkDrawingTest(props)
+            const graphData = getGraphForLinkDrawingTest(props, arrowType)
             await graph.evaluateOnComponentWithWait(
                 (instance, graphData) => instance.setGraph(graphData),
                 graphData
@@ -438,6 +460,19 @@ async function waitForNodePositionsToSettle(page: Page) {
         return !changeDetected
     })
 }
+
+test('change link type', async ({ graph, page }) => {
+    const node0 = await graph.createNode({ x: 150, y: 150 })
+    const node1 = await graph.createNode({ x: 300, y: 300 })
+    await node0.creatLink(node1)
+
+    await graph.evaluateOnComponentWithWait(
+        (instance, arrowType) => instance.setLinkArrowType(arrowType, undefined),
+        ArrowType.DOUBLE
+    )
+
+    await expect(page).toHaveScreenshot()
+})
 
 class GraphFixture {
     constructor(
@@ -534,6 +569,14 @@ class NodeFixture {
         return position
     }
 
+    async creatLink(targetNode: NodeFixture) {
+        const sourcePosition = await this.getPosition()
+        const targetPosition = await targetNode.getPosition()
+        await this.drag(targetPosition.x - sourcePosition.x, targetPosition.y - sourcePosition.y, {
+            button: 'right'
+        })
+    }
+
     async createSelfLoop() {
         const position = await this.getPosition()
         await this.page.mouse.click(position.x, position.y, { button: 'right' })
@@ -547,15 +590,16 @@ class NodeFixture {
         await this.page.keyboard.press('Enter')
     }
 
-    async drag(dx: number, dy: number) {
+    async drag(dx: number, dy: number, options: { button?: 'left' | 'right' } = {}) {
+        const button = options.button ?? 'left'
         const position = await this.getPosition()
         await this.page.mouse.move(position.x, position.y)
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
-        await this.page.mouse.down()
+        await this.page.mouse.down({ button })
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         await this.page.mouse.move(position.x + dx, position.y + dy, { steps: 20 })
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
-        await this.page.mouse.up()
+        await this.page.mouse.up({ button })
         await waitForNodePositionsToSettle(this.page)
     }
 }

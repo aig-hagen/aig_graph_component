@@ -1,6 +1,7 @@
 import { type SimulationLinkDatum } from 'd3'
 import { type D3Node, GraphNode } from '@/model/graph-node'
 import { PathType } from '@/model/path-type'
+import type { ArrowType } from './arrow-type'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {
     id: string
@@ -11,12 +12,16 @@ export interface D3Link extends SimulationLinkDatum<D3Node> {
     color?: string
 }
 
+export interface LinkAppearance {
+    arrowType?: ArrowType
+}
+
 export interface LinkGUIEditability {
     deletable?: boolean
     labelEditable?: boolean
 }
 
-export class GraphLink implements D3Link, LinkGUIEditability {
+export class GraphLink implements D3Link, LinkGUIEditability, LinkAppearance {
     id: string
     // eslint-disable-next-line no-useless-constructor
     /**
@@ -32,6 +37,7 @@ export class GraphLink implements D3Link, LinkGUIEditability {
     public constructor(
         public readonly source: GraphNode,
         public readonly target: GraphNode,
+        public arrowType?: ArrowType,
         public pathType?: PathType,
         public label?: string,
         public color?: string,

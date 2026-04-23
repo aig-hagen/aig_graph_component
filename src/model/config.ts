@@ -1,7 +1,8 @@
 import { NodeShape } from '@/model/node-shape'
 import { SideType } from '@/model/side-type'
 import type { NodeGUIEditability } from '@/model/graph-node'
-import type { LinkGUIEditability } from '@/model/graph-link'
+import { type LinkGUIEditability } from '@/model/graph-link'
+import { ArrowType } from './arrow-type'
 
 export type NodeProps = NodeCircle | NodeRect
 export type NodeSize = NodeSizeCircle | NodeSizeRect
@@ -49,7 +50,10 @@ export interface GraphConfiguration {
     linkGUIEditability: LinkGUIEditability //also individual element option
     showLinkLabels: boolean
     fixedLinkDistanceEnabled: boolean
+    linkArrowType: ArrowType
     arrowStrokeWidth: number
+    doubleArrowGap: number
+    doubleArrowWidth: number
 
     // graph component
     allowNodeCreationViaGUI: boolean
@@ -58,7 +62,6 @@ export interface GraphConfiguration {
     // marker
     markerBoxSize: number
     markerPadding: number
-    markerRef: number
     arrowPoints: [number, number][]
     markerPath: string
 
@@ -104,11 +107,13 @@ export class GraphConfigDefault implements GraphConfiguration {
     }
     showLinkLabels = true
     fixedLinkDistanceEnabled = false
+    linkArrowType = ArrowType.SINGLE
 
     allowNodeCreationViaGUI = true
     zoomEnabled = false
 
     arrowStrokeWidth = 4
+    doubleArrowGap = 2
 
     nodeGroupsFn: (id: number) => Set<number> = () => new Set<number>()
 
@@ -198,16 +203,16 @@ export class GraphConfigDefault implements GraphConfiguration {
         return this._linkGUIEditability
     }
 
+    public get doubleArrowWidth() {
+        return this.arrowStrokeWidth * 2 + this.doubleArrowGap
+    }
+
     public get markerPadding() {
         return this._markerPadding
     }
 
     public get markerBoxSize() {
         return this.arrowStrokeWidth * 4
-    }
-
-    public get markerRef() {
-        return this.markerBoxSize / 2
     }
 
     public get arrowPoints(): [number, number][] {
