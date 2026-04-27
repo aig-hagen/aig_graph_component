@@ -10,6 +10,13 @@ import type Graph from '@/model/graph'
 import type { UnwrapRef } from 'vue'
 import { NodeShape } from '@/model/node-shape'
 
+export interface Path {
+    type: PathType
+    definition: string
+    startX: number
+    startY: number
+}
+
 /**
  * Generates a path string depending on the needed path type
  * @param d
@@ -21,26 +28,46 @@ export function generatePath(
     d: GraphLink,
     width: number,
     height: number,
-    config: GraphConfiguration
-): string {
-    switch (d.pathType) {
+    config: GraphConfiguration,
+    pathType: PathType
+): Path {
+    switch (pathType) {
         case PathType.REFLEXIVE: {
-            return reflexivePath(d.source, [width / 2, height / 2], config)
+            return {
+                ...reflexivePath(d.source, [width / 2, height / 2], config),
+                type: pathType
+            }
         }
         case PathType.ARC: {
-            return arcPath(d.source, d.target, config)
+            return {
+                ...arcPath(d.source, d.target, config),
+                type: pathType
+            }
         }
         case PathType.ARCREVERSE: {
-            return svgPathReverse.reverse(arcPath(d.source, d.target, config))
+            const path = arcPath(d.source, d.target, config)
+            return {
+                ...path,
+                definition: svgPathReverse.reverse(path.definition),
+                type: pathType
+            }
         }
         case PathType.LINE: {
-            return linePath(d.source, d.target, config)
+            return {
+                ...linePath(d.source, d.target, config),
+                type: pathType
+            }
         }
         case PathType.LINEREVERSE: {
-            return svgPathReverse.reverse(linePath(d.source, d.target, config))
+            const path = linePath(d.source, d.target, config)
+            return {
+                ...path,
+                definition: svgPathReverse.reverse(path.definition),
+                type: pathType
+            }
         }
         default: {
-            return '' //should never be reached
+            throw new Error('Path cannot be calculated.') //should never be reached
         }
     }
 }
@@ -69,7 +96,11 @@ export function linePath(
     source: GraphNode,
     target: GraphNode | { x: number; y: number },
     config: GraphConfiguration
-): string {
+): {
+    definition: string
+    startX: number
+    startY: number
+} {
     const delta = { x: target.x! - source.x!, y: target.y! - source.y! }
 
     let dist = Math.sqrt(delta.x * delta.x + delta.y * delta.y)
@@ -79,8 +110,14 @@ export function linePath(
 
     const pathCoordinate = _linePathDeterminePathStartAndEnd(source, target, config, normX, normY)
 
-    return `M${pathCoordinate.start!.x},${pathCoordinate.start!.y}
+    const definition = `M${pathCoordinate.start!.x},${pathCoordinate.start!.y}
           L${pathCoordinate.end!.x},${pathCoordinate.end!.y}`
+
+    return {
+        definition,
+        startX: pathCoordinate.start!.x,
+        startY: pathCoordinate.start!.y
+    }
 }
 
 /**
@@ -156,7 +193,15 @@ function _linePathDeterminePathStartAndEnd(
  * @param target The target Node.
  * @param config
  */
-export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfiguration): string {
+export function arcPath(
+    source: GraphNode,
+    target: GraphNode,
+    config: GraphConfiguration
+): {
+    definition: string
+    startX: number
+    startY: number
+} {
     const s = new Matrix([[source.x!, source.y!]])
     const t = new Matrix([[target.x!, target.y!]])
     const delta = Matrix.subtract(t, s)
@@ -174,8 +219,16 @@ export function arcPath(source: GraphNode, target: GraphNode, config: GraphConfi
         end: endRotation
     })
 
-    return `M${pathCoordinate.start!.get(0, 0)},${pathCoordinate.start!.get(0, 1)}
+    const startX = pathCoordinate.start!.get(0, 0)
+    const startY = pathCoordinate.start!.get(0, 1)
+    const definition = `M${startX},${startY}
           A${arcRadius},${arcRadius},0,0,1,${pathCoordinate.end!.get(0, 0)},${pathCoordinate.end!.get(0, 1)}`
+
+    return {
+        definition,
+        startX: startX,
+        startY: startY
+    }
 }
 
 function _arcPathDeterminePathStartAndEnd(
@@ -247,7 +300,11 @@ export function reflexivePath(
     node: GraphNode,
     center: [number, number],
     config: GraphConfiguration
-): string {
+): {
+    definition: string
+    startX: number
+    startY: number
+} {
     const c = new Matrix([center])
     const markerOffset = (3 * config.markerBoxSize) / config.arrowStrokeWidth
     if (node.props.shape === NodeShape.CIRCLE) {
@@ -266,8 +323,16 @@ export function reflexivePath(
             .add(n)
             .add(_rotate(norm, -rotation).multiply(markerOffset))
 
-        return `M${start.get(0, 0)},${start.get(0, 1)}
+        const startX = start.get(0, 0)
+        const startY = start.get(0, 1)
+        const definition = `M${startX},${startY}
               A${(node.renderedSize as NodeSizeCircle).radius},${(node.renderedSize as NodeSizeCircle).radius},0,1,0,${end.get(0, 0)},${end.get(0, 1)}`
+
+        return {
+            definition,
+            startX: startX,
+            startY: startY
+        }
     } else if (node.props.shape === NodeShape.RECTANGLE) {
         if ((node.props as NodeRect).reflexiveEdgeStart == 'MOVABLE') {
             return _reflexiveRectPathMovable(node, config, c)
@@ -275,7 +340,7 @@ export function reflexivePath(
             return _reflexiveRectPathFixed(node, config)
         }
     } else {
-        return `` //should never be reached
+        throw new Error('Path cannot be calculated.') //should never be reached
     }
 }
 
@@ -299,7 +364,15 @@ export function doesPathNeedReversion(source: GraphNode, target: GraphNode): boo
  * @param config
  * @param c The center matrix
  */
-function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, c: Matrix) {
+function _reflexiveRectPathMovable(
+    node: GraphNode,
+    config: GraphConfiguration,
+    c: Matrix
+): {
+    definition: string
+    startX: number
+    startY: number
+} {
     if (node.props.shape === NodeShape.RECTANGLE) {
         const n = new Matrix([[node.x!, node.y!]])
         if (n.get(0, 0) === c.get(0, 0) && n.get(0, 1) === c.get(0, 1)) {
@@ -363,9 +436,17 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
                 .add(n)
                 .add(_rotate(norm, -rotation).multiply(markerOffset))
         }
-        return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+        const startX = start.get(0, 0)
+        const startY = start.get(0, 1)
+        const definition = `M${startX},${startY} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+
+        return {
+            definition,
+            startX: startX,
+            startY: startY
+        }
     } else {
-        return '' //should never be reached
+        throw new Error('Path cannot be calculated.') //should never be reached
     }
 }
 
@@ -381,7 +462,14 @@ function _reflexiveRectPathMovable(node: GraphNode, config: GraphConfiguration, 
  * @param node The rectangular node
  * @param config
  */
-function _reflexiveRectPathFixed(node: GraphNode, config: GraphConfiguration) {
+function _reflexiveRectPathFixed(
+    node: GraphNode,
+    config: GraphConfiguration
+): {
+    definition: string
+    startX: number
+    startY: number
+} {
     if (
         (node.props as NodeRect).shape === NodeShape.RECTANGLE &&
         (node.props as NodeRect).reflexiveEdgeStart !== 'MOVABLE'
@@ -424,9 +512,16 @@ function _reflexiveRectPathFixed(node: GraphNode, config: GraphConfiguration) {
         start = m.start
         end = m.end
 
-        return `M${start.get(0, 0)},${start.get(0, 1)} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+        const startX = start.get(0, 0)
+        const startY = start.get(0, 1)
+        const definition = `M${startX},${startY} A${arcWidthRadius},${arcHeightRadius}, 0, 1, 0, ${end.get(0, 0)},${end.get(0, 1)}`
+        return {
+            definition,
+            startX: startX,
+            startY: startY
+        }
     } else {
-        return '' //should never be reached
+        throw new Error('Path cannot be calculated.') //should never be reached
     }
 }
 

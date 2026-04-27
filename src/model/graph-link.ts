@@ -1,13 +1,13 @@
 import { type SimulationLinkDatum } from 'd3'
 import { type D3Node, GraphNode } from '@/model/graph-node'
-import { PathType } from '@/model/path-type'
 import type { ArrowType } from './arrow-type'
+import type { Path } from '@/d3/paths'
 
 export interface D3Link extends SimulationLinkDatum<D3Node> {
     id: string
     source: D3Node
     target: D3Node
-    pathType?: PathType
+    path?: Path
     label?: string
     color?: string
 }
@@ -28,7 +28,7 @@ export class GraphLink implements D3Link, LinkGUIEditability, LinkAppearance {
      *
      * @param source - The links source node
      * @param target - The links target node
-     * @param pathType - The path type is relevant for correct rendering in the view. It is set by and gets constantly updated during the simulation.
+     * @param path - The path is cached for rendering different elements composing a link. It is set by and gets constantly updated during the simulation.
      * @param label - The link label
      * @param color The color of the node which was set (for default color this is empty)
      * @param deletable - If the link is deletable via GUI
@@ -38,7 +38,7 @@ export class GraphLink implements D3Link, LinkGUIEditability, LinkAppearance {
         public readonly source: GraphNode,
         public readonly target: GraphNode,
         public arrowType?: ArrowType,
-        public pathType?: PathType,
+        public path?: Path,
         public label?: string,
         public color?: string,
         public deletable?: boolean,

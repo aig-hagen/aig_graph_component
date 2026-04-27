@@ -1385,28 +1385,35 @@ function createNode(
 
 function onTick(): void {
     nodeSelection!.attr('transform', (d) => `translate(${d.x},${d.y})`)
-
+    let needRestart = false
+    linkSelection!.each((d) => {
+        const oldPathType = d.path?.type
+        const newPathType = getPathType(d.source, d.target, graph)
+        d.path = generatePath(d, width, height, config, newPathType)
+        if (oldPathType !== newPathType) {
+            needRestart = true
+        }
+    })
     linkSelection!
         .selectAll<
             SVGPathElement,
             GraphLink
         >('.graph-controller__link, .graph-controller__link-click-box, .graph-controller__link-mask-keep, .graph-controller__link-mask-remove')
         .attr('d', (d: GraphLink) => {
-            _updatePathType(d)
-            return generatePath(d, width, height, config)
+            return d.path!.definition
+        })
+
+    linkSelection!
+        .selectAll<SVGRectElement, GraphLink>('.graph-controller__link-mask-spacer')
+        .attr('x', (d: GraphLink) => {
+            return d.path!.startX - config.markerBoxSize
+        })
+        .attr('y', (d: GraphLink) => {
+            return d.path!.startY - config.markerBoxSize
         })
 
     _updateLinkMjxPosition()
-}
-
-/**
- * Sets the path type for a link depending on the connection and position of its nodes and updates the view.
- * @param d
- */
-function _updatePathType(d: GraphLink) {
-    let oldPathType = d.pathType
-    d.pathType = getPathType(d.source, d.target, graph)
-    if (oldPathType !== d.pathType) {
+    if (needRestart) {
         restart()
     }
 }
@@ -1438,17 +1445,18 @@ function _updateDraggableLinkPath(): void {
         if (target !== undefined) {
             draggableLink!.attr('d', () => {
                 if (source.id === target.id) {
-                    return reflexivePath(source, [width / 2, height / 2], config)
+                    return reflexivePath(source, [width / 2, height / 2], config).definition
                 } else if (graph.hasBidirectionalConnection(source, target)) {
-                    return linePath(source, target, config)
+                    return linePath(source, target, config).definition
                 } else {
-                    return arcPath(source, target, config)
+                    return arcPath(source, target, config).definition
                 }
             })
         } else if (draggableLinkEnd !== undefined) {
             draggableLink!.attr(
                 'd',
                 linePath(source, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config)
+                    .definition
             )
         }
     }
@@ -1469,9 +1477,10 @@ function restart(alpha: number = 0.5): void {
             // even if the containing path is perfectly horizontal or vertical.
             linkGroupArrowGroup
                 .append('rect')
+                .classed('graph-controller__link-mask-spacer', true)
                 .attr('fill', 'transparent')
-                .attr('width', config.doubleArrowWidth)
-                .attr('height', config.doubleArrowWidth)
+                .attr('width', config.markerBoxSize * 2)
+                .attr('height', config.markerBoxSize * 2)
 
             linkGroupArrowGroup
                 .append('path')
@@ -1480,6 +1489,9 @@ function restart(alpha: number = 0.5): void {
 
             const maskGroup = linkGroup
                 .append('mask')
+                .attr('x', '-50%')
+                .attr('y', '-50%')
+                .attr('width', '200%')
                 .attr('width', '200%')
                 .attr('height', '200%')
                 .attr('id', (d) => graphHostId.value + '-link-' + d.id + '-mask')
@@ -1515,7 +1527,7 @@ function restart(alpha: number = 0.5): void {
             linkGroup
                 .append('text')
                 .attr('class', (d) => {
-                    return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+                    return `graph-controller__${d.path?.type?.toLowerCase()}-path-text`
                 })
                 .append('textPath')
                 .attr('class', (d: GraphLink) =>
@@ -1563,7 +1575,7 @@ function restart(alpha: number = 0.5): void {
         )
         // link marker positioning depending on path type reversion
         .attr('marker-start', function (d) {
-            if (d.pathType?.includes('REVERSE')) {
+            if (d.path?.type?.includes('REVERSE')) {
                 let markerName = `url(#${graphHostId.value}-link-arrow-reverse`
                 if (d.color) {
                     markerName += '-' + escapeColor(d.color)
@@ -1575,7 +1587,7 @@ function restart(alpha: number = 0.5): void {
             }
         })
         .attr('marker-end', function (d) {
-            if (!d.pathType?.includes('REVERSE')) {
+            if (!d.path?.type?.includes('REVERSE')) {
                 let markerName = `url(#${graphHostId.value}-link-arrow`
                 if (d.color) {
                     markerName += '-' + escapeColor(d.color)
@@ -1593,14 +1605,14 @@ function restart(alpha: number = 0.5): void {
             d.arrowType === ArrowType.DOUBLE ? COLOR_MASK_REMOVE : COLOR_MASK_KEEP
         )
         .attr('marker-start', function (d) {
-            if (d.pathType?.includes('REVERSE')) {
+            if (d.path?.type?.includes('REVERSE')) {
                 return `url(#${graphHostId.value}-link-arrow-reverse-${escapeColor(COLOR_MASK_KEEP)})`
             } else {
                 return null
             }
         })
         .attr('marker-end', function (d) {
-            if (!d.pathType?.includes('REVERSE')) {
+            if (!d.path?.type?.includes('REVERSE')) {
                 return `url(#${graphHostId.value}-link-arrow-${escapeColor(COLOR_MASK_KEEP)})`
             } else {
                 return null
@@ -1611,14 +1623,14 @@ function restart(alpha: number = 0.5): void {
     linkSelection
         .selectChild('text')
         .attr('class', (d) => {
-            return `graph-controller__${d.pathType?.toLowerCase()}-path-text`
+            return `graph-controller__${d.path?.type?.toLowerCase()}-path-text`
         })
         .attr('dy', (d) => {
-            if (d.pathType === PathType.REFLEXIVE) {
+            if (d.path?.type === PathType.REFLEXIVE) {
                 return 15
-            } else if (d.pathType == PathType.LINEREVERSE) {
+            } else if (d.path?.type == PathType.LINEREVERSE) {
                 return -10
-            } else if (d.pathType?.includes('REVERSE')) {
+            } else if (d.path?.type?.includes('REVERSE')) {
                 return 20
             } else {
                 return -10
@@ -1631,7 +1643,7 @@ function restart(alpha: number = 0.5): void {
         .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
         .classed('not-editable', (d) => !d.labelEditable)
         .attr('startOffset', (d) => {
-            if (d.pathType?.includes('REVERSE')) {
+            if (d.path?.type?.includes('REVERSE')) {
                 return '46%'
             } else {
                 return '50%'
@@ -2076,7 +2088,10 @@ function _onPointerDownCreateDraggableLink(node: GraphNode): void {
     draggableLink!
         .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
         .classed('hidden', false)
-        .attr('d', linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config))
+        .attr(
+            'd',
+            linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config).definition
+        )
 }
 
 //endregion
