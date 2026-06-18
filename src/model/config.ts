@@ -57,6 +57,7 @@ export interface GraphConfiguration {
 
     // graph component
     allowNodeCreationViaGUI: boolean
+    allowHyperLinkCreationViaGUI: boolean
     zoomEnabled: boolean
 
     // marker
@@ -110,6 +111,7 @@ export class GraphConfigDefault implements GraphConfiguration {
     linkArrowType = ArrowType.SINGLE
 
     allowNodeCreationViaGUI = true
+    allowHyperLinkCreationViaGUI = true
     zoomEnabled = false
 
     arrowStrokeWidth = 4

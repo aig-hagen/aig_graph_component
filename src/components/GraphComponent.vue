@@ -197,6 +197,7 @@ defineExpose({
     toggleCollisionDetection,
     toggleFixedLinkDistance,
     toggleNodeCreationViaGUI,
+    toggleHyperLinkCreationViaGUI,
     toggleNodeAutoGrow,
     resetView: resetViewPublic,
     centerView,
@@ -215,6 +216,7 @@ export type GraphConfigurationPublic = Partial<
         | 'showNodeLabels'
         | 'showLinkLabels'
         | 'allowNodeCreationViaGUI'
+        | 'allowHyperLinkCreationViaGUI'
         | 'nodeAutoGrowToLabelSize'
         | 'nodeProps'
         | 'nodeGUIEditability'
@@ -253,6 +255,9 @@ function setDefaults(configInput: GraphConfigurationPublic) {
     if (configInput.allowNodeCreationViaGUI !== undefined) {
         toggleNodeCreationViaGUI(configInput.allowNodeCreationViaGUI)
     }
+    if (configInput.allowHyperLinkCreationViaGUI !== undefined) {
+        toggleHyperLinkCreationViaGUI(configInput.allowHyperLinkCreationViaGUI)
+    }
     //endregion
 
     //region individual element level
@@ -281,6 +286,7 @@ function getDefaults(): GraphConfigurationPublic {
         showNodeLabels: config.showNodeLabels,
         showLinkLabels: config.showLinkLabels,
         allowNodeCreationViaGUI: config.allowNodeCreationViaGUI,
+        allowHyperLinkCreationViaGUI: config.allowHyperLinkCreationViaGUI,
         nodeAutoGrowToLabelSize: config.nodeAutoGrowToLabelSize,
         nodeProps: config.nodeProps,
         nodeGUIEditability: config.nodeGUIEditability,
@@ -1180,6 +1186,13 @@ function toggleNodeCreationViaGUI(isEnabled: boolean) {
     config.allowNodeCreationViaGUI = isEnabled
 }
 
+function toggleHyperLinkCreationViaGUI(isEnabled: boolean) {
+    config.allowHyperLinkCreationViaGUI = isEnabled
+    if (!isEnabled) {
+        _clearHyperLinkSources()
+    }
+}
+
 function toggleNodeAutoGrow(isEnabled: boolean) {
     config.nodeAutoGrowToLabelSize = isEnabled
 
@@ -1951,7 +1964,7 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
-                        if (event.shiftKey) {
+                        if (event.shiftKey && config.allowHyperLinkCreationViaGUI) {
                             _toggleHyperLinkSource(d)
                             terminate(event)
                             return
