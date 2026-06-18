@@ -473,7 +473,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         hyperLinkSelection!.each(function (d) {
             let removedHyperLink = graph.removeHyperLink(d)
             if (removedHyperLink !== undefined) {
-                emit('hyperLinkDeleted', { id: removedHyperLink.id, label: removedHyperLink.label })
+                emit('hyperLinkDeleted', { id: removedHyperLink.id, label: removedHyperLink.label }, EVENT_CAUSE.PROGRAMMATIC_ACTION)
             }
         })
     }
@@ -1406,6 +1406,26 @@ function createHyperLink(
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
 ): string | undefined {
+    return _createHyperLink(
+        sourceIds,
+        targetId,
+        EVENT_CAUSE.PROGRAMMATIC_ACTION,
+        label,
+        linkColor,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI
+    )
+}
+
+function _createHyperLink(
+    sourceIds: number[],
+    targetId: number,
+    cause: EVENT_CAUSE,
+    label?: string,
+    linkColor?: string,
+    isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
+): string | undefined {
     let newLink = graph.createHyperLink(
         sourceIds,
         targetId,
@@ -1418,7 +1438,7 @@ function createHyperLink(
         if (newLink.color) {
             createLinkMarkerColored(canvas!, graphHostId.value, config, newLink.color)
         }
-        emit('hyperLinkCreated', { id: newLink.id, label: newLink.label })
+        emit('hyperLinkCreated', { id: newLink.id, label: newLink.label }, cause)
         restart()
         return newLink.id
     } else {
@@ -1837,7 +1857,7 @@ function restart(alpha: number = 0.5): void {
                 })
                 .on('pointerout', (event: PointerEvent) => onPointerOutHyperLink(event))
                 .on('pointerdown', (event: PointerEvent, d: GraphHyperLink) => {
-                    emit('hyperLinkClicked', { id: d.id, label: d.label }, event.button)
+                    emit('hyperLinkClicked', { id: d.id, label: d.label }, getClickEventPayload(event))
                     onPointerDownDeleteHyperLink(event, d)
                 })
                 .on('pointerup', (event: PointerEvent, d: GraphHyperLink) => {
@@ -1893,7 +1913,7 @@ function restart(alpha: number = 0.5): void {
                         .on('dblclick', (event: PointerEvent) => terminate(event))
                         .on('pointerout', (event: PointerEvent) => onPointerOutHyperLink(event))
                         .on('pointerdown', (event: PointerEvent) => {
-                            emit('hyperLinkClicked', { id: d.id, label: d.label }, event.button)
+                            emit('hyperLinkClicked', { id: d.id, label: d.label }, getClickEventPayload(event))
                             onPointerDownDeleteHyperLink(event, d)
                         })
                         .on('pointerup', (event: PointerEvent) =>
@@ -2464,7 +2484,7 @@ function _onPointerUpCreateLink(): void {
         return
     }
     if (sources.length >= 2 && sources.some((s) => s.id === source.id)) {
-        createHyperLink(sources.map((s) => s.id), target.id)
+        _createHyperLink(sources.map((s) => s.id), target.id, EVENT_CAUSE.USER_ACTION)
         _clearHyperLinkSources()
     } else {
         _clearHyperLinkSources()
@@ -2703,7 +2723,7 @@ function _onPointerDownDeleteHyperLink(hyperLink: GraphHyperLink): void {
     const color = hyperLink.color
     const removed = graph.removeHyperLink(hyperLink)
     if (removed !== undefined) {
-        emit('hyperLinkDeleted', { id: removed.id, label: removed.label })
+        emit('hyperLinkDeleted', { id: removed.id, label: removed.label }, EVENT_CAUSE.USER_ACTION)
     }
     if (color && !graph.hasNonDefaultLinkColor(color)) {
         deleteLinkMarkerColored(canvas!, graphHostId.value, color)

@@ -855,7 +855,7 @@ export function hyperTargetPath(
     let endY: number
 
     if (target.props.shape === NodeShape.CIRCLE) {
-        const r = (target.renderedSize as NodeSizeCircle).radius + config.markerPadding
+        const r = (target.renderedSize as NodeSizeCircle).radius + 3 * config.markerBoxSize / config.arrowStrokeWidth
         endX = target.x! - r * normX
         endY = target.y! - r * normY
     } else {
