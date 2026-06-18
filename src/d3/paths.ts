@@ -3,7 +3,7 @@ import Matrix from 'ml-matrix'
 import svgPathReverse from 'svg-path-reverse'
 import type { GraphConfiguration, NodeRect, NodeSizeCircle, NodeSizeRect } from '@/model/config'
 import { GraphNode } from '@/model/graph-node'
-import type { GraphLink } from '@/model/graph-link'
+import type { GraphLink, GraphHyperLink } from '@/model/graph-link'
 import { PathType } from '@/model/path-type'
 import { SideType } from '@/model/side-type'
 import type Graph from '@/model/graph'
@@ -736,4 +736,141 @@ function _rotate(vector: Matrix, radians: number): Matrix {
             x * Math.sin(radians) + y * Math.cos(radians)
         ]
     ])
+}
+
+const HYPERLINK_MIN_JUNCTION_DIST = 60
+
+/**
+ * Computes the junction point for a hyperlink.
+ * Placed 75% of the way from the source centroid toward the target, but always
+ * at least HYPERLINK_MIN_JUNCTION_DIST pixels from the target center so a
+ * visible stem is preserved when sources cluster near the target.
+ * @param hyperLink
+ */
+export function hyperLinkJunctionPoint(hyperLink: GraphHyperLink): { x: number; y: number } {
+    const n = hyperLink.sources.length
+    const cx = hyperLink.sources.reduce((sum, s) => sum + s.x!, 0) / n
+    const cy = hyperLink.sources.reduce((sum, s) => sum + s.y!, 0) / n
+
+    const tx = hyperLink.target.x!
+    const ty = hyperLink.target.y!
+
+    let jx = cx * 0.25 + tx * 0.75
+    let jy = cy * 0.25 + ty * 0.75
+
+    // Direction from target toward centroid (pull-back direction)
+    let pullX = cx - tx
+    let pullY = cy - ty
+    let pullDist = Math.sqrt(pullX * pullX + pullY * pullY)
+    if (pullDist === 0) { pullX = 0; pullY = -1; pullDist = 1 }
+    const nx = pullX / pullDist
+    const ny = pullY / pullDist
+
+    // Enforce minimum distance from target center
+    const jdx = jx - tx
+    const jdy = jy - ty
+    if (Math.sqrt(jdx * jdx + jdy * jdy) < HYPERLINK_MIN_JUNCTION_DIST) {
+        jx = tx + HYPERLINK_MIN_JUNCTION_DIST * nx
+        jy = ty + HYPERLINK_MIN_JUNCTION_DIST * ny
+    }
+
+    return { x: jx, y: jy }
+}
+
+/**
+ * Generates the SVG cubic Bézier path from a source node's border to the junction point.
+ * The curve arrives at the junction tangent to the junction→target direction so all source
+ * paths converge smoothly.
+ *
+ * @param source
+ * @param junction
+ * @param targetDir - Unit vector pointing from junction toward the target node
+ * @param config
+ */
+export function hyperSourcePath(
+    source: GraphNode,
+    junction: { x: number; y: number },
+    targetDir: { x: number; y: number },
+    config: GraphConfiguration
+): string {
+    const dx = junction.x - source.x!
+    const dy = junction.y - source.y!
+    let dist = Math.sqrt(dx * dx + dy * dy)
+    if (dist === 0) dist = Number.EPSILON
+    const normX = dx / dist
+    const normY = dy / dist
+
+    let startX: number
+    let startY: number
+    if (source.props.shape === NodeShape.CIRCLE) {
+        const r = (source.renderedSize as NodeSizeCircle).radius - 1
+        startX = source.x! + r * normX
+        startY = source.y! + r * normY
+    } else {
+        const ep = _getRectEdgePointForPath(
+            source.x!,
+            source.y!,
+            (source.renderedSize as NodeSizeRect).width,
+            (source.renderedSize as NodeSizeRect).height,
+            normX,
+            normY,
+            2
+        )
+        startX = ep.x
+        startY = ep.y
+    }
+
+    // cp1: one third of the way along the source→junction direction
+    const cp1x = startX + (dist / 3) * normX
+    const cp1y = startY + (dist / 3) * normY
+
+    // cp2: pulled back from the junction along the junction→target direction so the
+    // curve arrives tangent to that direction, giving a smooth convergence
+    const pullBack = dist * 0.35
+    const cp2x = junction.x - pullBack * targetDir.x
+    const cp2y = junction.y - pullBack * targetDir.y
+
+    return `M${startX},${startY} C${cp1x},${cp1y} ${cp2x},${cp2y} ${junction.x},${junction.y}`
+}
+
+/**
+ * Generates the SVG path from the junction point to the target node's border.
+ * @param junction
+ * @param target
+ * @param config
+ */
+export function hyperTargetPath(
+    junction: { x: number; y: number },
+    target: GraphNode,
+    config: GraphConfiguration
+): string {
+    const dx = target.x! - junction.x
+    const dy = target.y! - junction.y
+    let dist = Math.sqrt(dx * dx + dy * dy)
+    if (dist === 0) dist = Number.EPSILON
+    const normX = dx / dist
+    const normY = dy / dist
+
+    let endX: number
+    let endY: number
+
+    if (target.props.shape === NodeShape.CIRCLE) {
+        const r = (target.renderedSize as NodeSizeCircle).radius + config.markerPadding
+        endX = target.x! - r * normX
+        endY = target.y! - r * normY
+    } else {
+        const ep = _getRectEdgePointForPath(
+            target.x!,
+            target.y!,
+            (target.renderedSize as NodeSizeRect).width,
+            (target.renderedSize as NodeSizeRect).height,
+            -normX,
+            -normY,
+            -config.markerPadding + 1
+        )
+        endX = ep.x
+        endY = ep.y
+    }
+
+    return `M${junction.x},${junction.y} L${endX},${endY}`
 }

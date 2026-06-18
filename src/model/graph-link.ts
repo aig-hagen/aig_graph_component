@@ -47,3 +47,25 @@ export class GraphLink implements D3Link, LinkGUIEditability, LinkAppearance {
         this.id = `${source.id}-${target.id}`
     }
 }
+
+export class GraphHyperLink implements LinkGUIEditability {
+    id: string
+    /**
+     * @param sources - The source nodes (two or more)
+     * @param target - The single target node
+     * @param label - The link label
+     * @param color - The color of the link (empty = default color)
+     * @param deletable - If the link is deletable via GUI
+     * @param labelEditable - If the link label is editable via GUI
+     */
+    public constructor(
+        public readonly sources: GraphNode[],
+        public readonly target: GraphNode,
+        public label?: string,
+        public color?: string,
+        public deletable?: boolean,
+        public labelEditable?: boolean
+    ) {
+        this.id = `${sources.map((s) => s.id).sort((a, b) => a - b).join(',')}-${target.id}`
+    }
+}

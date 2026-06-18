@@ -1,6 +1,6 @@
-import { GraphLink } from '@/model/graph-link'
+import { GraphLink, GraphHyperLink } from '@/model/graph-link'
 import { type FixedAxis, GraphNode } from '@/model/graph-node'
-import type { jsonLink } from '@/model/parser'
+import type { jsonLink, jsonHyperLink } from '@/model/parser'
 import type { NodeProps } from '@/model/config'
 import { NodeShape } from './node-shape'
 import type { ArrowType } from './arrow-type'
@@ -9,6 +9,7 @@ export default class Graph {
     private nodeIdCounter: number = 0
     public readonly nodes: GraphNode[] = []
     public readonly links: GraphLink[] = []
+    public readonly hyperLinks: GraphHyperLink[] = []
 
     public createNode(
         props: NodeProps,
@@ -81,7 +82,44 @@ export default class Graph {
         return link
     }
 
-    public removeNode(node: GraphNode): [GraphNode, GraphLink[]] | undefined {
+    public createHyperLink(
+        sourceIds: number[],
+        targetId: number,
+        label?: string,
+        color?: string,
+        deletable?: boolean,
+        labelEditable?: boolean
+    ): GraphHyperLink | undefined {
+        if (sourceIds.length < 2) {
+            return undefined
+        }
+
+        const sources: GraphNode[] = []
+        for (const id of sourceIds) {
+            const node = this.nodes.find((n) => n.id === id)
+            if (node === undefined) {
+                return undefined
+            }
+            sources.push(node)
+        }
+
+        const target = this.nodes.find((n) => n.id === targetId)
+        if (target === undefined) {
+            return undefined
+        }
+
+        const candidateId = `${sourceIds.slice().sort((a, b) => a - b).join(',')}-${targetId}`
+        const existingHyperLink = this.hyperLinks.find((hl) => hl.id === candidateId)
+        if (existingHyperLink !== undefined) {
+            return undefined
+        }
+
+        const hyperLink = new GraphHyperLink(sources, target, label, color, deletable, labelEditable)
+        this.hyperLinks.push(hyperLink)
+        return hyperLink
+    }
+
+    public removeNode(node: GraphNode): [GraphNode, GraphLink[], GraphHyperLink[]] | undefined {
         const nodeIndex = this.nodes.findIndex((n) => n.id === node.id)
         if (nodeIndex === -1) {
             return undefined
@@ -96,7 +134,15 @@ export default class Graph {
             this.links.splice(linkIndex, 1)
         })
 
-        return [node, attachedLinks]
+        const attachedHyperLinks = this.hyperLinks.filter(
+            (hl) => hl.target.id === node.id || hl.sources.some((s) => s.id === node.id)
+        )
+        attachedHyperLinks.forEach((hl) => {
+            const hlIndex = this.hyperLinks.indexOf(hl, 0)
+            this.hyperLinks.splice(hlIndex, 1)
+        })
+
+        return [node, attachedLinks, attachedHyperLinks]
     }
 
     public removeLink(link: GraphLink): GraphLink | undefined {
@@ -111,6 +157,16 @@ export default class Graph {
         return link
     }
 
+    public removeHyperLink(hyperLink: GraphHyperLink): GraphHyperLink | undefined {
+        const hlIndex = this.hyperLinks.findIndex((hl) => hl.id === hyperLink.id)
+        if (hlIndex === -1) {
+            return undefined
+        }
+
+        this.hyperLinks.splice(hlIndex, 1)
+        return hyperLink
+    }
+
     /**
      * Checks if a link in a given (not default) color exists.
      * @param color - Color to check on.
@@ -118,7 +174,10 @@ export default class Graph {
      * @returns True if non-default colored links exist, false otherwise.
      */
     public hasNonDefaultLinkColor(color: string, excludedLinkId: string = ''): boolean {
-        return this.links.some((link) => link.color === color && link.id !== excludedLinkId)
+        return (
+            this.links.some((link) => link.color === color && link.id !== excludedLinkId) ||
+            this.hyperLinks.some((hl) => hl.color === color && hl.id !== excludedLinkId)
+        )
     }
 
     /**
@@ -126,9 +185,10 @@ export default class Graph {
      * @returns An array of strings representing non-default colors, empty if none exist.
      */
     public getNonDefaultLinkColors(): string[] {
-        return this.links
-            .map((link) => link.color)
-            .filter((color) => color !== undefined && color !== '') as string[]
+        return [
+            ...this.links.map((link) => link.color),
+            ...this.hyperLinks.map((hl) => hl.color)
+        ].filter((color) => color !== undefined && color !== '') as string[]
     }
 
     /**
@@ -138,9 +198,14 @@ export default class Graph {
      * @returns An array of link IDs that have the provided color (without the excludedLinkId)
      */
     public getLinkIdsWithNonDefaultLinkColors(color: string, excludedLinkId: string = '') {
-        return this.links
-            .filter((link) => link.color === color && link.id !== excludedLinkId)
-            .map((link) => link.id)
+        return [
+            ...this.links
+                .filter((link) => link.color === color && link.id !== excludedLinkId)
+                .map((link) => link.id),
+            ...this.hyperLinks
+                .filter((hl) => hl.color === color && hl.id !== excludedLinkId)
+                .map((hl) => hl.id)
+        ]
     }
 
     /**
@@ -157,6 +222,7 @@ export default class Graph {
     }
 
     /** Formats the graph in trivial graph format.
+     * Hyperlinks are not included in TGF output as TGF has no standard notation for multi-source edges.
      * @param includeNodeLabels if node labels should be included
      * @param includeLinkLabels if link labels should be included
      * @returns The graph in TGF format
@@ -258,7 +324,7 @@ export default class Graph {
             return jsonNode
         })
 
-        let links = this.links.map((link: GraphLink) => {
+        const links = this.links.map((link: GraphLink) => {
             return Object.fromEntries(
                 Object.entries(this._convertToJSONLink(link)).filter(([key]) => {
                     return (
@@ -273,7 +339,21 @@ export default class Graph {
             )
         })
 
-        return JSON.stringify({ nodes, links }, null, 4)
+        const hyperLinks = this.hyperLinks.map((hl: GraphHyperLink) => {
+            return Object.fromEntries(
+                Object.entries(this._convertToJSONHyperLink(hl)).filter(([key]) => {
+                    return (
+                        key === 'sourceIds' ||
+                        key === 'targetId' ||
+                        (includeLinkLabels && key === 'label') ||
+                        (includeLinkColor && key === 'color') ||
+                        (includeLinkEditability && ['deletable', 'labelEditable'].includes(key))
+                    )
+                })
+            )
+        })
+
+        return JSON.stringify({ nodes, links, hyperLinks }, null, 4)
     }
 
     private _convertToJSONLink(link: GraphLink): jsonLink {
@@ -287,6 +367,17 @@ export default class Graph {
             deletable: link.deletable,
             labelEditable: link.labelEditable,
             arrowType: link.arrowType
+        }
+    }
+
+    private _convertToJSONHyperLink(hyperLink: GraphHyperLink): jsonHyperLink {
+        return {
+            sourceIds: hyperLink.sources.map((s) => s.id),
+            targetId: hyperLink.target.id,
+            label: hyperLink.label,
+            color: hyperLink.color,
+            deletable: hyperLink.deletable,
+            labelEditable: hyperLink.labelEditable
         }
     }
 }

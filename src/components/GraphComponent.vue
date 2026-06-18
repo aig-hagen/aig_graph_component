@@ -27,7 +27,16 @@ import {
     setNodeChargeAndAttraction,
     updateCollide
 } from '@/d3/simulation'
-import { arcPath, generatePath, getPathType, linePath, reflexivePath } from '@/d3/paths'
+import {
+    arcPath,
+    generatePath,
+    getPathType,
+    hyperLinkJunctionPoint,
+    hyperSourcePath,
+    hyperTargetPath,
+    linePath,
+    reflexivePath
+} from '@/d3/paths'
 import { EVENT_CAUSE, getPositionSnapshots, terminate, type PositionSnapshot } from '@/d3/event'
 //model
 import Graph, { getBounds } from '@/model/graph'
@@ -57,13 +66,14 @@ import {
 } from '@/model/helper'
 import {
     type jsonGraph,
+    type parsedHyperLink,
     type parsedLink,
     type parsedNode,
     parseJSONGraph,
     parseTGF
 } from '@/model/parser'
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
-import { type GraphLink, type LinkGUIEditability } from '@/model/graph-link'
+import { GraphHyperLink, GraphLink, type LinkGUIEditability } from '@/model/graph-link'
 //other
 import Bowser from 'bowser'
 import { ArrowType } from '@/model/arrow-type'
@@ -120,8 +130,10 @@ let drag: Drag
 let canvas: Canvas | undefined
 let svg: d3.Selection<SVGSVGElement, undefined, HTMLElement | null, undefined> | undefined
 let linkSelection: LinkSelection | undefined
+let hyperLinkSelection: d3.Selection<SVGGElement, GraphHyperLink, SVGGElement, undefined> | undefined
 let nodeSelection: NodeSelection | undefined
 let draggableLink: DraggableLink | undefined
+let hyperLinkSources: GraphNode[] = []
 let draggableLinkSourceNode: GraphNode | undefined
 let draggableLinkTargetNode: GraphNode | undefined
 let draggableLinkEnd: [number, number] | undefined
@@ -133,6 +145,7 @@ let yOffset = INIT_Y_OFFSET
 let scale = INIT_SCALE
 let longRightClickTimerNode: ReturnType<typeof setTimeout>
 let longRightClickTimerLink: ReturnType<typeof setTimeout>
+let longRightClickTimerHyperLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
 const COLOR_MASK_KEEP = 'white'
 const COLOR_MASK_REMOVE = 'black'
@@ -147,6 +160,9 @@ const emit = defineEmits<{
     linkCreated: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     linkClicked: [link: { id: string; label?: string }, event: PointerEvent]
     linkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
+    hyperLinkCreated: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
+    hyperLinkClicked: [link: { id: string; label?: string }, event: PointerEvent]
+    hyperLinkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     labelEdited: [parent: { id: number | string }, label: string]
     nodesMoved: [positions: PositionSnapshot[]]
 }>()
@@ -160,6 +176,7 @@ defineExpose({
     printGraph,
     createNode: createNodePublic,
     createLink: createLinkPublic,
+    createHyperLink,
     deleteElement,
     setLabel,
     setColor,
@@ -352,7 +369,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 .each(function (d) {
                     let r = graph.removeNode(d)
                     if (r !== undefined) {
-                        let [removedNode, removedLinks] = r
+                        let [removedNode, removedLinks, removedHyperLinks] = r
                         emit(
                             'nodeDeleted',
                             {
@@ -370,29 +387,51 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                                 EVENT_CAUSE.PROGRAMMATIC_ACTION
                             )
                         })
+                        removedHyperLinks.forEach((removedHyperLink) => {
+                            emit(
+                                'hyperLinkDeleted',
+                                { id: removedHyperLink.id, label: removedHyperLink.label },
+                                EVENT_CAUSE.PROGRAMMATIC_ACTION
+                            )
+                        })
                     }
                 })
         }
 
         for (const id of linkIds) {
-            linkSelection!
-                .filter((d) => d.id === id)
-                .each(function (d) {
-                    let removedLink = graph.removeLink(d)
-                    if (removedLink !== undefined) {
-                        emit(
-                            'linkDeleted',
-                            { id: removedLink.id, label: removedLink.label },
-                            EVENT_CAUSE.PROGRAMMATIC_ACTION
-                        )
-                    }
-                })
+            if (id.includes(',')) {
+                hyperLinkSelection!
+                    .filter((d) => d.id === id)
+                    .each(function (d) {
+                        let removedHyperLink = graph.removeHyperLink(d)
+                        if (removedHyperLink !== undefined) {
+                            emit(
+                                'hyperLinkDeleted',
+                                { id: removedHyperLink.id, label: removedHyperLink.label },
+                                EVENT_CAUSE.PROGRAMMATIC_ACTION
+                            )
+                        }
+                    })
+            } else {
+                linkSelection!
+                    .filter((d) => d.id === id)
+                    .each(function (d) {
+                        let removedLink = graph.removeLink(d)
+                        if (removedLink !== undefined) {
+                            emit(
+                                'linkDeleted',
+                                { id: removedLink.id, label: removedLink.label },
+                                EVENT_CAUSE.PROGRAMMATIC_ACTION
+                            )
+                        }
+                    })
+            }
         }
     } else {
         nodeSelection!.each(function (d) {
             let r = graph.removeNode(d)
             if (r !== undefined) {
-                let [removedNode, removedLinks] = r
+                let [removedNode, removedLinks, removedHyperLinks] = r
                 emit(
                     'nodeDeleted',
                     {
@@ -410,6 +449,13 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                         EVENT_CAUSE.PROGRAMMATIC_ACTION
                     )
                 })
+                removedHyperLinks.forEach((removedHyperLink) => {
+                    emit(
+                        'hyperLinkDeleted',
+                        { id: removedHyperLink.id, label: removedHyperLink.label },
+                        EVENT_CAUSE.PROGRAMMATIC_ACTION
+                    )
+                })
             }
         })
 
@@ -421,6 +467,13 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                     { id: removedLink.id, label: removedLink.label },
                     EVENT_CAUSE.PROGRAMMATIC_ACTION
                 )
+            }
+        })
+
+        hyperLinkSelection!.each(function (d) {
+            let removedHyperLink = graph.removeHyperLink(d)
+            if (removedHyperLink !== undefined) {
+                emit('hyperLinkDeleted', { id: removedHyperLink.id, label: removedHyperLink.label })
             }
         })
     }
@@ -448,17 +501,28 @@ function setLabel(label: string, ids: string[] | number[] | string | number | un
         }
 
         for (const id of linkIds) {
-            linkSelection!
-                .filter((d) => d.id === id)
-                .each((d) => {
-                    _updateLabel(d, label)
-                })
+            if (id.includes(',')) {
+                hyperLinkSelection!
+                    .filter((d) => d.id === id)
+                    .each((d) => {
+                        _updateLabel(d, label)
+                    })
+            } else {
+                linkSelection!
+                    .filter((d) => d.id === id)
+                    .each((d) => {
+                        _updateLabel(d, label)
+                    })
+            }
         }
     } else {
         nodeSelection!.each((d) => {
             _updateLabel(d, label)
         })
         linkSelection!.each((d) => {
+            _updateLabel(d, label)
+        })
+        hyperLinkSelection!.each((d) => {
             _updateLabel(d, label)
         })
     }
@@ -484,7 +548,17 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
                 .style('fill', color)
         }
         for (const id of linkIds) {
-            linkSelection!.filter((d) => d.id === id).each((d) => (d.color = color))
+            if (id.includes(',')) {
+                hyperLinkSelection!
+                    .selectAll<SVGPathElement, GraphHyperLink>(
+                        '.graph-controller__hyperlink-target-path'
+                    )
+                    .filter((d) => d.id === id)
+                    .each((d) => (d.color = color))
+                    .style('stroke', color)
+            } else {
+                linkSelection!.filter((d) => d.id === id).each((d) => (d.color = color))
+            }
         }
     } else {
         //if no ids are provided, the color is set for all currently existing nodes
@@ -494,8 +568,18 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
             .style('fill', color)
 
         //if no ids are provided, the color is set for all currently existing links
-        _deleteNotNeededColorMarker(graph.links.map((link) => link.id))
+        _deleteNotNeededColorMarker([
+            ...graph.links.map((link) => link.id),
+            ...graph.hyperLinks.map((hl) => hl.id)
+        ])
         linkSelection!.each((d) => (d.color = color))
+
+        hyperLinkSelection!
+            .selectAll<SVGPathElement, GraphHyperLink>(
+                '.graph-controller__hyperlink-target-path'
+            )
+            .each((d) => (d.color = color))
+            .style('stroke', color)
     }
     createLinkMarkerColored(canvas!, graphHostId.value, config, color)
     restart()
@@ -1144,10 +1228,25 @@ function initData() {
     ])
     draggableLink = createDraggableLink(canvas, config)
     linkSelection = createLinks(canvas)
+    hyperLinkSelection = canvas!.append<SVGGElement>('g').selectAll<SVGGElement, GraphHyperLink>('g')
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph, config, width, height, () => onTick(), emitNodesMoved)
     drag = createDrag(simulation, width, height, config, graph, emitNodesMoved)
     nodeLabelResizeObserver = createNodeLabelResizeObserver()
+
+    // Clear the hyperlink source selection when clicking on empty canvas space
+    graphHost.value
+        .select<SVGElement>('.graph-controller__graph-canvas')
+        .on('click.hyperlink-clear', (event: PointerEvent) => {
+            if (
+                !(event.target as Element).closest(
+                    '.graph-controller__node-container, .graph-controller__link-container, .graph-controller__hyperlink-container'
+                )
+            ) {
+                _clearHyperLinkSources()
+            }
+        })
+
     restart()
 }
 
@@ -1290,6 +1389,44 @@ function createLink(
 }
 
 /**
+ * Creates a new hyperlink (multi-source edge) and triggers the according event.
+ * @param sourceIds - IDs of the source nodes (minimum 2)
+ * @param targetId - ID of the target node
+ * @param label
+ * @param linkColor
+ * @param isDeletableViaGUI
+ * @param isLabelEditableViaGUI
+ * @returns The id of the newly created hyperlink or undefined if creation failed.
+ */
+function createHyperLink(
+    sourceIds: number[],
+    targetId: number,
+    label?: string,
+    linkColor?: string,
+    isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
+    isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
+): string | undefined {
+    let newLink = graph.createHyperLink(
+        sourceIds,
+        targetId,
+        label,
+        linkColor,
+        isDeletableViaGUI,
+        isLabelEditableViaGUI
+    )
+    if (newLink !== undefined) {
+        if (newLink.color) {
+            createLinkMarkerColored(canvas!, graphHostId.value, config, newLink.color)
+        }
+        emit('hyperLinkCreated', { id: newLink.id, label: newLink.label })
+        restart()
+        return newLink.id
+    } else {
+        return undefined
+    }
+}
+
+/**
  * Creates a new graph node and triggers the according event.
  * @param props
  * @param x
@@ -1411,6 +1548,35 @@ function onTick(): void {
         .attr('y', (d: GraphLink) => {
             return d.path!.startY - config.markerBoxSize
         })
+
+    hyperLinkSelection!.each(function (d: GraphHyperLink) {
+        const group = d3.select(this)
+        const junction = hyperLinkJunctionPoint(d)
+
+        const tdx = d.target.x! - junction.x
+        const tdy = d.target.y! - junction.y
+        let tdist = Math.sqrt(tdx * tdx + tdy * tdy)
+        if (tdist === 0) tdist = Number.EPSILON
+        const targetDir = { x: tdx / tdist, y: tdy / tdist }
+
+        const sourcePathFn = (s: GraphNode) => hyperSourcePath(s, junction, targetDir, config)
+
+        // Only update path geometry — elements and event handlers are created in restart()
+        group
+            .selectAll<SVGPathElement, GraphNode>('.graph-controller__hyperlink-source-path')
+            .attr('d', sourcePathFn)
+        group
+            .selectAll<SVGPathElement, GraphNode>('.graph-controller__hyperlink-source-click-box')
+            .attr('d', sourcePathFn)
+
+        const targetPathStr = hyperTargetPath(junction, d.target, config)
+        group
+            .select<SVGPathElement>('.graph-controller__hyperlink-target-path')
+            .attr('d', targetPathStr)
+        group
+            .select<SVGPathElement>('.graph-controller__hyperlink-click-box')
+            .attr('d', targetPathStr)
+    })
 
     _updateLinkMjxPosition()
     if (needRestart) {
@@ -1651,6 +1817,104 @@ function restart(alpha: number = 0.5): void {
         })
         .text((d: GraphLink) => (d.label ? d.label : 'add label'))
 
+    // hyperlink rendering
+    hyperLinkSelection = hyperLinkSelection!
+        .data(graph.hyperLinks, (d: GraphHyperLink) => d.id)
+        .join((enter) => {
+            const hlGroup = enter.append('g').classed('graph-controller__hyperlink-container', true)
+
+            hlGroup
+                .append('path')
+                .classed('graph-controller__hyperlink-target-path', true)
+                .style('stroke', (d) => (d.color ? d.color : ''))
+                .attr('id', (d) => graphHostId.value + '-hyperlink-' + d.id)
+
+            hlGroup
+                .append('path')
+                .classed('graph-controller__hyperlink-click-box', true)
+                .on('dblclick', (event: PointerEvent) => {
+                    terminate(event)
+                })
+                .on('pointerout', (event: PointerEvent) => onPointerOutHyperLink(event))
+                .on('pointerdown', (event: PointerEvent, d: GraphHyperLink) => {
+                    emit('hyperLinkClicked', { id: d.id, label: d.label }, event.button)
+                    onPointerDownDeleteHyperLink(event, d)
+                })
+                .on('pointerup', (event: PointerEvent, d: GraphHyperLink) => {
+                    onPointerUpHyperLink(event, d)
+                })
+
+            hlGroup
+                .append('text')
+                .classed('graph-controller__line-path-text', true)
+                .append('textPath')
+                .attr('class', (d: GraphHyperLink) =>
+                    d.label
+                        ? 'graph-controller__link-label'
+                        : 'graph-controller__link-label-placeholder'
+                )
+                .attr('href', (d) => `#${graphHostId.value + '-hyperlink-' + d.id}`)
+                .attr('startOffset', '50%')
+                .text((d: GraphHyperLink) => (d.label ? d.label : 'add label'))
+
+            return hlGroup
+        })
+
+    // hyperlink marker positioning
+    hyperLinkSelection
+        .selectChild('.graph-controller__hyperlink-target-path')
+        .attr('marker-end', function (d) {
+            let markerName = `url(#${graphHostId.value}-link-arrow`
+            if (d.color) {
+                markerName += '-' + escapeColor(d.color)
+            }
+            markerName += ')'
+            return markerName
+        })
+
+    // create per-source elements once with their event handlers
+    hyperLinkSelection.each(function (d: GraphHyperLink) {
+        const group = d3.select(this)
+
+        group
+            .selectAll<SVGPathElement, GraphNode>('.graph-controller__hyperlink-source-path')
+            .data(d.sources, (s: GraphNode) => s.id)
+            .join('path')
+            .classed('graph-controller__hyperlink-source-path', true)
+
+        group
+            .selectAll<SVGPathElement, GraphNode>('.graph-controller__hyperlink-source-click-box')
+            .data(d.sources, (s: GraphNode) => s.id)
+            .join(
+                (enter) =>
+                    enter
+                        .append('path')
+                        .classed('graph-controller__hyperlink-source-click-box', true)
+                        .on('dblclick', (event: PointerEvent) => terminate(event))
+                        .on('pointerout', (event: PointerEvent) => onPointerOutHyperLink(event))
+                        .on('pointerdown', (event: PointerEvent) => {
+                            emit('hyperLinkClicked', { id: d.id, label: d.label }, event.button)
+                            onPointerDownDeleteHyperLink(event, d)
+                        })
+                        .on('pointerup', (event: PointerEvent) =>
+                            onPointerUpHyperLink(event, d)
+                        )
+            )
+    })
+
+    // hyperlink label visibility and editability
+    hyperLinkSelection
+        .selectChild('text')
+        .selectChild('textPath')
+        .attr('class', (d: GraphHyperLink) =>
+            d.label
+                ? 'graph-controller__link-label'
+                : 'graph-controller__link-label-placeholder'
+        )
+        .classed('hidden', (d) => !config.showLinkLabels || (!d.label && !d.labelEditable))
+        .classed('not-editable', (d) => !d.labelEditable)
+        .text((d: GraphHyperLink) => (d.label ? d.label : 'add label'))
+
     nodeSelection = nodeSelection!
         .data(graph.nodes, (d) => d.id)
         .join(
@@ -1667,6 +1931,11 @@ function restart(alpha: number = 0.5): void {
                     .on('pointerenter', (_, d: GraphNode) => onPointerEnterNode(d))
                     .on('pointerout', (_, d: GraphNode) => onPointerOutNode(d))
                     .on('pointerdown', (event: PointerEvent, d: GraphNode) => {
+                        if (event.shiftKey) {
+                            _toggleHyperLinkSource(d)
+                            terminate(event)
+                            return
+                        }
                         emit(
                             'nodeClicked',
                             { id: d.id, label: d.label, x: d.x, y: d.y },
@@ -1709,6 +1978,12 @@ function restart(alpha: number = 0.5): void {
         .classed('hidden', (d) => !config.showNodeLabels || (!d.label && !d.labelEditable))
         .classed('not-editable', (d) => !d.labelEditable)
         .text((d) => (d.label ? d.label : 'add label'))
+
+    // keep hyperlink-source highlight in sync after every restart
+    nodeSelection!.classed(
+        'hyperlink-source',
+        (d: GraphNode) => hyperLinkSources.some((s) => s.id === d.id)
+    )
 
     //version will only be injected until MathJax is initialized
     if (window.MathJax?.version) {
@@ -2078,6 +2353,24 @@ function _onPointerDownDeleteNode(node: GraphNode): void {
     restart()
 }
 
+function _toggleHyperLinkSource(node: GraphNode): void {
+    const idx = hyperLinkSources.findIndex((s) => s.id === node.id)
+    if (idx === -1) {
+        hyperLinkSources.push(node)
+    } else {
+        hyperLinkSources.splice(idx, 1)
+    }
+    nodeSelection!.classed(
+        'hyperlink-source',
+        (d: GraphNode) => hyperLinkSources.some((s) => s.id === d.id)
+    )
+}
+
+function _clearHyperLinkSources(): void {
+    hyperLinkSources = []
+    nodeSelection!.classed('hyperlink-source', false)
+}
+
 /**
  * Creates a draggable link beginning from the node that was clicked.
  * @param node
@@ -2158,16 +2451,25 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
 }
 
 /**
- * Creates a link, from source to target node if both nodes are defined.
+ * Creates a link or hyperlink when a drag completes on a target node.
+ * If 2+ source nodes are shift-selected and the drag originates from one of them,
+ * a hyperlink is created. Otherwise a normal binary link is created.
  */
 function _onPointerUpCreateLink(): void {
     const source = draggableLinkSourceNode
     const target = draggableLinkTargetNode
+    const sources = [...hyperLinkSources]
     _resetDraggableLink()
     if (source === undefined || target === undefined) {
         return
     }
-    createLink(source.id, target.id, EVENT_CAUSE.USER_ACTION)
+    if (sources.length >= 2 && sources.some((s) => s.id === source.id)) {
+        createHyperLink(sources.map((s) => s.id), target.id)
+        _clearHyperLinkSources()
+    } else {
+        _clearHyperLinkSources()
+        createLink(source.id, target.id, EVENT_CAUSE.USER_ACTION)
+    }
 }
 
 //endregion
@@ -2340,6 +2642,102 @@ function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
 
 //endregion
 
+// region hyperlink deletion
+
+function onPointerOutHyperLink(event: PointerEvent) {
+    terminate(event)
+    clearTimeout(longRightClickTimerHyperLink)
+}
+
+function onPointerUpHyperLink(event: PointerEvent, hyperLink: GraphHyperLink) {
+    terminate(event)
+    clearTimeout(longRightClickTimerHyperLink)
+    if (event.button === 2 || event.pointerType === 'touch') {
+        if (hyperLink.deletable) {
+            _onPointerUpCancelDeleteAnimationHyperLink(hyperLink)
+        }
+    }
+}
+
+function onPointerDownDeleteHyperLink(event: PointerEvent, hyperLink: GraphHyperLink): void {
+    if (event.button === 2 || event.pointerType === 'touch') {
+        releaseImplicitPointerCapture(event)
+        if (hyperLink.deletable) {
+            longRightClickTimerHyperLink = setTimeout(() => {
+                _onPointerDownRenderDeleteAnimationHyperLink(hyperLink)
+            }, 250)
+        }
+    }
+}
+
+function _onPointerDownRenderDeleteAnimationHyperLink(hyperLink: GraphHyperLink) {
+    const targetElement = graphHost.value
+        .node()!
+        .querySelector<SVGPathElement>(
+            `#${CSS.escape(graphHostId.value + '-hyperlink-' + hyperLink.id)}`
+        )
+
+    if (!(targetElement instanceof SVGPathElement)) return
+
+    const group = d3.select(targetElement.closest('.graph-controller__hyperlink-container')!)
+    group.classed('on-deletion', true)
+
+    // Animate source paths and trigger delete when the last one finishes
+    let lastTransition: d3.Transition<SVGPathElement, unknown, null, undefined> | undefined
+    group
+        .selectAll<SVGPathElement, unknown>('.graph-controller__hyperlink-source-path')
+        .each(function () {
+            const len = this.getTotalLength()
+            lastTransition = d3.select(this)
+                .attr('stroke-dasharray', len)
+                .attr('stroke-dashoffset', 0)
+                .transition()
+                .duration(750)
+                .attr('stroke-dashoffset', -len)
+        })
+
+    lastTransition?.on('end', () => _onPointerDownDeleteHyperLink(hyperLink))
+}
+
+function _onPointerDownDeleteHyperLink(hyperLink: GraphHyperLink): void {
+    const color = hyperLink.color
+    const removed = graph.removeHyperLink(hyperLink)
+    if (removed !== undefined) {
+        emit('hyperLinkDeleted', { id: removed.id, label: removed.label })
+    }
+    if (color && !graph.hasNonDefaultLinkColor(color)) {
+        deleteLinkMarkerColored(canvas!, graphHostId.value, color)
+    }
+    restart()
+}
+
+function _onPointerUpCancelDeleteAnimationHyperLink(hyperLink: GraphHyperLink) {
+    const targetElement = graphHost.value
+        .node()!
+        .querySelector<SVGPathElement>(
+            `#${CSS.escape(graphHostId.value + '-hyperlink-' + hyperLink.id)}`
+        )
+
+    if (!targetElement) return
+
+    const group = d3.select(targetElement.closest('.graph-controller__hyperlink-container')!)
+
+    if (group.classed('on-deletion')) {
+        group
+            .selectAll<SVGPathElement, unknown>('.graph-controller__hyperlink-source-path')
+            .each(function () {
+                d3.select(this)
+                    .interrupt()
+                    .attr('stroke-dasharray', null)
+                    .attr('stroke-dashoffset', null)
+            })
+    }
+
+    group.classed('on-deletion', false)
+}
+
+//endregion
+
 // region labels
 
 /**
@@ -2440,13 +2838,13 @@ function handleInputForLabel(element: GraphNode | GraphLink, position: [number, 
  * @param element - graph node or link
  * @param label - new label
  */
-function _updateLabel(element: GraphNode | GraphLink, label: string) {
+function _updateLabel(element: GraphNode | GraphLink | GraphHyperLink, label: string) {
     emit('labelEdited', { id: element.id }, label)
     element.label = label
     restart()
 
     let elementType = element instanceof GraphNode ? 'node' : 'link'
-    if (elementType === 'link') {
+    if (elementType === 'link' && element instanceof GraphLink) {
         _handleLinkMjxContainer(element as GraphLink)
     } else if (elementType === 'node' && label !== '') {
         _redrawNodeContainer(element as GraphNode)
@@ -2520,12 +2918,12 @@ function _resetDraggableLink(): void {
  *
  * @param importContent - The graph data to import, either as a TGF string or a JSON object.*/
 function _onHandleGraphImport(importContent: string | jsonGraph, restoreZoom: boolean) {
-    let nodes, links
+    let nodes, links, hyperLinks: parsedHyperLink[] = []
     try {
         if (typeof importContent === 'string') {
             ;[nodes, links] = parseTGF(importContent)
         } else if (typeof importContent === 'object') {
-            ;[nodes, links] = parseJSONGraph(importContent)
+            ;[nodes, links, hyperLinks] = parseJSONGraph(importContent)
         } else {
             showError('Invalid graph import type:', 'Must either be TGF or JSON.')
             return
@@ -2536,15 +2934,16 @@ function _onHandleGraphImport(importContent: string | jsonGraph, restoreZoom: bo
     }
 
     _resetGraph(restoreZoom)
-    _parseToGraph(nodes, links)
+    _parseToGraph(nodes, links, hyperLinks)
 }
 
 /**
- * Renders the parsed nodes and links within the graph component.
+ * Renders the parsed nodes, links, and hyperlinks within the graph component.
  * @param nodes - parsed nodes
  * @param links - parsed links
+ * @param hyperLinks - parsed hyperlinks
  */
-function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
+function _parseToGraph(nodes: parsedNode[], links: parsedLink[], hyperLinks: parsedHyperLink[] = []) {
     for (let parsedNode of nodes) {
         createNode(
             parsedNode.props ?? config.nodeProps,
@@ -2580,6 +2979,26 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[]) {
             )
             if (parsedLink.color) {
                 createLinkMarkerColored(canvas!, graphHostId.value, config, parsedLink.color)
+            }
+        }
+    }
+
+    for (let parsedHyperLink of hyperLinks) {
+        const srcNodes = parsedHyperLink.sourceIdsImported
+            .map((id) => findNodeByImportedId(id))
+            .filter((n): n is NonNullable<typeof n> => n !== undefined)
+        const targetNode = findNodeByImportedId(parsedHyperLink.targetIdImported)
+        if (srcNodes.length >= 2 && targetNode) {
+            createHyperLink(
+                srcNodes.map((n) => n.id),
+                targetNode.id,
+                parsedHyperLink.label,
+                parsedHyperLink.color,
+                parsedHyperLink.deletable,
+                parsedHyperLink.labelEditable
+            )
+            if (parsedHyperLink.color) {
+                createLinkMarkerColored(canvas!, graphHostId.value, config, parsedHyperLink.color)
             }
         }
     }
@@ -2635,6 +3054,7 @@ function resetView(restoreZoom: boolean = false): void {
     canvas = undefined
     draggableLink = undefined
     linkSelection = undefined
+    hyperLinkSelection = undefined
     nodeSelection = undefined
     simulation = undefined
     _resetDraggableLink()
@@ -2658,6 +3078,13 @@ function _resetGraph(restoreZoom: boolean): void {
         emit(
             'linkDeleted',
             { id: removedLink.id, label: removedLink.label },
+            EVENT_CAUSE.PROGRAMMATIC_ACTION
+        )
+    )
+    graph.hyperLinks.forEach((removedHyperLink) =>
+        emit(
+            'hyperLinkDeleted',
+            { id: removedHyperLink.id, label: removedHyperLink.label },
             EVENT_CAUSE.PROGRAMMATIC_ACTION
         )
     )
@@ -2813,6 +3240,41 @@ function emitNodesMoved() {
 }
 
 .graph-controller__link-click-box {
+    stroke: rgba($color: #000, $alpha: 0);
+    stroke-width: 16px;
+    fill: none;
+    cursor: pointer;
+}
+
+.graph-controller__node-container.hyperlink-source {
+    .graph-controller__node {
+        stroke: #e74c3c;
+        stroke-width: 3px;
+    }
+}
+
+.graph-controller__hyperlink-source-path {
+    stroke: #004c97;
+    stroke-width: 4px;
+    fill: none;
+    pointer-events: none;
+}
+
+.graph-controller__hyperlink-target-path {
+    stroke: #004c97;
+    stroke-width: 4px;
+    fill: none;
+    pointer-events: none;
+}
+
+.graph-controller__hyperlink-source-click-box {
+    stroke: rgba($color: #000, $alpha: 0);
+    stroke-width: 16px;
+    fill: none;
+    cursor: pointer;
+}
+
+.graph-controller__hyperlink-click-box {
     stroke: rgba($color: #000, $alpha: 0);
     stroke-width: 16px;
     fill: none;

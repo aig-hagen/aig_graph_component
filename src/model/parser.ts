@@ -17,6 +17,13 @@ export type parsedLink = {
 } & LinkGUIEditability &
     LinkAppearance
 
+export type parsedHyperLink = {
+    sourceIdsImported: (string | number)[]
+    targetIdImported: string | number
+    label?: string
+    color?: string
+} & LinkGUIEditability
+
 export type jsonNode = {
     id: number | string
     x?: number
@@ -31,14 +38,22 @@ export type jsonLink = {
     color?: string
 } & LinkGUIEditability &
     LinkAppearance
+export type jsonHyperLink = {
+    sourceIds: number[]
+    targetId: number
+    label?: string
+    color?: string
+} & LinkGUIEditability
 export type jsonGraph = {
     nodes: jsonNode[]
     links: jsonLink[]
+    hyperLinks?: jsonHyperLink[]
 }
 
 /**
  * Parses Trivial Graph Format with IDs and labels for nodes and links.
- * Color and Editability options are not available, if you need them you should use parseJSONGraph
+ * Color and Editability options are not available, if you need them you should use parseJSONGraph.
+ * Hyperlinks are not supported in TGF format.
  * @param file - Trivial Graph Format String to parse
  * */
 export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
@@ -88,7 +103,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
  * Parses json like graph format
  * @param jsonGraph - json like graph object to parse
  * */
-export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[]] {
+export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[], parsedHyperLink[]] {
     const nodes: parsedNode[] = []
     for (let node of jsonGraph.nodes) {
         nodes.push({
@@ -117,5 +132,16 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             arrowType: link.arrowType
         })
     }
-    return [nodes, links]
+    const hyperLinks: parsedHyperLink[] = []
+    for (let hl of jsonGraph.hyperLinks ?? []) {
+        hyperLinks.push({
+            sourceIdsImported: hl.sourceIds,
+            targetIdImported: hl.targetId,
+            label: hl.label,
+            color: hl.color,
+            deletable: hl.deletable,
+            labelEditable: hl.labelEditable
+        })
+    }
+    return [nodes, links, hyperLinks]
 }
