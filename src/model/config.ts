@@ -37,6 +37,8 @@ export type NodeSizeCircle = {
     radius: number
 }
 
+export type GridType = 'square' | 'rhombus'
+
 export interface GraphConfiguration {
     // nodes
     nodeProps: NodeProps //also individual element option
@@ -68,6 +70,13 @@ export interface GraphConfiguration {
 
     //canvas
     readonly isCanvasBoundToView: boolean
+
+    // grid
+    showGrid: boolean
+    autoShowGrid: boolean
+    gridType: GridType
+    gridCellSize: number
+    snapToGrid: boolean
 
     nodeGroupsFn: (id: number) => Set<number>
 }
@@ -118,6 +127,12 @@ export class GraphConfigDefault implements GraphConfiguration {
     doubleArrowGap = 2
 
     nodeGroupsFn: (id: number) => Set<number> = () => new Set<number>()
+
+    showGrid = false
+    autoShowGrid = false
+    gridType: GridType = 'square'
+    gridCellSize = 96
+    snapToGrid = false
 
     private _markerPadding = 2 * this.markerBoxSize
 

@@ -15,12 +15,20 @@ import GraphControls from '@/components/GraphControls.vue'
 import * as d3 from 'd3'
 import type { D3ZoomEvent } from 'd3'
 import { createZoom, type Zoom } from '@/d3/zoom'
-import { createDrag, type Drag } from '@/d3/drag'
+import { createDrag, snapToRhombusGrid, snapToSquareGrid, type Drag } from '@/d3/drag'
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
+import {
+    createGrid,
+    setGridVisible,
+    updateGridPattern,
+    type GridPattern,
+    type GridSelection
+} from '@/d3/grid'
+import type { GridType } from '@/model/config'
 import {
     createSimulation,
     setFixedLinkDistance,
@@ -133,6 +141,8 @@ let linkSelection: LinkSelection | undefined
 let hyperLinkSelection: d3.Selection<SVGGElement, GraphHyperLink, SVGGElement, undefined> | undefined
 let nodeSelection: NodeSelection | undefined
 let draggableLink: DraggableLink | undefined
+let gridRect: GridSelection | undefined
+let gridPattern: GridPattern | undefined
 let hyperLinkSources: GraphNode[] = []
 let draggableLinkSourceNode: GraphNode | undefined
 let draggableLinkTargetNode: GraphNode | undefined
@@ -203,7 +213,14 @@ defineExpose({
     centerView,
     setNodeGroupsFn,
     getNodePosition,
-    setNodePosition
+    setNodePosition,
+    setShowGrid,
+    setAutoShowGrid,
+    setGridType,
+    setGridCellSize,
+    setSnapToGrid,
+    setNodeSnapToGrid,
+    alignNodesToGrid
 })
 
 export type GraphConfigurationPublic = Partial<
@@ -1182,6 +1199,62 @@ function toggleZoom(isEnabled: boolean) {
     resetView(false)
 }
 
+function setShowGrid(visible: boolean) {
+    config.showGrid = visible
+    if (gridRect) setGridVisible(gridRect, visible)
+}
+
+function setGridCellSize(cellSize: number) {
+    config.gridCellSize = cellSize
+    if (gridPattern) updateGridPattern(gridPattern, cellSize, config.gridType)
+}
+
+function setGridType(type: GridType) {
+    config.gridType = type
+    if (gridPattern) updateGridPattern(gridPattern, config.gridCellSize, type)
+}
+
+function setSnapToGrid(enabled: boolean) {
+    config.snapToGrid = enabled
+}
+
+function setAutoShowGrid(enabled: boolean) {
+    config.autoShowGrid = enabled
+    if (!enabled && !config.showGrid && gridRect) setGridVisible(gridRect, false)
+}
+
+function alignNodesToGrid(ids?: number[] | number) {
+    const nodeIds = ids !== undefined ? ([] as number[]).concat(ids as number[]) : undefined
+    nodeSelection!.each((d) => {
+        if (nodeIds !== undefined && !nodeIds.includes(d.id)) return
+        if (d.x === undefined || d.y === undefined) return
+        let sx: number, sy: number
+        if (config.gridType === 'rhombus') {
+            ;({ x: sx, y: sy } = snapToRhombusGrid(d.x, d.y, config.gridCellSize))
+        } else {
+            sx = snapToSquareGrid(d.x, config.gridCellSize)
+            sy = snapToSquareGrid(d.y, config.gridCellSize)
+        }
+        d.x = sx
+        d.y = sy
+        if (d.fixedPosition?.x) d.fx = sx
+        if (d.fixedPosition?.y) d.fy = sy
+    })
+    restart()
+}
+
+function setNodeSnapToGrid(
+    enabled: boolean | undefined,
+    ids: number[] | number | undefined
+) {
+    const nodeIds = ids !== undefined ? ([] as number[]).concat(ids) : undefined
+    nodeSelection!.each((d) => {
+        if (nodeIds === undefined || nodeIds.includes(d.id)) {
+            d.snapToGrid = enabled
+        }
+    })
+}
+
 function toggleNodeCreationViaGUI(isEnabled: boolean) {
     config.allowNodeCreationViaGUI = isEnabled
 }
@@ -1235,6 +1308,15 @@ function initData() {
     canvas = canvasGroup
     svg = svgSelection
     svg.call(zoom.transform, d3.zoomIdentity.translate(xOffset, yOffset).scale(scale))
+    const gridResult = createGrid(
+        canvas,
+        graphHostId.value,
+        config.gridCellSize,
+        config.showGrid,
+        config.gridType
+    )
+    gridRect = gridResult.gridRect
+    gridPattern = gridResult.gridPattern
     initMarkers(canvas, graphHostId.value, config, [
         COLOR_MASK_KEEP,
         ...graph.getNonDefaultLinkColors()
@@ -1244,7 +1326,12 @@ function initData() {
     hyperLinkSelection = canvas!.append<SVGGElement>('g').selectAll<SVGGElement, GraphHyperLink>('g')
     nodeSelection = createNodes(canvas)
     simulation = createSimulation(graph, config, width, height, () => onTick(), emitNodesMoved)
-    drag = createDrag(simulation, width, height, config, graph, emitNodesMoved)
+    drag = createDrag(simulation, width, height, config, graph, () => {
+        if (config.autoShowGrid && !config.showGrid && gridRect) setGridVisible(gridRect, false)
+        emitNodesMoved()
+    }, () => {
+        if (config.autoShowGrid && !config.showGrid && gridRect) setGridVisible(gridRect, true)
+    })
     nodeLabelResizeObserver = createNodeLabelResizeObserver()
 
     // Clear the hyperlink source selection when clicking on empty canvas space

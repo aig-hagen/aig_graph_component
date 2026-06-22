@@ -77,7 +77,8 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
         public deletable?: boolean,
         public labelEditable?: boolean,
         public allowIncomingLinks?: boolean,
-        public allowOutgoingLinks?: boolean
+        public allowOutgoingLinks?: boolean,
+        public snapToGrid?: boolean
     ) {
         this.fixedPosition = fixedPosition
         this._renderedSize = this.getSize()

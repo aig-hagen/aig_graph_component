@@ -15,7 +15,8 @@ export function createDrag(
     height: number,
     config: GraphConfiguration,
     graph: Graph,
-    afterEnd: () => void
+    afterEnd: () => void,
+    onDragStart?: () => void
 ): Drag {
     return d3
         .drag<SVGGElement, GraphNode, GraphNode>()
@@ -28,6 +29,7 @@ export function createDrag(
             terminate(event.sourceEvent)
             if (event.active === 0) {
                 simulation!.alphaTarget(0.5).restart()
+                onDragStart?.()
             }
             if (d.fixedPosition?.x !== true) {
                 d.fx = d.x
@@ -38,6 +40,7 @@ export function createDrag(
             updateMembers(config, d, graph)
         })
         .on('drag', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
+            const cellSize = config.gridCellSize
             if (d.fixedPosition?.x !== true) {
                 if (!config.isCanvasBoundToView) {
                     d.fx = event.x
@@ -68,6 +71,18 @@ export function createDrag(
                     )
                 }
             }
+            if (d.snapToGrid ?? config.snapToGrid) {
+                const xFree = d.fixedPosition?.x !== true && d.fx !== undefined
+                const yFree = d.fixedPosition?.y !== true && d.fy !== undefined
+                if (config.gridType === 'rhombus' && xFree && yFree) {
+                    const snapped = snapToRhombusGrid(d.fx!, d.fy!, cellSize)
+                    d.fx = snapped.x
+                    d.fy = snapped.y
+                } else {
+                    if (xFree) d.fx = snapToSquareGrid(d.fx!, cellSize)
+                    if (yFree) d.fy = snapToSquareGrid(d.fy!, cellSize)
+                }
+            }
             updateMembers(config, d, graph)
         })
         .on('end', (event: D3DragEvent<SVGCircleElement, GraphNode, GraphNode>, d: GraphNode) => {
@@ -83,6 +98,22 @@ export function createDrag(
             updateMembers(config, d, graph)
             afterEnd()
         })
+}
+
+export function snapToSquareGrid(value: number, cellSize: number): number {
+    return Math.round(value / cellSize) * cellSize
+}
+
+export function snapToRhombusGrid(px: number, py: number, cellSize: number): { x: number; y: number } {
+    const rowHeight = (cellSize * Math.sqrt(3)) / 2
+    const j0 = Math.floor(py / rowHeight)
+    const candidates = [j0, j0 + 1].map((j) => {
+        const i = Math.round((px - (j * cellSize) / 2) / cellSize)
+        return { x: i * cellSize + (j * cellSize) / 2, y: j * rowHeight }
+    })
+    return candidates.reduce((a, b) =>
+        (px - a.x) ** 2 + (py - a.y) ** 2 <= (px - b.x) ** 2 + (py - b.y) ** 2 ? a : b
+    )
 }
 
 function updateMembers(config: GraphConfiguration, node: GraphNode, graph: Graph) {
