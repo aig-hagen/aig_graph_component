@@ -141,6 +141,7 @@ let linkSelection: LinkSelection | undefined
 let hyperLinkSelection: d3.Selection<SVGGElement, GraphHyperLink, SVGGElement, undefined> | undefined
 let nodeSelection: NodeSelection | undefined
 let draggableLink: DraggableLink | undefined
+let hyperLinkDragGroup: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined> | undefined
 let gridRect: GridSelection | undefined
 let gridPattern: GridPattern | undefined
 let hyperLinkSources: GraphNode[] = []
@@ -1322,6 +1323,7 @@ function initData() {
         ...graph.getNonDefaultLinkColors()
     ])
     draggableLink = createDraggableLink(canvas, config)
+    hyperLinkDragGroup = canvas.append('g').classed('graph-controller__hyperlink-drag-preview', true)
     linkSelection = createLinks(canvas)
     hyperLinkSelection = canvas!.append<SVGGElement>('g').selectAll<SVGGElement, GraphHyperLink>('g')
     nodeSelection = createNodes(canvas)
@@ -1671,7 +1673,7 @@ function onTick(): void {
 
     hyperLinkSelection!.each(function (d: GraphHyperLink) {
         const group = d3.select(this)
-        const junction = hyperLinkJunctionPoint(d)
+        const junction = hyperLinkJunctionPoint(d, config)
 
         const tdx = d.target.x! - junction.x
         const tdy = d.target.y! - junction.y
@@ -1679,7 +1681,7 @@ function onTick(): void {
         if (tdist === 0) tdist = Number.EPSILON
         const targetDir = { x: tdx / tdist, y: tdy / tdist }
 
-        const sourcePathFn = (s: GraphNode) => hyperSourcePath(s, junction, targetDir, config)
+        const sourcePathFn = (s: GraphNode) => hyperSourcePath(s, junction, targetDir, config, s.id === d.target.id)
 
         // Only update path geometry — elements and event handlers are created in restart()
         group
@@ -1726,25 +1728,47 @@ function _updateDraggableLinkPath(): void {
         )
         .classed('on-deletion')
 
-    if (source !== undefined && !isSourceOnDeletion) {
-        const target = draggableLinkTargetNode
-        if (target !== undefined) {
-            draggableLink!.attr('d', () => {
-                if (source.id === target.id) {
-                    return reflexivePath(source, [width / 2, height / 2], config).definition
-                } else if (graph.hasBidirectionalConnection(source, target)) {
-                    return linePath(source, target, config).definition
-                } else {
-                    return arcPath(source, target, config).definition
-                }
-            })
-        } else if (draggableLinkEnd !== undefined) {
-            draggableLink!.attr(
-                'd',
-                linePath(source, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config)
-                    .definition
-            )
+    if (source === undefined || isSourceOnDeletion) return
+
+    if (hyperLinkSources.length > 0) {
+        // Hyperlink creation mode: draw one line from every selected source to the cursor/target
+        draggableLink!.classed('hidden', true)
+        const end = draggableLinkTargetNode !== undefined
+            ? { x: draggableLinkTargetNode.x!, y: draggableLinkTargetNode.y! }
+            : draggableLinkEnd !== undefined
+                ? { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }
+                : null
+        if (end !== null) {
+            hyperLinkDragGroup!
+                .selectAll<SVGPathElement, GraphNode>('path')
+                .data(hyperLinkSources, (s) => s.id)
+                .join('path')
+                .attr('stroke-width', config.arrowStrokeWidth)
+                .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
+                .classed('graph-controller__link draggable', true)
+                .attr('d', (s) => linePath(s, end, config).definition)
         }
+        return
+    }
+
+    // Normal single-link mode
+    const target = draggableLinkTargetNode
+    if (target !== undefined) {
+        draggableLink!.attr('d', () => {
+            if (source.id === target.id) {
+                return reflexivePath(source, [width / 2, height / 2], config).definition
+            } else if (graph.hasBidirectionalConnection(source, target)) {
+                return linePath(source, target, config).definition
+            } else {
+                return arcPath(source, target, config).definition
+            }
+        })
+    } else if (draggableLinkEnd !== undefined) {
+        draggableLink!.attr(
+            'd',
+            linePath(source, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config)
+                .definition
+        )
     }
 }
 
@@ -2498,13 +2522,18 @@ function _clearHyperLinkSources(): void {
 function _onPointerDownCreateDraggableLink(node: GraphNode): void {
     draggableLinkEnd = [node.x!, node.y!]
     draggableLinkSourceNode = node
-    draggableLink!
-        .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
-        .classed('hidden', false)
-        .attr(
-            'd',
-            linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config).definition
-        )
+    if (hyperLinkSources.length > 0) {
+        // Hyperlink creation mode: multi-path preview is rendered by _updateDraggableLinkPath
+        draggableLink!.classed('hidden', true)
+    } else {
+        draggableLink!
+            .attr('marker-end', `url(#${graphHostId.value}-draggable-link-arrow)`)
+            .classed('hidden', false)
+            .attr(
+                'd',
+                linePath(node, { x: draggableLinkEnd[0], y: draggableLinkEnd[1] }, config).definition
+            )
+    }
 }
 
 //endregion
@@ -2867,6 +2896,9 @@ function _onPointerUpCancelDeleteAnimationHyperLink(hyperLink: GraphHyperLink) {
  */
 function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
     terminate(event)
+    if (event.shiftKey && config.allowHyperLinkCreationViaGUI) {
+        return
+    }
     if (node.labelEditable) {
         handleInputForLabel(node, [node.x!, node.y!])
     }
@@ -3025,6 +3057,7 @@ function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, num
 
 function _resetDraggableLink(): void {
     draggableLink?.classed('hidden', true).attr('marker-end', 'null')
+    hyperLinkDragGroup?.selectAll('path').remove()
     draggableLinkSourceNode = undefined
     draggableLinkTargetNode = undefined
     draggableLinkEnd = undefined
@@ -3173,6 +3206,7 @@ function resetView(restoreZoom: boolean = false): void {
     }
     canvas = undefined
     draggableLink = undefined
+    hyperLinkDragGroup = undefined
     linkSelection = undefined
     hyperLinkSelection = undefined
     nodeSelection = undefined

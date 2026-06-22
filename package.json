@@ -28,6 +28,7 @@
         "dist"
     ],
     "scripts": {
+        "prepare": "npm run build",
         "dev": "vite",
         "build": "run-p type-check \"build-only-*\" --",
         "preview": "vite preview",

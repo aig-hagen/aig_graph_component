@@ -738,19 +738,43 @@ function _rotate(vector: Matrix, radians: number): Matrix {
     ])
 }
 
-const HYPERLINK_MIN_JUNCTION_DIST = 60
+/** Minimum visible arrow stem beyond the node border, in pixels. */
+const HYPERLINK_MIN_ARROW_STEM = 12
+
+/**
+ * Computes the minimum distance the junction must sit from the target center.
+ * Must exceed the distance at which hyperTargetPath places the arrow tip
+ * (node border + marker offset) by at least HYPERLINK_MIN_ARROW_STEM so the
+ * path is never zero-length and the marker always has a direction to follow.
+ */
+function _hyperMinJunctionDist(target: GraphNode, config: GraphConfiguration): number {
+    if (target.props.shape === NodeShape.CIRCLE) {
+        const r = (target.renderedSize as NodeSizeCircle).radius
+        return r + 3 * config.markerBoxSize / config.arrowStrokeWidth + HYPERLINK_MIN_ARROW_STEM
+    } else {
+        const rs = target.renderedSize as NodeSizeRect
+        return Math.sqrt(rs.width * rs.width + rs.height * rs.height) / 2 + config.markerPadding + HYPERLINK_MIN_ARROW_STEM
+    }
+}
 
 /**
  * Computes the junction point for a hyperlink.
  * Placed 75% of the way from the source centroid toward the target, but always
- * at least HYPERLINK_MIN_JUNCTION_DIST pixels from the target center so a
- * visible stem is preserved when sources cluster near the target.
+ * far enough from the target center that the arrow path has a visible stem.
+ *
+ * When the target is also one of the sources, it is excluded from the centroid
+ * so the junction is positioned relative to the remaining sources only.
  * @param hyperLink
+ * @param config
  */
-export function hyperLinkJunctionPoint(hyperLink: GraphHyperLink): { x: number; y: number } {
-    const n = hyperLink.sources.length
-    const cx = hyperLink.sources.reduce((sum, s) => sum + s.x!, 0) / n
-    const cy = hyperLink.sources.reduce((sum, s) => sum + s.y!, 0) / n
+export function hyperLinkJunctionPoint(hyperLink: GraphHyperLink, config: GraphConfiguration): { x: number; y: number } {
+    // Exclude target from centroid when it is also a source so the junction is
+    // positioned relative to the other sources, not pulled back toward the target.
+    const centroidSources = hyperLink.sources.filter((s) => s.id !== hyperLink.target.id)
+    const sourcesForCentroid = centroidSources.length > 0 ? centroidSources : hyperLink.sources
+    const n = sourcesForCentroid.length
+    const cx = sourcesForCentroid.reduce((sum, s) => sum + s.x!, 0) / n
+    const cy = sourcesForCentroid.reduce((sum, s) => sum + s.y!, 0) / n
 
     const tx = hyperLink.target.x!
     const ty = hyperLink.target.y!
@@ -766,12 +790,13 @@ export function hyperLinkJunctionPoint(hyperLink: GraphHyperLink): { x: number; 
     const nx = pullX / pullDist
     const ny = pullY / pullDist
 
-    // Enforce minimum distance from target center
+    // Enforce minimum distance so the arrow path always has a visible stem
+    const minDist = _hyperMinJunctionDist(hyperLink.target, config)
     const jdx = jx - tx
     const jdy = jy - ty
-    if (Math.sqrt(jdx * jdx + jdy * jdy) < HYPERLINK_MIN_JUNCTION_DIST) {
-        jx = tx + HYPERLINK_MIN_JUNCTION_DIST * nx
-        jy = ty + HYPERLINK_MIN_JUNCTION_DIST * ny
+    if (Math.sqrt(jdx * jdx + jdy * jdy) < minDist) {
+        jx = tx + minDist * nx
+        jy = ty + minDist * ny
     }
 
     return { x: jx, y: jy }
@@ -782,16 +807,22 @@ export function hyperLinkJunctionPoint(hyperLink: GraphHyperLink): { x: number; 
  * The curve arrives at the junction tangent to the junction→target direction so all source
  * paths converge smoothly.
  *
+ * When isReflexive is true (source is also the target), the departure point on the node
+ * border is rotated 45° CW from the straight source→junction direction so the outgoing
+ * stub does not overlap the incoming target arrow.
+ *
  * @param source
  * @param junction
  * @param targetDir - Unit vector pointing from junction toward the target node
  * @param config
+ * @param isReflexive - True when this source node is also the hyperlink target
  */
 export function hyperSourcePath(
     source: GraphNode,
     junction: { x: number; y: number },
     targetDir: { x: number; y: number },
-    config: GraphConfiguration
+    config: GraphConfiguration,
+    isReflexive: boolean = false
 ): string {
     const dx = junction.x - source.x!
     const dy = junction.y - source.y!
@@ -800,35 +831,55 @@ export function hyperSourcePath(
     const normX = dx / dist
     const normY = dy / dist
 
+    // For the reflexive source rotate the departure direction 45° CW so the path
+    // leaves the node at an angle distinct from the incoming target arrow.
+    const departX = isReflexive ? normX * Math.SQRT1_2 + normY * Math.SQRT1_2 : normX
+    const departY = isReflexive ? -normX * Math.SQRT1_2 + normY * Math.SQRT1_2 : normY
+
     let startX: number
     let startY: number
     if (source.props.shape === NodeShape.CIRCLE) {
         const r = (source.renderedSize as NodeSizeCircle).radius - 1
-        startX = source.x! + r * normX
-        startY = source.y! + r * normY
+        startX = source.x! + r * departX
+        startY = source.y! + r * departY
     } else {
         const ep = _getRectEdgePointForPath(
             source.x!,
             source.y!,
             (source.renderedSize as NodeSizeRect).width,
             (source.renderedSize as NodeSizeRect).height,
-            normX,
-            normY,
+            departX,
+            departY,
             2
         )
         startX = ep.x
         startY = ep.y
     }
 
-    // cp1: one third of the way along the source→junction direction
-    const cp1x = startX + (dist / 3) * normX
-    const cp1y = startY + (dist / 3) * normY
+    let cp1x: number
+    let cp1y: number
+    let cp2x: number
+    let cp2y: number
 
-    // cp2: pulled back from the junction along the junction→target direction so the
-    // curve arrives tangent to that direction, giving a smooth convergence
-    const pullBack = dist * 0.35
-    const cp2x = junction.x - pullBack * targetDir.x
-    const cp2y = junction.y - pullBack * targetDir.y
+    if (isReflexive) {
+        // cp1: extend in the departure direction so the path holds the 45° angle
+        // before arcing toward the junction — avoids the early inward bend.
+        cp1x = startX + dist * 1.1 * departX
+        cp1y = startY + dist * 1.1 * departY
+        // cp2: pull back from the junction generously so the arc arrives smoothly.
+        const pullBack = dist * 0.9
+        cp2x = junction.x - pullBack * targetDir.x
+        cp2y = junction.y - pullBack * targetDir.y
+    } else {
+        // cp1: one third of the way along the source→junction direction
+        cp1x = startX + (dist / 3) * normX
+        cp1y = startY + (dist / 3) * normY
+        // cp2: pulled back from the junction along the junction→target direction so the
+        // curve arrives tangent to that direction, giving a smooth convergence
+        const pullBack = dist * 0.35
+        cp2x = junction.x - pullBack * targetDir.x
+        cp2y = junction.y - pullBack * targetDir.y
+    }
 
     return `M${startX},${startY} C${cp1x},${cp1y} ${cp2x},${cp2y} ${junction.x},${junction.y}`
 }
