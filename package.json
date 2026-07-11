@@ -1,7 +1,7 @@
 {
     "name": "@aig-hagen/graph-component",
     "description": "A simple tool that lets you quickly and interactively create, modify and display graphs.",
-    "version": "5.0.0-rc.7",
+    "version": "5.0.0-rc.9",
     "type": "module",
     "exports": {
         "./ce": {
@@ -36,7 +36,7 @@
         "build-only-lib": "vite build --mode lib",
         "build-types": "vue-tsc --declaration --emitDeclarationOnly --outDir dist/types",
         "type-check": "vue-tsc --build --force",
-        "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+        "lint": "eslint . --fix",
         "format": "prettier --write .",
         "docs": "typedoc",
         "docs:serve": "npm run docs && npx serve docs",

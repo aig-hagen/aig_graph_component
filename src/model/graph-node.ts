@@ -9,6 +9,7 @@ import {
     type NodeSizeRect
 } from '@/model/config'
 import { NodeShape } from '@/model/node-shape'
+import type { NodeOutline } from '@/model/node-outline'
 
 export interface D3Node extends SimulationNodeDatum {
     id: number
@@ -24,6 +25,7 @@ export interface NodeAppearance {
     color?: string
     props?: NodeProps
     renderedSize?: NodeSize
+    outline?: NodeOutline
 }
 
 export interface NodeGUIEditability {
@@ -64,6 +66,7 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
      * @param labelEditable - If the nodes label is editable via GUI
      * @param allowIncomingLinks - If the node can get new incoming links via GUI
      * @param allowOutgoingLinks - If the node can get new outgoing links via GUI
+     * @param outline - The outline style of the node border (solid, dashed, dotted)
      */
     public constructor(
         public readonly id: number,
@@ -78,7 +81,8 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
         public labelEditable?: boolean,
         public allowIncomingLinks?: boolean,
         public allowOutgoingLinks?: boolean,
-        public snapToGrid?: boolean
+        public snapToGrid?: boolean,
+        public outline?: NodeOutline
     ) {
         this.fixedPosition = fixedPosition
         this._renderedSize = this.getSize()
@@ -97,18 +101,18 @@ export class GraphNode implements D3Node, NodeAppearance, NodeGUIEditability {
 
     public setShape(shape: NodeShape, config: GraphConfiguration) {
         if (shape === NodeShape.CIRCLE) {
-            let radius =
+            const radius =
                 (config.nodeProps as NodeCircle).radius ?? 0.5 * (this.props as NodeRect).width
             this.props = {
                 shape: NodeShape.CIRCLE,
                 radius: radius
             }
         } else if (shape === NodeShape.RECTANGLE) {
-            let width =
+            const width =
                 (config.nodeProps as NodeRect).width ?? 2 * (this.props as NodeCircle).radius
-            let height = (config.nodeProps as NodeRect).height ?? (this.props as NodeCircle).radius
-            let cornerRadius = (config.nodeProps as NodeRect).cornerRadius ?? 4
-            let reflexiveEdgeStart = (config.nodeProps as NodeRect).reflexiveEdgeStart ?? 'MOVABLE'
+            const height = (config.nodeProps as NodeRect).height ?? (this.props as NodeCircle).radius
+            const cornerRadius = (config.nodeProps as NodeRect).cornerRadius ?? 4
+            const reflexiveEdgeStart = (config.nodeProps as NodeRect).reflexiveEdgeStart ?? 'MOVABLE'
 
             this.props = {
                 shape: NodeShape.RECTANGLE,

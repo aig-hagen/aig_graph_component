@@ -207,12 +207,12 @@ export function arcPath(
     const delta = Matrix.subtract(t, s)
     const dist = delta.norm('frobenius')
     const norm = delta.divide(dist)
-    let startRotation =
+    const startRotation =
         source.props.shape === NodeShape.CIRCLE ? _degreesToRadians(10) : _degreesToRadians(30)
-    let endRotation =
+    const endRotation =
         target.props.shape === NodeShape.CIRCLE ? _degreesToRadians(10) : _degreesToRadians(30)
 
-    let arcRadius = 1.2 * dist
+    const arcRadius = 1.2 * dist
 
     const pathCoordinate = _arcPathDeterminePathStartAndEnd(source, target, config, s, t, norm, {
         start: startRotation,
@@ -398,7 +398,7 @@ function _reflexiveRectPathMovable(
             pathStartSide === SideType.TOPLEFT ||
             pathStartSide === SideType.TOPRIGHT
         ) {
-            let m = _getPathCoordinatesForRectReflexiveLink(pathStartSide, node, config)
+            const m = _getPathCoordinatesForRectReflexiveLink(pathStartSide, node, config)
             start = m.start
             end = m.end
 
@@ -504,7 +504,7 @@ function _reflexiveRectPathFixed(
             }
         }
 
-        let m = _getPathCoordinatesForRectReflexiveLink(
+        const m = _getPathCoordinatesForRectReflexiveLink(
             (node.props as NodeRect).reflexiveEdgeStart as SideType,
             node,
             config

@@ -7,7 +7,7 @@ export function createZoom(
     onZoom: (event: D3ZoomEvent<any, any>, b: boolean) => void,
     isEnabled: boolean
 ): Zoom {
-    let zoom = d3
+    const zoom = d3
         .zoom<SVGSVGElement, undefined>()
         .filter((event) => event.button === 0 || event.touches?.length >= 2)
 

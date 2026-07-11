@@ -1,15 +1,20 @@
 import { GraphLink, GraphHyperLink } from '@/model/graph-link'
 import { type FixedAxis, GraphNode } from '@/model/graph-node'
+import { GraphBadge } from '@/model/graph-badge'
+import { GraphAnnotation, type AnnotationPosition } from '@/model/graph-annotation'
 import type { jsonLink, jsonHyperLink } from '@/model/parser'
 import type { NodeProps } from '@/model/config'
 import { NodeShape } from './node-shape'
 import type { ArrowType } from './arrow-type'
+import type { NodeOutline } from './node-outline'
 
 export default class Graph {
     private nodeIdCounter: number = 0
     public readonly nodes: GraphNode[] = []
     public readonly links: GraphLink[] = []
     public readonly hyperLinks: GraphHyperLink[] = []
+    public readonly badges: GraphBadge[] = []
+    public readonly annotations: GraphAnnotation[] = []
 
     public createNode(
         props: NodeProps,
@@ -22,7 +27,8 @@ export default class Graph {
         deletable?: boolean,
         labelEditable?: boolean,
         allowIncomingLinks?: boolean,
-        allowOutgoingLinks?: boolean
+        allowOutgoingLinks?: boolean,
+        outline?: NodeOutline
     ): GraphNode {
         const node = new GraphNode(
             this.nodeIdCounter++,
@@ -36,7 +42,9 @@ export default class Graph {
             deletable,
             labelEditable,
             allowIncomingLinks,
-            allowOutgoingLinks
+            allowOutgoingLinks,
+            undefined,
+            outline
         )
         this.nodes.push(node)
         return node
@@ -142,7 +150,88 @@ export default class Graph {
             this.hyperLinks.splice(hlIndex, 1)
         })
 
+        this.setBadge(node.id, undefined)
+        this.deleteAnnotation(node.id)
+
         return [node, attachedLinks, attachedHyperLinks]
+    }
+
+    /**
+     * Creates or updates the annotation attached to a node.
+     * Idempotent: since callers (the app layer) re-derive and re-apply annotations wholesale
+     * on every redraw, calling this again for an anchor that already has an annotation
+     * updates it in place rather than rejecting like `createLink` does for duplicates.
+     * @param anchorId - The id of the node to attach the annotation to
+     * @param content - The displayed text, opaque to the library
+     * @param position - Explicit polar position, or undefined to auto-place
+     */
+    public createAnnotation(
+        anchorId: number,
+        content: string,
+        position?: AnnotationPosition
+    ): GraphAnnotation | undefined {
+        const existing = this.annotations.find((a) => a.anchorId === anchorId)
+        if (existing !== undefined) {
+            existing.content = content
+            existing.position = position
+            return existing
+        }
+
+        const anchor = this.nodes.find((n) => n.id === anchorId)
+        if (anchor === undefined) {
+            return undefined
+        }
+
+        const annotation = new GraphAnnotation(anchor, content, position)
+        this.annotations.push(annotation)
+        return annotation
+    }
+
+    /**
+     * Removes the annotation attached to a node, if any.
+     * @param anchorId - The id of the node the annotation is attached to
+     */
+    public deleteAnnotation(anchorId: number): GraphAnnotation | undefined {
+        const index = this.annotations.findIndex((a) => a.anchorId === anchorId)
+        if (index === -1) {
+            return undefined
+        }
+        const [annotation] = this.annotations.splice(index, 1)
+        return annotation
+    }
+
+    /**
+     * Sets or removes the badge attached to a node.
+     * Idempotent: calling this again for the same anchor updates the existing badge in place
+     * rather than creating a duplicate, since badges are re-derived wholesale by callers on every update.
+     * @param anchorId - The id of the node the badge is attached to
+     * @param text - The badge text, or undefined to remove the badge
+     * @param color - The badge color (empty = default color)
+     */
+    public setBadge(anchorId: number, text: string | undefined, color?: string): GraphBadge | undefined {
+        const existingIndex = this.badges.findIndex((b) => b.anchorId === anchorId)
+        if (text === undefined) {
+            if (existingIndex !== -1) {
+                this.badges.splice(existingIndex, 1)
+            }
+            return undefined
+        }
+
+        if (existingIndex !== -1) {
+            const badge = this.badges[existingIndex]!
+            badge.text = text
+            badge.color = color
+            return badge
+        }
+
+        const anchor = this.nodes.find((n) => n.id === anchorId)
+        if (anchor === undefined) {
+            return undefined
+        }
+
+        const badge = new GraphBadge(anchor, text, color)
+        this.badges.push(badge)
+        return badge
     }
 
     public removeLink(link: GraphLink): GraphLink | undefined {
@@ -271,6 +360,7 @@ export default class Graph {
      * @param includeLinkEditability if editability of link via GUI should be included
      * @param includeIdImported if ID from import data should be included
      * @param includeLinkArrowType if arrow type of link should be included
+     * @param includeNodeOutline if node outline style should be included
      * @returns The graph in JSON format*/
     public toJSON(
         includeNodePosition: boolean = true,
@@ -282,7 +372,8 @@ export default class Graph {
         includeNodeEditability: boolean = true,
         includeLinkEditability: boolean = true,
         includeIdImported: boolean = true,
-        includeLinkArrowType: boolean = true
+        includeLinkArrowType: boolean = true,
+        includeNodeOutline: boolean = true
     ): string {
         const nodes = this.nodes.map((node) => {
             const jsonNode: any = {
@@ -321,6 +412,9 @@ export default class Graph {
             if (includeIdImported) {
                 jsonNode.idImported = node.idImported
             }
+            if (includeNodeOutline && node.outline !== undefined) {
+                jsonNode.outline = node.outline
+            }
             return jsonNode
         })
 
@@ -357,7 +451,7 @@ export default class Graph {
     }
 
     private _convertToJSONLink(link: GraphLink): jsonLink {
-        let parts = link.id.split('-')
+        const parts = link.id.split('-')
 
         return {
             sourceId: Number(parts[0]),

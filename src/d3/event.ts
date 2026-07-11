@@ -1,4 +1,5 @@
 import type Graph from '@/model/graph'
+import type { AnnotationPosition } from '@/model/graph-annotation'
 
 export enum EVENT_CAUSE {
     /**
@@ -30,4 +31,9 @@ export function getPositionSnapshots(graph: Graph): PositionSnapshot[] {
             x: n.x!,
             y: n.y!
         }))
+}
+
+export type AnnotationPositionSnapshot = {
+    anchorId: number
+    position: AnnotationPosition
 }

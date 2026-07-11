@@ -23,7 +23,7 @@ export interface LinkGUIEditability {
 
 export class GraphLink implements D3Link, LinkGUIEditability, LinkAppearance {
     id: string
-    // eslint-disable-next-line no-useless-constructor
+
     /**
      *
      * @param source - The links source node

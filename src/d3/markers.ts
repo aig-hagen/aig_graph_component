@@ -24,7 +24,7 @@ export function initMarkers(
         false
     )
     if (colors) {
-        for (let color of colors) {
+        for (const color of colors) {
             createLinkMarkerColored(canvas, graphHostId, config, color)
         }
     }

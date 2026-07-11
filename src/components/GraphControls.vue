@@ -59,7 +59,7 @@ const controlsEnvironment: Control[] = [
 
 const headers: any = ['Action', 'Controls']
 
-let isTouch = props.platformType === 'mobile' || props.platformType === 'tablet'
+const isTouch = props.platformType === 'mobile' || props.platformType === 'tablet'
 </script>
 
 <template>

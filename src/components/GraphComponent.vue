@@ -19,6 +19,10 @@ import { createDrag, snapToRhombusGrid, snapToSquareGrid, type Drag } from '@/d3
 import { type Canvas, createCanvas } from '@/d3/canvas'
 import { createLinks, type LinkSelection } from '@/d3/link'
 import { createNodes, type NodeSelection } from '@/d3/node'
+import { createBadges, type BadgeSelection } from '@/d3/badge'
+import { createAnnotations, type AnnotationSelection } from '@/d3/annotation'
+import { createAnnotationDrag, type AnnotationDrag } from '@/d3/annotation-drag'
+import { computeAutoPlacement, textAlignmentForAngle } from '@/d3/annotation-placement'
 import { createLinkMarkerColored, deleteLinkMarkerColored, initMarkers } from '@/d3/markers'
 import { createDraggableLink, type DraggableLink } from '@/d3/draggable-link'
 import {
@@ -45,7 +49,13 @@ import {
     linePath,
     reflexivePath
 } from '@/d3/paths'
-import { EVENT_CAUSE, getPositionSnapshots, terminate, type PositionSnapshot } from '@/d3/event'
+import {
+    EVENT_CAUSE,
+    getPositionSnapshots,
+    terminate,
+    type AnnotationPositionSnapshot,
+    type PositionSnapshot
+} from '@/d3/event'
 //model
 import Graph, { getBounds } from '@/model/graph'
 import { NodeShape } from '@/model/node-shape'
@@ -82,6 +92,9 @@ import {
 } from '@/model/parser'
 import { type FixedAxis, GraphNode, type NodeGUIEditability } from '@/model/graph-node'
 import { GraphHyperLink, GraphLink, type LinkGUIEditability } from '@/model/graph-link'
+import { NodeOutline } from '@/model/node-outline'
+import { GraphBadge } from '@/model/graph-badge'
+import { GraphAnnotation, type AnnotationPosition } from '@/model/graph-annotation'
 //other
 import Bowser from 'bowser'
 import { ArrowType } from '@/model/arrow-type'
@@ -140,6 +153,9 @@ let svg: d3.Selection<SVGSVGElement, undefined, HTMLElement | null, undefined> |
 let linkSelection: LinkSelection | undefined
 let hyperLinkSelection: d3.Selection<SVGGElement, GraphHyperLink, SVGGElement, undefined> | undefined
 let nodeSelection: NodeSelection | undefined
+let badgeSelection: BadgeSelection | undefined
+let annotationSelection: AnnotationSelection | undefined
+let annotationDrag: AnnotationDrag | undefined
 let draggableLink: DraggableLink | undefined
 let hyperLinkDragGroup: d3.Selection<SVGGElement, undefined, HTMLElement | null, undefined> | undefined
 let gridRect: GridSelection | undefined
@@ -176,6 +192,8 @@ const emit = defineEmits<{
     hyperLinkDeleted: [link: { id: string; label?: string }, cause: EVENT_CAUSE]
     labelEdited: [parent: { id: number | string }, label: string]
     nodesMoved: [positions: PositionSnapshot[]]
+    annotationClicked: [annotation: { anchorId: number; content: string }, event: PointerEvent]
+    annotationMoved: [annotations: AnnotationPositionSnapshot[]]
 }>()
 
 //exposing for API
@@ -191,6 +209,12 @@ defineExpose({
     deleteElement,
     setLabel,
     setColor,
+    setNodeOutline,
+    setNodeBadge,
+    createAnnotation,
+    setAnnotationContent,
+    setAnnotationPosition,
+    getAnnotationPosition,
     setNodeSize,
     getNodeSize,
     setNodeShape,
@@ -209,6 +233,7 @@ defineExpose({
     toggleFixedLinkDistance,
     toggleNodeCreationViaGUI,
     toggleHyperLinkCreationViaGUI,
+    toggleAnnotationDragging,
     toggleNodeAutoGrow,
     resetView: resetViewPublic,
     centerView,
@@ -235,6 +260,7 @@ export type GraphConfigurationPublic = Partial<
         | 'showLinkLabels'
         | 'allowNodeCreationViaGUI'
         | 'allowHyperLinkCreationViaGUI'
+        | 'allowAnnotationDragging'
         | 'nodeAutoGrowToLabelSize'
         | 'nodeProps'
         | 'nodeGUIEditability'
@@ -276,6 +302,9 @@ function setDefaults(configInput: GraphConfigurationPublic) {
     if (configInput.allowHyperLinkCreationViaGUI !== undefined) {
         toggleHyperLinkCreationViaGUI(configInput.allowHyperLinkCreationViaGUI)
     }
+    if (configInput.allowAnnotationDragging !== undefined) {
+        toggleAnnotationDragging(configInput.allowAnnotationDragging)
+    }
     //endregion
 
     //region individual element level
@@ -305,6 +334,7 @@ function getDefaults(): GraphConfigurationPublic {
         showLinkLabels: config.showLinkLabels,
         allowNodeCreationViaGUI: config.allowNodeCreationViaGUI,
         allowHyperLinkCreationViaGUI: config.allowHyperLinkCreationViaGUI,
+        allowAnnotationDragging: config.allowAnnotationDragging,
         nodeAutoGrowToLabelSize: config.nodeAutoGrowToLabelSize,
         nodeProps: config.nodeProps,
         nodeGUIEditability: config.nodeGUIEditability,
@@ -391,9 +421,9 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
             nodeSelection!
                 .filter((d) => d.id === id)
                 .each(function (d) {
-                    let r = graph.removeNode(d)
+                    const r = graph.removeNode(d)
                     if (r !== undefined) {
-                        let [removedNode, removedLinks, removedHyperLinks] = r
+                        const [removedNode, removedLinks, removedHyperLinks] = r
                         emit(
                             'nodeDeleted',
                             {
@@ -427,7 +457,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 hyperLinkSelection!
                     .filter((d) => d.id === id)
                     .each(function (d) {
-                        let removedHyperLink = graph.removeHyperLink(d)
+                        const removedHyperLink = graph.removeHyperLink(d)
                         if (removedHyperLink !== undefined) {
                             emit(
                                 'hyperLinkDeleted',
@@ -440,7 +470,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
                 linkSelection!
                     .filter((d) => d.id === id)
                     .each(function (d) {
-                        let removedLink = graph.removeLink(d)
+                        const removedLink = graph.removeLink(d)
                         if (removedLink !== undefined) {
                             emit(
                                 'linkDeleted',
@@ -453,9 +483,9 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         }
     } else {
         nodeSelection!.each(function (d) {
-            let r = graph.removeNode(d)
+            const r = graph.removeNode(d)
             if (r !== undefined) {
-                let [removedNode, removedLinks, removedHyperLinks] = r
+                const [removedNode, removedLinks, removedHyperLinks] = r
                 emit(
                     'nodeDeleted',
                     {
@@ -484,7 +514,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         })
 
         linkSelection!.each(function (d) {
-            let removedLink = graph.removeLink(d)
+            const removedLink = graph.removeLink(d)
             if (removedLink !== undefined) {
                 emit(
                     'linkDeleted',
@@ -495,7 +525,7 @@ function deleteElement(ids: string[] | number[] | string | number | undefined) {
         })
 
         hyperLinkSelection!.each(function (d) {
-            let removedHyperLink = graph.removeHyperLink(d)
+            const removedHyperLink = graph.removeHyperLink(d)
             if (removedHyperLink !== undefined) {
                 emit('hyperLinkDeleted', { id: removedHyperLink.id, label: removedHyperLink.label }, EVENT_CAUSE.PROGRAMMATIC_ACTION)
             }
@@ -609,6 +639,94 @@ function setColor(color: string, ids: string[] | number[] | string | number | un
     restart()
 }
 
+function _dashArrayForOutline(outline: NodeOutline | undefined): string {
+    if (outline === NodeOutline.DASHED) return '5,4'
+    if (outline === NodeOutline.DOTTED) return '2,3'
+    return ''
+}
+
+/**
+ * Exposed function that sets the outline style of nodes via their IDs.
+ * If no IDs are provided, it is set for all currently existing nodes.
+ * @param outline
+ * @param ids
+ */
+function setNodeOutline(outline: NodeOutline | undefined, ids: number[] | number | undefined) {
+    const targetIds = ids !== undefined ? separateNodeAndLinkIds(ids)[0] : graph.nodes.map((n) => n.id)
+    for (const id of targetIds) {
+        nodeSelection!
+            .selectAll<SVGCircleElement | SVGRectElement, GraphNode>('.graph-controller__node')
+            .filter((d) => d.id === id)
+            .each((d) => (d.outline = outline))
+            .style('stroke-dasharray', _dashArrayForOutline(outline))
+    }
+    restart()
+}
+
+/**
+ * Exposed function that sets or removes a small read-only badge attached to a node.
+ * Not persisted via `getGraph`/`setGraph` - purely a runtime display concern.
+ * @param anchorId - The id of the node to attach the badge to
+ * @param text - The badge text, or undefined to remove the badge
+ * @param color - The badge color (empty = default color)
+ */
+function setNodeBadge(anchorId: number, text: string | undefined, color?: string) {
+    graph.setBadge(anchorId, text, color)
+    restart()
+}
+
+/**
+ * Exposed function that creates or updates the floating annotation attached to a node.
+ * Idempotent - safe to call again for an anchor that already has an annotation, which is
+ * the expected usage pattern when the app re-applies annotations after every redraw.
+ * @param anchorId - The id of the node to attach the annotation to
+ * @param content - The displayed text, opaque to the library
+ * @param position - Explicit polar position, or undefined to auto-place
+ * @returns The anchor id, or undefined if no node with that id exists
+ */
+function createAnnotation(anchorId: number, content: string, position?: AnnotationPosition) {
+    const annotation = graph.createAnnotation(anchorId, content, position)
+    restart()
+    return annotation?.anchorId
+}
+
+/**
+ * Exposed function that updates an annotation's displayed content without a full redraw.
+ * @param anchorId - The id of the node the annotation is attached to
+ * @param content - The new displayed text
+ */
+function setAnnotationContent(anchorId: number, content: string) {
+    const annotation = graph.annotations.find((a) => a.anchorId === anchorId)
+    if (annotation === undefined) return
+    annotation.content = content
+    annotationSelection!
+        .filter((d) => d.anchorId === anchorId)
+        .selectChild('text')
+        .text(content)
+}
+
+/**
+ * Exposed function that sets or clears an annotation's explicit position.
+ * Passing undefined reverts the annotation to auto-placement.
+ * @param anchorId - The id of the node the annotation is attached to
+ * @param position - The new explicit position, or undefined to auto-place
+ */
+function setAnnotationPosition(anchorId: number, position: AnnotationPosition | undefined) {
+    const annotation = graph.annotations.find((a) => a.anchorId === anchorId)
+    if (annotation === undefined) return
+    annotation.position = position
+    onTick()
+}
+
+/**
+ * Exposed function that returns an annotation's current position.
+ * Returns undefined if the annotation doesn't exist or is auto-placed (no explicit position set).
+ * @param anchorId - The id of the node the annotation is attached to
+ */
+function getAnnotationPosition(anchorId: number): AnnotationPosition | undefined {
+    return graph.annotations.find((a) => a.anchorId === anchorId)?.position
+}
+
 /**
  * Exposed function that sets the arrow type of links via their IDs.
  * If no IDs are provided, it is set for all currently existing links.
@@ -655,7 +773,7 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
                 .each(function (d) {
                     let labelBB, renderingSize
                     if (config.nodeAutoGrowToLabelSize) {
-                        let labelDiv = d3
+                        const labelDiv = d3
                             .select(this)
                             .select('foreignObject')
                             .select('div')
@@ -694,7 +812,7 @@ function setNodeSize(size: NodeSize | number, ids: number[] | number | undefined
         nodeSelection!.each(function (d) {
             let labelBB, renderingSize
             if (config.nodeAutoGrowToLabelSize) {
-                let labelDiv = d3
+                const labelDiv = d3
                     .select(this)
                     .select('foreignObject')
                     .select('div')
@@ -1267,6 +1385,10 @@ function toggleHyperLinkCreationViaGUI(isEnabled: boolean) {
     }
 }
 
+function toggleAnnotationDragging(isEnabled: boolean) {
+    config.allowAnnotationDragging = isEnabled
+}
+
 function toggleNodeAutoGrow(isEnabled: boolean) {
     config.nodeAutoGrowToLabelSize = isEnabled
 
@@ -1327,6 +1449,9 @@ function initData() {
     linkSelection = createLinks(canvas)
     hyperLinkSelection = canvas!.append<SVGGElement>('g').selectAll<SVGGElement, GraphHyperLink>('g')
     nodeSelection = createNodes(canvas)
+    badgeSelection = createBadges(canvas)
+    annotationSelection = createAnnotations(canvas)
+    annotationDrag = createAnnotationDrag(config, (annotation) => emitAnnotationMoved(annotation))
     simulation = createSimulation(graph, config, width, height, () => onTick(), emitNodesMoved)
     drag = createDrag(simulation, width, height, config, graph, () => {
         if (config.autoShowGrid && !config.showGrid && gridRect) setGridVisible(gridRect, false)
@@ -1355,7 +1480,7 @@ function initData() {
 function createNodeLabelResizeObserver() {
     return new ResizeObserver((entries) => {
         let hasSizeChange = false
-        for (let entry of entries) {
+        for (const entry of entries) {
             const nodeLabel = entry
             if (nodeLabel) {
                 if (nodeLabel.borderBoxSize[0] !== undefined) {
@@ -1469,7 +1594,7 @@ function createLink(
     isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable,
     arrowType: ArrowType = config.linkArrowType
 ): string | undefined {
-    let newLink = graph.createLink(
+    const newLink = graph.createLink(
         sourceId,
         targetId,
         arrowType,
@@ -1528,7 +1653,7 @@ function _createHyperLink(
     isDeletableViaGUI: boolean = config.linkGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.linkGUIEditability.labelEditable
 ): string | undefined {
-    let newLink = graph.createHyperLink(
+    const newLink = graph.createHyperLink(
         sourceIds,
         targetId,
         label,
@@ -1574,7 +1699,8 @@ function createNodePublic(
     isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
-    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks,
+    outline?: NodeOutline
 ) {
     return createNode(
         props,
@@ -1588,7 +1714,8 @@ function createNodePublic(
         isDeletableViaGUI,
         isLabelEditableViaGUI,
         allowIncomingLinks,
-        allowOutgoingLinks
+        allowOutgoingLinks,
+        outline
     )
 }
 
@@ -1605,6 +1732,7 @@ function createNodePublic(
  * @param isLabelEditableViaGUI
  * @param allowIncomingLinks
  * @param allowOutgoingLinks
+ * @param outline
  * @returns The id of the newly created node.
  */
 function createNode(
@@ -1619,9 +1747,10 @@ function createNode(
     isDeletableViaGUI: boolean = config.nodeGUIEditability.deletable,
     isLabelEditableViaGUI: boolean = config.nodeGUIEditability.labelEditable,
     allowIncomingLinks: boolean = config.nodeGUIEditability.allowIncomingLinks,
-    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks
+    allowOutgoingLinks: boolean = config.nodeGUIEditability.allowOutgoingLinks,
+    outline?: NodeOutline
 ): number {
-    let newNode = graph.createNode(
+    const newNode = graph.createNode(
         props,
         x ?? width / 2,
         y ?? height / 2,
@@ -1632,7 +1761,8 @@ function createNode(
         isDeletableViaGUI,
         isLabelEditableViaGUI,
         allowIncomingLinks,
-        allowOutgoingLinks
+        allowOutgoingLinks,
+        outline
     )
     emit('nodeCreated', { id: newNode.id, label: newNode.label, x: newNode.x, y: newNode.y }, cause)
     updateCollide(simulation, graph, config)
@@ -1642,8 +1772,54 @@ function createNode(
     return newNode.id
 }
 
+const BADGE_RADIUS = 10
+const BADGE_MAX_FONT_SIZE = 10
+const BADGE_MIN_FONT_SIZE = 6
+// Rough average glyph width for a sans-serif font, as a fraction of font-size - good enough
+// to size against without measuring actual rendered text via getBBox.
+const BADGE_GLYPH_WIDTH_FACTOR = 0.55
+
+/**
+ * Picks a font size that keeps the badge text roughly within its fixed-radius circle,
+ * shrinking for longer content (down to a legibility floor) rather than letting it overflow.
+ */
+function _badgeFontSize(text: string): number {
+    const length = Math.max(text.length, 1)
+    const usableWidth = 1.6 * BADGE_RADIUS
+    const fitted = usableWidth / (BADGE_GLYPH_WIDTH_FACTOR * length)
+    return Math.min(BADGE_MAX_FONT_SIZE, Math.max(BADGE_MIN_FONT_SIZE, fitted))
+}
+
+function _badgeOffset(node: GraphNode): { dx: number; dy: number } {
+    const size = node.renderedSize
+    const halfWidth =
+        node.props.shape === NodeShape.CIRCLE
+            ? (size as NodeSizeCircle).radius
+            : (size as NodeSizeRect).width / 2
+    const halfHeight =
+        node.props.shape === NodeShape.CIRCLE
+            ? (size as NodeSizeCircle).radius
+            : (size as NodeSizeRect).height / 2
+    return { dx: halfWidth * 0.7, dy: -halfHeight * 0.7 }
+}
+
 function onTick(): void {
     nodeSelection!.attr('transform', (d) => `translate(${d.x},${d.y})`)
+    badgeSelection!.attr('transform', (d) => {
+        const { dx, dy } = _badgeOffset(d.anchor)
+        return `translate(${d.anchor.x! + dx},${d.anchor.y! + dy})`
+    })
+    annotationSelection!.each(function (this: SVGGElement, d: GraphAnnotation) {
+        const position = d.position ?? computeAutoPlacement(d, graph)
+        const x = (d.anchor.x ?? 0) + Math.cos(position.angle) * position.distance
+        const y = (d.anchor.y ?? 0) + Math.sin(position.angle) * position.distance
+        const { textAnchor, dominantBaseline } = textAlignmentForAngle(position.angle)
+        d3.select(this)
+            .attr('transform', `translate(${x},${y})`)
+            .selectChild('text')
+            .attr('text-anchor', textAnchor)
+            .attr('dominant-baseline', dominantBaseline)
+    })
     let needRestart = false
     linkSelection!.each((d) => {
         const oldPathType = d.path?.type
@@ -2140,6 +2316,70 @@ function restart(alpha: number = 0.5): void {
         updateNodeLabelResizeObserverSelection()
     }
 
+    badgeSelection = badgeSelection!
+        .data(graph.badges, (d: GraphBadge) => d.anchorId)
+        .join(
+            (enter) => {
+                const badgeContainer = enter
+                    .append('g')
+                    .classed('graph-controller__badge-container', true)
+                badgeContainer
+                    .append('circle')
+                    .classed('graph-controller__badge', true)
+                    .attr('r', BADGE_RADIUS)
+                    .style('fill', (d) => (d.color ? d.color : ''))
+                badgeContainer
+                    .append('text')
+                    .classed('graph-controller__badge-label', true)
+                    .attr('text-anchor', 'middle')
+                    // `dominant-baseline: central` is inconsistent across fonts/browsers for
+                    // vertical centering - `dy` relative to the default alphabetic baseline is
+                    // the more robust, widely-used SVG idiom for this.
+                    .attr('dy', '0.35em')
+                    .style('font-size', (d) => `${_badgeFontSize(d.text)}px`)
+                    .text((d) => d.text)
+                return badgeContainer
+            },
+            (update) => {
+                update.selectChild('circle').style('fill', (d) => (d.color ? d.color : ''))
+                update
+                    .selectChild('text')
+                    .style('font-size', (d) => `${_badgeFontSize(d.text)}px`)
+                    .text((d) => d.text)
+                return update
+            }
+        )
+
+    annotationSelection = annotationSelection!
+        .data(graph.annotations, (d: GraphAnnotation) => d.anchorId)
+        .join(
+            (enter) => {
+                const annotationContainer = enter
+                    .append('g')
+                    .classed('graph-controller__annotation-container', true)
+                    .call(annotationDrag!)
+                    .on('pointerdown', (event: PointerEvent, d: GraphAnnotation) => {
+                        emit(
+                            'annotationClicked',
+                            { anchorId: d.anchorId, content: d.content },
+                            getClickEventPayload(event)
+                        )
+                    })
+                annotationContainer
+                    .append('text')
+                    .classed('graph-controller__annotation-label', true)
+                    .attr('id', (d) => `${graphHostId.value}-annotation-${d.anchorId}`)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'central')
+                    .text((d) => d.content)
+                return annotationContainer
+            },
+            (update) => {
+                update.selectChild('text').text((d) => d.content)
+                return update
+            }
+        )
+
     simulation.nodes(graph.nodes)
     simulation.alpha(alpha).restart()
 }
@@ -2197,6 +2437,7 @@ function _appendNodeShapeAndLabel(
         .attr('id', (d) => `${graphHostId.value + '-node-' + d.id}`)
         .attr('r', (d) => (d.renderedSize as NodeSizeCircle).radius)
         .style('fill', (d) => (d.color ? d.color : ''))
+        .style('stroke-dasharray', (d) => _dashArrayForOutline(d.outline))
 
     //shape rect
     nodeContainerGroup
@@ -2211,6 +2452,7 @@ function _appendNodeShapeAndLabel(
         .attr('rx', (d) => (d.props as NodeRect).cornerRadius)
         .attr('ry', (d) => (d.props as NodeRect).cornerRadius)
         .style('fill', (d) => (d.color ? d.color : ''))
+        .style('stroke-dasharray', (d) => _dashArrayForOutline(d.outline))
 
     //label
     const nodeForeignObject = nodeContainerGroup
@@ -2398,21 +2640,21 @@ function onPointerDownNode(event: PointerEvent, node: GraphNode): void {
  * @param node
  */
 function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
-    let nodeElement = graphHost.value
+    const nodeElement = graphHost.value
         .node()!
         .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
     d3.select(nodeElement).classed('on-deletion', true)
 
-    let nodeContainer = d3.select(nodeElement.closest('.graph-controller__node-container'))
+    const nodeContainer = d3.select(nodeElement.closest('.graph-controller__node-container'))
 
     if (node.props.shape === NodeShape.CIRCLE) {
-        let arcGenerator = d3
+        const arcGenerator = d3
                 .arc()
                 .outerRadius((node.props as NodeCircle).radius + 4)
                 .innerRadius((node.props as NodeCircle).radius),
             startArc = [{ startAngle: 0, endAngle: 0 }]
 
-        let path = nodeContainer
+        const path = nodeContainer
             .append('g')
             .attr('class', 'arc')
             .selectAll('path.arc')
@@ -2427,8 +2669,8 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .duration(750)
             .ease(d3.easeLinear)
             .attrTween('d', function (d) {
-                let end = { startAngle: 0, endAngle: 2 * Math.PI }
-                let interpolate = d3.interpolate(d, end)
+                const end = { startAngle: 0, endAngle: 2 * Math.PI }
+                const interpolate = d3.interpolate(d, end)
                 return function (t) {
                     //@ts-ignore
                     return arcGenerator(interpolate(t))
@@ -2442,7 +2684,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             (node.props as NodeRect).cornerRadius
         )
 
-        let nodePath = nodeContainer
+        const nodePath = nodeContainer
             .append('path')
             .attr('fill', 'none')
             .attr('stroke', 'black')
@@ -2450,7 +2692,7 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
             .attr('opacity', '0.7')
             .attr('d', pathData)
 
-        let nodePathLength =
+        const nodePathLength =
             2 * (node.renderedSize as NodeSizeRect).width +
             2 * (node.renderedSize as NodeSizeRect).height
 
@@ -2470,9 +2712,9 @@ function _onPointerDownRenderDeleteAnimationNode(node: GraphNode) {
  * @param node
  */
 function _onPointerDownDeleteNode(node: GraphNode): void {
-    let r = graph.removeNode(node)
+    const r = graph.removeNode(node)
     if (r !== undefined) {
-        let [removedNode, removedLinks] = r
+        const [removedNode, removedLinks] = r
         emit(
             'nodeDeleted',
             {
@@ -2572,11 +2814,11 @@ function onPointerUpNode(event: PointerEvent, node: GraphNode | undefined = unde
  * @param node
  */
 function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
-    let nodeById = graphHost.value
+    const nodeById = graphHost.value
         .node()!
         .querySelector(`#${CSS.escape(graphHostId.value) + '-node-' + node.id}`)!
-    let nodeElement = d3.select(nodeById)
-    let nodeContainer = d3.select(nodeById.closest('.graph-controller__node-container'))
+    const nodeElement = d3.select(nodeById)
+    const nodeContainer = d3.select(nodeById.closest('.graph-controller__node-container'))
 
     if (node.props.shape === NodeShape.CIRCLE) {
         nodeElement.classed('on-deletion', false)
@@ -2584,7 +2826,7 @@ function _onPointerUpCancelDeleteAnimationNode(node: GraphNode) {
         nodeContainer.select('g.arc').remove()
     } else if (node.props.shape === NodeShape.RECTANGLE) {
         if (nodeElement.classed('on-deletion')) {
-            let nodePath = nodeContainer.select('path')
+            const nodePath = nodeContainer.select('path')
             nodePath
                 .attr('stroke-dasharray', 2 * node.props.width + 2 * node.props.height)
                 .attr('stroke-dashoffset', 0)
@@ -2710,14 +2952,14 @@ function onPointerDownDeleteLink(event: PointerEvent, link: GraphLink): void {
  * @param link
  */
 function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
-    let linkElement = graphHost.value
+    const linkElement = graphHost.value
         .node()!
         .querySelector(`#${CSS.escape(graphHostId.value) + '-link-' + link.id}`)
 
     d3.select(linkElement).classed('on-deletion', true)
 
     if (linkElement instanceof SVGPathElement) {
-        let linkPath = d3.select(linkElement),
+        const linkPath = d3.select(linkElement),
             pathLength = linkElement.getTotalLength(),
             textPath = linkElement
                 .closest('.graph-controller__link-container')!
@@ -2726,7 +2968,7 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
                 className.includes('reverse')
             )
 
-        let initialOffset = 0,
+        const initialOffset = 0,
             finalOffset = isReverse ? pathLength : -pathLength
 
         linkPath
@@ -2744,8 +2986,8 @@ function _onPointerDownRenderDeleteAnimationLink(link: GraphLink) {
  * @param link
  */
 function _onPointerDownDeleteLink(link: GraphLink): void {
-    let color = link.color
-    let removedLink = graph.removeLink(link)
+    const color = link.color
+    const removedLink = graph.removeLink(link)
     if (removedLink !== undefined) {
         emit(
             'linkDeleted',
@@ -2766,13 +3008,13 @@ function _onPointerDownDeleteLink(link: GraphLink): void {
  * @param link
  */
 function _onPointerUpCancelDeleteAnimationLink(link: GraphLink) {
-    let linkElement = graphHost.value
+    const linkElement = graphHost.value
         .node()!
         .querySelector(`#${CSS.escape(graphHostId.value) + '-link-' + link.id}`)
 
     if (d3.select(linkElement).classed('on-deletion')) {
         if (linkElement instanceof SVGPathElement) {
-            let linkPath = d3.select(linkElement),
+            const linkPath = d3.select(linkElement),
                 pathLength = linkElement.getTotalLength()
 
             linkPath
@@ -2911,7 +3153,7 @@ function onNodeLabelClicked(event: PointerEvent, node: GraphNode): void {
  */
 function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
     if (link.labelEditable) {
-        let eventTarget = event.target as Element
+        const eventTarget = event.target as Element
         let textPathElement
 
         if (eventTarget.nodeName === 'textPath') {
@@ -2921,7 +3163,7 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
             textPathElement = linkContainer!.querySelector('textPath') as SVGTextPathElement
         }
 
-        let position = _getTextPathPosition(textPathElement)
+        const position = _getTextPathPosition(textPathElement)
         handleInputForLabel(link, position)
     }
 }
@@ -2933,7 +3175,7 @@ function onLinkLabelClicked(event: PointerEvent, link: GraphLink): void {
  * @param position
  */
 function handleInputForLabel(element: GraphNode | GraphLink, position: [number, number]) {
-    let elementType = element instanceof GraphNode ? 'node' : 'link'
+    const elementType = element instanceof GraphNode ? 'node' : 'link'
 
     // create input
     const input = document.createElement('input')
@@ -2995,7 +3237,7 @@ function _updateLabel(element: GraphNode | GraphLink | GraphHyperLink, label: st
     element.label = label
     restart()
 
-    let elementType = element instanceof GraphNode ? 'node' : 'link'
+    const elementType = element instanceof GraphNode ? 'node' : 'link'
     if (elementType === 'link' && element instanceof GraphLink) {
         _handleLinkMjxContainer(element as GraphLink)
     } else if (elementType === 'node' && label !== '') {
@@ -3048,10 +3290,10 @@ function _redrawNodeContainer(node: GraphNode) {
 }
 
 function _getTextPathPosition(textPathElement: SVGTextPathElement): [number, number] {
-    let rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
-    let rectTextPath = textPathElement.getBoundingClientRect()
-    let x = (rectTextPath.x - rectSvg.x - xOffset) / scale
-    let y = (rectTextPath.y - rectSvg.y - yOffset) / scale
+    const rectSvg = graphHost.value.select<SVGElement>('svg')!.node()!.getBoundingClientRect()
+    const rectTextPath = textPathElement.getBoundingClientRect()
+    const x = (rectTextPath.x - rectSvg.x - xOffset) / scale
+    const y = (rectTextPath.y - rectSvg.y - yOffset) / scale
     return [x, y]
 }
 
@@ -3097,7 +3339,7 @@ function _onHandleGraphImport(importContent: string | jsonGraph, restoreZoom: bo
  * @param hyperLinks - parsed hyperlinks
  */
 function _parseToGraph(nodes: parsedNode[], links: parsedLink[], hyperLinks: parsedHyperLink[] = []) {
-    for (let parsedNode of nodes) {
+    for (const parsedNode of nodes) {
         createNode(
             parsedNode.props ?? config.nodeProps,
             EVENT_CAUSE.PROGRAMMATIC_ACTION,
@@ -3110,15 +3352,16 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[], hyperLinks: par
             parsedNode.deletable,
             parsedNode.labelEditable,
             parsedNode.allowIncomingLinks,
-            parsedNode.allowOutgoingLinks
+            parsedNode.allowOutgoingLinks,
+            parsedNode.outline
         )
     }
     const findNodeByImportedId = (importedId: number | string) =>
         graph.nodes.find((node) => node.idImported === importedId)
 
-    for (let parsedLink of links) {
-        let srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
-        let targetNode = findNodeByImportedId(parsedLink.targetIdImported)
+    for (const parsedLink of links) {
+        const srcNode = findNodeByImportedId(parsedLink.sourceIdImported)
+        const targetNode = findNodeByImportedId(parsedLink.targetIdImported)
         if (srcNode && targetNode) {
             createLink(
                 srcNode.id,
@@ -3136,7 +3379,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[], hyperLinks: par
         }
     }
 
-    for (let parsedHyperLink of hyperLinks) {
+    for (const parsedHyperLink of hyperLinks) {
         const srcNodes = parsedHyperLink.sourceIdsImported
             .map((id) => findNodeByImportedId(id))
             .filter((n): n is NonNullable<typeof n> => n !== undefined)
@@ -3162,7 +3405,7 @@ function _parseToGraph(nodes: parsedNode[], links: parsedLink[], hyperLinks: par
  @params idArrayOfLinkColorToChanged - links that will change color
  */
 function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
-    for (let id of idsOfLinkColorToChange) {
+    for (const id of idsOfLinkColorToChange) {
         const currentColorOfLink = graph.links
             .filter((link) => link.id === id)
             .map((link) => link.color)
@@ -3180,7 +3423,7 @@ function _deleteNotNeededColorMarker(idsOfLinkColorToChange: string[]) {
                     currentColorOfLink,
                     id
                 )
-                let canBeDeleted = linkIdsWithColorToChange.every((linkId) =>
+                const canBeDeleted = linkIdsWithColorToChange.every((linkId) =>
                     idsOfLinkColorToChange.includes(linkId)
                 )
                 if (canBeDeleted) {
@@ -3210,6 +3453,9 @@ function resetView(restoreZoom: boolean = false): void {
     linkSelection = undefined
     hyperLinkSelection = undefined
     nodeSelection = undefined
+    badgeSelection = undefined
+    annotationSelection = undefined
+    annotationDrag = undefined
     simulation = undefined
     _resetDraggableLink()
     initData()
@@ -3309,8 +3555,8 @@ function centerView(
     if (maxScale !== undefined) {
         scale = Math.min(maxScale, scale)
     }
-    let yOffset = yMin - (height / scale - ySpan) / 2
-    let xOffset = xMin - (width / scale - xSpan) / 2
+    const yOffset = yMin - (height / scale - ySpan) / 2
+    const xOffset = xMin - (width / scale - xSpan) / 2
 
     svg?.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
 }
@@ -3347,6 +3593,11 @@ function setNodePosition(
 function emitNodesMoved() {
     emit('nodesMoved', getPositionSnapshots(graph))
 }
+
+function emitAnnotationMoved(annotation: GraphAnnotation) {
+    if (annotation.position === undefined) return
+    emit('annotationMoved', [{ anchorId: annotation.anchorId, position: annotation.position }])
+}
 </script>
 
 <template>
@@ -3377,6 +3628,13 @@ function emitNodesMoved() {
     width: 100%;
     height: 100%;
     display: block;
+    background-color: white;
+}
+
+.graph-controller__grid-line {
+    fill: none;
+    stroke: #ddd;
+    stroke-width: 1px;
 }
 
 .graph-controller__link {
@@ -3500,6 +3758,36 @@ function emitNodesMoved() {
     fill: #eb9850;
     stroke: none;
     cursor: pointer;
+}
+
+.graph-controller__badge-container {
+    pointer-events: none;
+}
+
+.graph-controller__badge {
+    fill: white;
+    stroke: #eb9850;
+    stroke-width: 1.5px;
+}
+
+.graph-controller__badge-label {
+    font-family: sans-serif;
+    font-size: 0.7rem;
+    fill: black;
+}
+
+.graph-controller__annotation-container {
+    cursor: pointer;
+}
+
+.graph-controller__annotation-label {
+    font-family: sans-serif;
+    font-size: 0.8rem;
+    fill: black;
+    stroke: white;
+    stroke-width: 3px;
+    paint-order: stroke;
+    pointer-events: all;
 }
 
 .graph-controller__link-label-mathjax-container {

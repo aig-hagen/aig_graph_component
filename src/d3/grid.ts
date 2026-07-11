@@ -51,10 +51,8 @@ export function createGrid(
 
     gridPattern
         .append('path')
+        .attr('class', 'graph-controller__grid-line')
         .attr('d', patternPath(cellSize, gridType))
-        .attr('fill', 'none')
-        .attr('stroke', '#ddd')
-        .attr('stroke-width', 1)
 
     const gridRect = canvas
         .append<SVGRectElement>('rect')

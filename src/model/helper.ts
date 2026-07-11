@@ -20,7 +20,7 @@ export function separateNodeAndLinkIds(
             linkIds = [ids]
         }
     } else {
-        let idStringArray = ids.map(String)
+        const idStringArray = ids.map(String)
         linkIds = idStringArray.filter((id) => id.includes('-'))
         nodeIds = idStringArray.filter((id) => !id.includes('-')).map(Number)
     }
@@ -100,7 +100,7 @@ export function escapeColor(color: string) {
  * @param event
  */
 export function releaseImplicitPointerCapture(event: PointerEvent) {
-    let target = event.target as Element
+    const target = event.target as Element
     if (target.hasPointerCapture(event.pointerId)) {
         target.releasePointerCapture(event.pointerId)
     }
@@ -189,7 +189,7 @@ export function checkForAllNecessaryKeys(
     showErrorMessage: boolean
 ): boolean {
     let isValid = true
-    let difference = allowedKeys.filter((key) => !givenKeys.includes(key))
+    const difference = allowedKeys.filter((key) => !givenKeys.includes(key))
     if (difference.length > 0) {
         isValid = false
         if (showErrorMessage) {

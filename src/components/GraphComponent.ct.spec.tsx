@@ -3,7 +3,9 @@ import GraphComponent from '@/components/GraphComponent.vue'
 import type { Page } from 'playwright/test'
 import {
     ArrowType,
+    NodeOutline,
     NodeShape,
+    type AnnotationPositionSnapshot,
     type jsonGraph,
     type NodeProps,
     type PositionSnapshot
@@ -16,6 +18,10 @@ type EventState = {
         last: PositionSnapshot[] | undefined
         all: PositionSnapshot[][]
     }
+    onAnnotationMoved: {
+        last: AnnotationPositionSnapshot[] | undefined
+        all: AnnotationPositionSnapshot[][]
+    }
 }
 
 // Use fixtures for cleaner tests.
@@ -24,6 +30,10 @@ const test = base.extend<{ events: EventState; component: MountResultJsx; graph:
     events: async ({}, use) => {
         const state: EventState = {
             onNodesMoved: {
+                last: undefined,
+                all: []
+            },
+            onAnnotationMoved: {
                 last: undefined,
                 all: []
             }
@@ -37,6 +47,10 @@ const test = base.extend<{ events: EventState; component: MountResultJsx; graph:
                 onNodesMoved={(positions) => {
                     events.onNodesMoved.last = positions
                     events.onNodesMoved.all.push(positions)
+                }}
+                onAnnotationMoved={(annotations) => {
+                    events.onAnnotationMoved.last = annotations
+                    events.onAnnotationMoved.all.push(annotations)
                 }}
             />
         )
@@ -177,6 +191,138 @@ test('expose setNodePosition', async ({ graph, page }) => {
     const position = await graph.evaluateOnComponent((instance) => instance.getNodePosition(0))
     expect(position).toStrictEqual({ x: 64, y: 50 })
     await expect(page).toHaveScreenshot()
+})
+
+test('expose setNodeOutline', async ({ graph, component }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.setNodeOutline(NodeOutline.DASHED, 0)
+    )
+
+    const dashArray = await component.evaluate((rootEl) => {
+        const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+        const rect = svg?.querySelector<SVGRectElement>('.graph-controller__node')
+        return rect?.style.strokeDasharray
+    })
+    expect(dashArray).toBe('5,4')
+
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.setNodeOutline(undefined, 0)
+    )
+
+    const clearedDashArray = await component.evaluate((rootEl) => {
+        const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+        const rect = svg?.querySelector<SVGRectElement>('.graph-controller__node')
+        return rect?.style.strokeDasharray
+    })
+    expect(clearedDashArray).toBe('')
+})
+
+test('expose setNodeBadge', async ({ graph, component }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    await graph.evaluateOnComponentWithWait((instance) => instance.setNodeBadge(0, '0.5'))
+
+    const badgeText = await component.evaluate((rootEl) => {
+        const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+        return svg?.querySelector('.graph-controller__badge-label')?.textContent
+    })
+    expect(badgeText).toBe('0.5')
+
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.setNodeBadge(0, undefined)
+    )
+
+    const badgeAfterRemoval = await component.evaluate((rootEl) => {
+        const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+        return svg?.querySelector('.graph-controller__badge-container')
+    })
+    expect(badgeAfterRemoval).toBeNull()
+})
+
+test('expose createAnnotation', async ({ graph, component }) => {
+    await graph.createNode({ x: 150, y: 150 })
+
+    await graph.evaluateOnComponentWithWait((instance) => instance.createAnnotation(0, '0.5'))
+
+    const annotationText = await component.evaluate((rootEl) => {
+        const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+        return svg?.querySelector('.graph-controller__annotation-label')?.textContent
+    })
+    expect(annotationText).toBe('0.5')
+})
+
+test('annotation follows node on drag', async ({ graph }) => {
+    const node = await graph.createNode({ x: 150, y: 150 })
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.createAnnotation(0, '0.5', { angle: 0, distance: 40 })
+    )
+
+    const before = await graph.annotation(0).getPosition()
+    await node.drag(50, 30)
+    const after = await graph.annotation(0).getPosition()
+
+    expect(after.x - before.x).toBeCloseTo(50, 0)
+    expect(after.y - before.y).toBeCloseTo(30, 0)
+})
+
+test('dragging annotation triggers event', async ({ graph, events }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.createAnnotation(0, '0.5', { angle: 0, distance: 40 })
+    )
+
+    await graph.annotation(0).drag(20, 0)
+
+    expect(events.onAnnotationMoved.last).toBeDefined()
+    expect(events.onAnnotationMoved.last![0]!.anchorId).toBe(0)
+
+    const position = await graph.evaluateOnComponent((instance) => instance.getAnnotationPosition(0))
+    expect(position).toBeDefined()
+})
+
+test('disabling allowAnnotationDragging prevents dragging', async ({ graph, events }) => {
+    await graph.createNode({ x: 150, y: 150 })
+    await graph.evaluateOnComponentWithWait((instance) =>
+        instance.createAnnotation(0, '0.5', { angle: 0, distance: 40 })
+    )
+    await graph.evaluateOnComponentWithWait((instance) => instance.toggleAnnotationDragging(false))
+
+    const before = await graph.annotation(0).getPosition()
+    await graph.annotation(0).drag(20, 0)
+    const after = await graph.annotation(0).getPosition()
+
+    expect(after.x).toBeCloseTo(before.x, 0)
+    expect(after.y).toBeCloseTo(before.y, 0)
+    expect(events.onAnnotationMoved.last).toBeUndefined()
+})
+
+test('annotation auto-places away from edges', async ({ graph }) => {
+    const nodeA = await graph.createNode({ x: 150, y: 150 })
+    const nodeB = await graph.createNode({ x: 350, y: 150 })
+    await nodeA.creatLink(nodeB)
+
+    await graph.evaluateOnComponentWithWait((instance) => instance.createAnnotation(0, '0.5'))
+
+    const result = await graph.evaluateOnComponent((instance) => {
+        const anchorPos = instance.getNodePosition(0)
+        const text = document.getElementById('1-test-graph-annotation-0')
+        const container = text?.closest('.graph-controller__annotation-container')
+        const match = /translate\(([^,]+),([^)]+)\)/.exec(container?.getAttribute('transform') ?? '')
+        return {
+            anchorX: anchorPos.x,
+            anchorY: anchorPos.y,
+            annotationX: match ? parseFloat(match[1]!) : null,
+            annotationY: match ? parseFloat(match[2]!) : null
+        }
+    })
+
+    expect(result.annotationX).not.toBeNull()
+    const angle = Math.atan2(result.annotationY! - result.anchorY, result.annotationX! - result.anchorX)
+    // the edge to nodeB points at angle ~0 (towards +x); the annotation should avoid that direction
+    const angularDistanceFromEdge = Math.min(Math.abs(angle), 2 * Math.PI - Math.abs(angle))
+    expect(angularDistanceFromEdge).toBeGreaterThan(Math.PI / 2)
 })
 
 test('setting node position can fix', async ({ graph, page }) => {
@@ -530,6 +676,53 @@ class GraphFixture {
         const result = await this.evaluateOnComponent(fn, arg)
         await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
         return result
+    }
+
+    annotation(anchorId: number) {
+        return new AnnotationFixture(this.component, this.page, anchorId)
+    }
+}
+
+class AnnotationFixture {
+    constructor(
+        private component: MountResultJsx,
+        private page: Page,
+        private anchorId: number
+    ) {}
+
+    async getPosition(): Promise<Position> {
+        const position = await this.component.evaluate((rootEl, anchorId) => {
+            const svg = rootEl.querySelector('svg') as SVGSVGElement | null
+            if (!svg) throw new Error('SVG element not found')
+
+            const text = svg.querySelector<SVGTextElement>(
+                `#${CSS.escape(`1-test-graph-annotation-${anchorId}`)}`
+            )
+            if (!text) throw new Error(`Annotation text '#1-test-graph-annotation-${anchorId}' not found`)
+
+            const localPoint = svg.createSVGPoint()
+            localPoint.x = 0
+            localPoint.y = 0
+
+            const ctm = text.getCTM()
+            if (!ctm) throw new Error('Annotation CTM is unavailable')
+
+            const globalPoint = localPoint.matrixTransform(ctm)
+            return { x: globalPoint.x, y: globalPoint.y }
+        }, this.anchorId)
+        return position
+    }
+
+    async drag(dx: number, dy: number) {
+        const position = await this.getPosition()
+        await this.page.mouse.move(position.x, position.y)
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        await this.page.mouse.down()
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        await this.page.mouse.move(position.x + dx, position.y + dy, { steps: 20 })
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
+        await this.page.mouse.up()
+        await this.page.waitForTimeout(DEFAULT_WAIT_FOR_RERENDER_MS)
     }
 }
 

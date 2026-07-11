@@ -66,7 +66,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const nodes: parsedNode[] = []
     if (nodesInput.length) {
         for (const node of nodesInput) {
-            let [, id, nodeLabel] = (node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []).map(
+            const [, id, nodeLabel] = (node.match(/(\w+) (.*)/) || node.match(/(\w+)/) || []).map(
                 (item) => item.trim()
             )
             if (id) {
@@ -81,7 +81,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
     const links: parsedLink[] = []
     if (linksInput.length) {
         for (const link of linksInput) {
-            let [, source, target, linkLabel] = (
+            const [, source, target, linkLabel] = (
                 link.match(/(\w+) (\w+) (.*)/) ||
                 link.match(/(\w+) (\w+)/) ||
                 []
@@ -105,7 +105,7 @@ export function parseTGF(file: string): [parsedNode[], parsedLink[]] {
  * */
 export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[], parsedHyperLink[]] {
     const nodes: parsedNode[] = []
-    for (let node of jsonGraph.nodes) {
+    for (const node of jsonGraph.nodes) {
         nodes.push({
             idImported: node.id,
             x: node.x,
@@ -117,11 +117,12 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
             deletable: node.deletable,
             labelEditable: node.labelEditable,
             allowIncomingLinks: node.allowIncomingLinks,
-            allowOutgoingLinks: node.allowOutgoingLinks
+            allowOutgoingLinks: node.allowOutgoingLinks,
+            outline: node.outline
         })
     }
     const links: parsedLink[] = []
-    for (let link of jsonGraph.links) {
+    for (const link of jsonGraph.links) {
         links.push({
             sourceIdImported: link.sourceId,
             targetIdImported: link.targetId,
@@ -133,7 +134,7 @@ export function parseJSONGraph(jsonGraph: jsonGraph): [parsedNode[], parsedLink[
         })
     }
     const hyperLinks: parsedHyperLink[] = []
-    for (let hl of jsonGraph.hyperLinks ?? []) {
+    for (const hl of jsonGraph.hyperLinks ?? []) {
         hyperLinks.push({
             sourceIdsImported: hl.sourceIds,
             targetIdImported: hl.targetId,
