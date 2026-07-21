@@ -124,10 +124,13 @@ onMounted(() => {
     graphHost.value = graphHostToInit
     initData()
     window.addEventListener('resize', handleWindowResize)
+    canvasDimensionsResizeObserver = new ResizeObserver(() => updateCanvasDimensions())
+    canvasDimensionsResizeObserver.observe(hostElement)
 })
 
 onUnmounted(() => {
     window.removeEventListener('resize', handleWindowResize)
+    canvasDimensionsResizeObserver?.disconnect()
 })
 
 const browser = Bowser.getParser(window.navigator.userAgent)
@@ -174,6 +177,7 @@ let longRightClickTimerNode: ReturnType<typeof setTimeout>
 let longRightClickTimerLink: ReturnType<typeof setTimeout>
 let longRightClickTimerHyperLink: ReturnType<typeof setTimeout>
 let nodeLabelResizeObserver: ResizeObserver
+let canvasDimensionsResizeObserver: ResizeObserver | undefined
 const COLOR_MASK_KEEP = 'white'
 const COLOR_MASK_REMOVE = 'black'
 const emit = defineEmits<{
@@ -1405,9 +1409,13 @@ function toggleNodeAutoGrow(isEnabled: boolean) {
 
 //endregion
 
+function updateCanvasDimensions() {
+    width = graphHost.value!.node()!.clientWidth
+    height = graphHost.value!.node()!.clientHeight
+}
+
 function initData() {
-    width = graphHost.value.node()!.clientWidth
-    height = graphHost.value.node()!.clientHeight
+    updateCanvasDimensions()
     zoom = createZoom(
         (event: D3ZoomEvent<any, any>) => onZoom(event, config.zoomEnabled),
         config.zoomEnabled
