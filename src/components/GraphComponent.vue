@@ -241,6 +241,7 @@ defineExpose({
     toggleNodeAutoGrow,
     resetView: resetViewPublic,
     centerView,
+    setViewport,
     setNodeGroupsFn,
     getNodePosition,
     setNodePosition,
@@ -3567,6 +3568,22 @@ function centerView(
     const xOffset = xMin - (width / scale - xSpan) / 2
 
     svg?.call(zoom.transform, d3.zoomIdentity.scale(scale).translate(-xOffset, -yOffset))
+}
+
+/**
+ * Applies an arbitrary saved viewport. Routes through zoom.transform so the cached
+ * xOffset/yOffset/scale (used by pointer-to-graph conversions) stay in sync, unlike
+ * setting the group transform by hand.
+ *
+ * @param k - Scale factor.
+ * @param x - Horizontal translation of the canvas group.
+ * @param y - Vertical translation of the canvas group.
+ */
+function setViewport(k: number, x: number, y: number): void {
+    if (zoom === undefined) {
+        return
+    }
+    svg?.call(zoom.transform, d3.zoomIdentity.translate(x, y).scale(k))
 }
 
 function setNodeGroupsFn(nodeGroupsFn: (nodeId: number) => Set<number>) {

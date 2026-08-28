@@ -1,7 +1,7 @@
 {
     "name": "@aig-hagen/graph-component",
     "description": "A simple tool that lets you quickly and interactively create, modify and display graphs.",
-    "version": "5.0.0-rc.10",
+    "version": "5.0.0-rc.11",
     "type": "module",
     "exports": {
         "./ce": {
@@ -78,5 +78,8 @@
         "vitest": "^4.1.1",
         "vue-tsc": "^3.1.4",
         "vue3-webcomponent-wrapper": "^0.2.0"
+    },
+    "allowScripts": {
+        "esbuild@0.25.12": true
     }
 }
